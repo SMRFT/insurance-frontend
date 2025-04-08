@@ -24,7 +24,7 @@ function AppContent() {
       {/* Main content */}
       <div
         style={{
-          marginLeft: hideSidebar ? "0" : "280px", // Adjust margin if the sidebar is hidden
+          marginLeft: hideSidebar ? "0" : "220px", // Adjust margin if the sidebar is hidden
           padding: "20px",
           width: "100%",
         }}

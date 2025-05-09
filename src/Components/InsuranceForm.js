@@ -238,6 +238,7 @@ function InsuranceForm() {
     treatmentType: "",
     radiotherapyCycles: "",
   })
+  
   useEffect(() => {
     const fetchInsuranceCompanies = async () => {
       try {
@@ -250,7 +251,6 @@ function InsuranceForm() {
 
     fetchInsuranceCompanies();
   }, []);
-
 
   // Load form data from navigation state when component mounts
   useEffect(() => {
@@ -280,12 +280,36 @@ function InsuranceForm() {
     }
   }, [formDataFromUpdate])
 
+  // Effect to automatically set OP number when UHID is entered
+  useEffect(() => {
+    // Only auto-set OP number if this is a new form (not an update)
+    if (Object.keys(formDataFromUpdate).length === 0 && formData.patient_uhid) {
+      setFormData(prevData => ({
+        ...prevData,
+        opIpSelection: "OP",
+        opIpNumber: formData.patient_uhid
+      }));
+    }
+  }, [formData.patient_uhid, formDataFromUpdate]);
+
   const handleChange = (e) => {
     const { name, value, type, files } = e.target
-    setFormData({
-      ...formData,
-      [name]: type === "file" ? files[0] : value,
-    })
+    
+    if (name === "patient_uhid" && !Object.keys(formDataFromUpdate).length) {
+      // For new forms, when UHID changes, update both UHID and OP number
+      setFormData({
+        ...formData,
+        [name]: value,
+        opIpSelection: "OP",
+        opIpNumber: value // Auto-set OP number to match UHID
+      });
+    } else {
+      // Normal handling for other fields or during update
+      setFormData({
+        ...formData,
+        [name]: type === "file" ? files[0] : value,
+      });
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -357,7 +381,8 @@ function InsuranceForm() {
         // If we have an identifier, proceed with update
         if (updateIdentifier) {
           console.log(`Sending PUT request to update record with identifier: ${updateIdentifier}`);
-          let updateEndpoint = `http://127.0.0.1:8000/insurance/update/${updateIdentifier}/`;
+          let updateEndpoint = `http://127.0.0.1:8000/insurance/update/${encodeURIComponent(updateIdentifier)}/`;
+
           
           response = await fetch(updateEndpoint, {
             method: "PUT",
@@ -427,6 +452,7 @@ function InsuranceForm() {
       alert(`Error: ${error.message}`);
     }
   };
+  
   return (
     <FormWrapper>
       <FormContainer>
@@ -436,7 +462,7 @@ function InsuranceForm() {
           <FormSection>
             <SectionTitle>Patient Information</SectionTitle>
             <Row>
-            <Col sm={3}>
+              <Col sm={3}>
                 <Label>Date</Label>
                 <Input type="date" name="date" value={formData.date} onChange={handleChange} />
               </Col>
@@ -532,22 +558,22 @@ function InsuranceForm() {
 
               {/* Conditional Field for Specific Insurance Company */}
               {formData.companyName === "General Insurance" && (
-        <Col sm={6}>
-          <Label>Select Insurance Provider</Label>
-          <Select
-            name="specificInsuranceCompany"
-            value={formData.specificInsuranceCompany}
-            onChange={handleChange}
-          >
-            <option value="">Select Insurance Provider</option>
-            {insuranceCompanies.map((company, index) => (
-              <option key={index} value={company.name}>
-                {company.name}
-              </option>
-            ))}
-          </Select>
-        </Col>
-      )}
+                <Col sm={6}>
+                  <Label>Select Insurance Provider</Label>
+                  <Select
+                    name="specificInsuranceCompany"
+                    value={formData.specificInsuranceCompany}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Insurance Provider</option>
+                    {insuranceCompanies.map((company, index) => (
+                      <option key={index} value={company.name}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Col>
+              )}
             </Row>
           </FormSection>
 

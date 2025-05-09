@@ -329,7 +329,7 @@ const InsuranceReport = () => {
               <option value="General Insurance">General Insurance</option>
               <option value="ECHS">ECHS</option>
               <option value="ESI">ESI</option>
-              <option value="Railway">Railway</option>
+              <option value="Railway CTSE">Railway CTSE</option>
               <option value="TNCM">TNCM</option>
               <option value="TKT">TKT</option>
               <option value="FCA">FCA</option>
@@ -442,6 +442,7 @@ const InsuranceReport = () => {
               </TableRow>
             )}
           </tbody>
+          
         </Table>
       </ScrollableTableContainer>
     </Container>

@@ -8,48 +8,6 @@ import "react-toastify/dist/ReactToastify.css"
 import axios from "axios"
 
 // Sample insurance companies list - replace with your actual import
-const InsuranceCompanies = [
-  "Acko General Insurance Company",
-  "Aditya Birla General Insurance Company",
-  "Bajaj Allianz General Insurance Company",
-  "Care Health Insurance",
-  "Cholamandalam MS General Insurance",
-  "Digit Insurance",
-  "East West Assist Insurance TPA Private Limited",
-  "Ericson Insurance TPA Pvt. Ltd.",
-  "Family Health Plan TPA Limited",
-  "Future Generali General Insurance",
-  "Good Health Insurance TPA Ltd",
-  "HDFC ERGO General Insurance Company",
-  "Health Insurance TPA of India Ltd",
-  "HealthIndia Insurance TPA Services Pvt. Ltd.",
-  "Heritage Health Insurance TPA Pvt Ltd",
-  "ICICI Lombard General Insurance Company Limited",
-  "IFFCO Tokio General Insurance Company Limited",
-  "Liberty General insurance Limited",
-  "ManipalCigna Health Insurance Company Ltd",
-  "MDIndia Health Insurance TPA Private Limited",
-  "MD India - Govt",
-  "MD India - Pensioner",
-  "Medi Assist Insurance TPA Private Limited",
-  "Medi Assist - Govt",
-  "Medi Assist - Pensioner",
-  "Med Save Insurance TPA Pvt., Ltd.,",
-  "Medvantage Insurance TPA",
-  "Navi General Insurance",
-  "TNNHIS",
-  "Niva Bupa General Insurance",
-  "Paramount Health Services And Insurance TPA",
-  "Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
-  "Raksha Health Insurance TPA Pvt Ltd",
-  "Reliance General Insurance",
-  "SafeWay Insurance TPA Pvt., Ltd.,",
-  "SBI General Insurance",
-  "Star Health and Allied Insurance",
-  "Tata AIG General Insurance Company Limited",
-  "Universal Sompo General Insurance Company Ltd",
-  "Vidal Health Insurance TPA"
-]
 
 const primaryColor = "#6F8B83"
 const backgroundColor = "#F9F9F9"
@@ -123,6 +81,8 @@ const Daycare = () => {
     specificInsuranceCompany: "",
   })
 
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
+
   const handleChange = (e) => {
     const { name, value } = e.target
 
@@ -152,7 +112,7 @@ const Daycare = () => {
   useEffect(() => {
     const fetchInsuranceCompanies = async () => {
       try {
-        const response = await axios.get("https://insurance.shinovadatabase.in/get_insurance_companies/");
+        const response = await axios.get(`${Insurancebaseurl}get_insurance_companies/`);
         setInsuranceCompanies(response.data);
       } catch (error) {
         console.error("Error fetching insurance companies:", error);
@@ -187,7 +147,7 @@ const Daycare = () => {
     formDataToSend.append("specificInsuranceCompany", formData.specificInsuranceCompany)
 
     try {
-      const response = await axios.post("https://insurance.shinovadatabase.in/submit-daycare/", formDataToSend, {
+      const response = await axios.post(`${Insurancebaseurl}submit-daycare/`, formDataToSend, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

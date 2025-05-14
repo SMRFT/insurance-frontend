@@ -146,12 +146,15 @@ const FormUpdate = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date()); // Initialize with the current date
+
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
+  
   const navigate = useNavigate(); // Initialize the navigate hook
 
     useEffect(() => {
       if (selectedDate) {
         const formattedDate = selectedDate.toLocaleDateString('en-CA'); // "YYYY-MM-DD" format (ISO)
-        fetch(`http://127.0.0.1:8000/insurance/?companyName=${selectedCompany}&date=${formattedDate}`)
+        fetch(`${Insurancebaseurl}insurance/?companyName=${selectedCompany}&date=${formattedDate}`)
           .then((response) => response.json())
           .then((data) => {
             setInsuranceData(data);

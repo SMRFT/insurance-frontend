@@ -181,6 +181,8 @@ const InsuranceReport = () => {
   const [selectedCompany, setSelectedCompany] = useState("");
   const [searchBy, setSearchBy] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
   
   // Date filter states
   const [startDate, setStartDate] = useState("");
@@ -202,7 +204,7 @@ const InsuranceReport = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/insurance/") // API endpoint for insurance data
+    fetch(`${Insurancebaseurl}insurance/`) // API endpoint for insurance data
       .then((response) => response.json())
       .then((data) => {
         setInsuranceData(data);
@@ -291,7 +293,7 @@ const InsuranceReport = () => {
 
   const handleViewFile = (fileId) => {
     // Construct file URL using the actual file ID
-    const fileUrl = `http://127.0.0.1:8000/insurance/serve_file/${fileId}`;
+    const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`;
     window.open(fileUrl, '_blank');
   };
   

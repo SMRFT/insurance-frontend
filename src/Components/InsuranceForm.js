@@ -238,11 +238,13 @@ function InsuranceForm() {
     treatmentType: "",
     radiotherapyCycles: "",
   })
+
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
   
   useEffect(() => {
     const fetchInsuranceCompanies = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/get_insurance_companies/");
+        const response = await axios.get(`${Insurancebaseurl}get_insurance_companies/`);
         setInsuranceCompanies(response.data);
       } catch (error) {
         console.error("Error fetching insurance companies:", error);
@@ -381,7 +383,7 @@ function InsuranceForm() {
         // If we have an identifier, proceed with update
         if (updateIdentifier) {
           console.log(`Sending PUT request to update record with identifier: ${updateIdentifier}`);
-          let updateEndpoint = `http://127.0.0.1:8000/insurance/update/${encodeURIComponent(updateIdentifier)}/`;
+          let updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(updateIdentifier)}/`;
 
           
           response = await fetch(updateEndpoint, {
@@ -396,7 +398,7 @@ function InsuranceForm() {
         // This is a new submission
         console.log("Sending POST request to create new record");
         
-        response = await fetch("http://127.0.0.1:8000/insurance/", {
+        response = await fetch(`${Insurancebaseurl}insurance/`, {
           method: "POST",
           body: formDataToSend,
         });

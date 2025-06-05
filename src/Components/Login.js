@@ -216,7 +216,7 @@ function Login() {
           if (role === 'EMPLOYEE') {
             navigate('/InsuranceForm');
           } else if (role === 'SUPER ADMIN') {
-            navigate('/Daycare');
+            navigate('/InsuranceForm');
           } else {
             navigate('/InsuranceReport'); // default or admin
           }

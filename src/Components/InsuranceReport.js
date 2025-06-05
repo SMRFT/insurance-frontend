@@ -16,34 +16,46 @@ const Container = styled.div`
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  width: 1000px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
-  
+  box-sizing: border-box;
+
+  @media (max-width: 1200px) {
+    max-width: 95%;
+  }
+
   @media (max-width: 768px) {
     padding: 15px;
+    border-radius: 10px;
   }
-  
+
   @media (max-width: 480px) {
     padding: 10px;
+    border-radius: 8px;
+    margin: 0 5px;
+  }
+
+  @media (max-width: 320px) {
+    padding: 8px;
+    margin: 0 2px;
   }
 `
 
 const Title = styled.h2`
   text-align: center;
   color: ${primaryColor};
-  font-size: 28px;
+  font-size: clamp(18px, 4vw, 28px);
   margin-bottom: 30px;
   font-family: "Roboto", sans-serif;
   font-weight: bold;
   
   @media (max-width: 768px) {
-    font-size: 24px;
     margin-bottom: 20px;
   }
   
   @media (max-width: 480px) {
-    font-size: 20px;
     margin-bottom: 15px;
   }
 `
@@ -62,54 +74,75 @@ const FilterContainer = styled.div`
   position: relative;
   z-index: 10;
   
+  @media (max-width: 1024px) {
+    gap: 12px;
+    padding: 15px;
+  }
+  
   @media (max-width: 768px) {
     gap: 10px;
-    padding: 15px;
+    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
   }
   
   @media (max-width: 480px) {
     gap: 8px;
     padding: 10px;
+    margin: 10px auto;
   }
 `
 
 const FilterWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   min-width: 150px;
+  flex: 1;
+  
+  @media (max-width: 1024px) {
+    min-width: 130px;
+  }
   
   @media (max-width: 768px) {
-    min-width: 120px;
+    min-width: 100%;
+    margin-bottom: 10px;
   }
   
   @media (max-width: 480px) {
-    min-width: 100px;
+    margin-bottom: 8px;
   }
 `
 
 const SearchWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-width: 200px;
+  align-items: stretch;
+  min-width: 180px;
+  flex: 1;
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     min-width: 150px;
   }
   
+  @media (max-width: 768px) {
+    min-width: 100%;
+    margin-bottom: 10px;
+  }
+  
   @media (max-width: 480px) {
-    min-width: 120px;
+    margin-bottom: 8px;
   }
 `
 
 const FormControl = styled.select`
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
   background-color: white;
+  box-sizing: border-box;
   
   &:focus {
     border-color: ${primaryColor};
@@ -117,19 +150,25 @@ const FormControl = styled.select`
     box-shadow: 0 0 0 2px ${primaryColor}30;
   }
   
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
   @media (max-width: 480px) {
     font-size: 12px;
-    padding: 6px 8px;
+    padding: 8px;
   }
 `
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
   background-color: white;
+  box-sizing: border-box;
   
   &:focus {
     border-color: ${primaryColor};
@@ -137,19 +176,25 @@ const SearchInput = styled.input`
     box-shadow: 0 0 0 2px ${primaryColor}30;
   }
   
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
   @media (max-width: 480px) {
     font-size: 12px;
-    padding: 6px 8px;
+    padding: 8px;
   }
 `
 
 const StyledDatePicker = styled(DatePicker)`
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
   background-color: white;
+  box-sizing: border-box;
   
   &:focus {
     border-color: ${primaryColor};
@@ -157,9 +202,14 @@ const StyledDatePicker = styled(DatePicker)`
     box-shadow: 0 0 0 2px ${primaryColor}30;
   }
   
+  @media (max-width: 768px) {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  
   @media (max-width: 480px) {
     font-size: 12px;
-    padding: 6px 8px;
+    padding: 8px;
   }
 `
 
@@ -170,6 +220,10 @@ const Label = styled.label`
   font-family: 'Roboto', sans-serif;
   display: block;
   margin-bottom: 5px;
+  
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
   
   @media (max-width: 480px) {
     font-size: 12px;
@@ -184,33 +238,54 @@ const ScrollableTableContainer = styled.div`
   border: 1px solid ${accentColor};
   border-radius: 10px;
   background-color: #fff;
+  width: 100%;
+  
+  @media (max-width: 1024px) {
+    max-height: 400px;
+  }
   
   @media (max-width: 768px) {
     max-height: 350px;
+    border-radius: 8px;
   }
   
   @media (max-width: 480px) {
     max-height: 300px;
+    border-radius: 6px;
+  }
+  
+  @media (max-width: 360px) {
+    max-height: 250px;
   }
 `
 
 const Table = styled.table`
   width: 100%;
-  min-width: 800px;
+  min-width: 1000px;
   border-collapse: collapse;
   margin: 0;
   background-color: #fff;
   font-family: "Roboto", sans-serif;
   font-size: 14px;
   
+  @media (max-width: 1024px) {
+    min-width: 900px;
+    font-size: 13px;
+  }
+  
   @media (max-width: 768px) {
     font-size: 12px;
-    min-width: 700px;
+    min-width: 800px;
   }
   
   @media (max-width: 480px) {
     font-size: 11px;
-    min-width: 600px;
+    min-width: 700px;
+  }
+  
+  @media (max-width: 360px) {
+    font-size: 10px;
+    min-width: 650px;
   }
 `
 
@@ -225,15 +300,22 @@ const TableHeader = styled.th`
   z-index: 5;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  font-size: inherit;
+  
+  @media (max-width: 1024px) {
+    padding: 10px 6px;
+  }
   
   @media (max-width: 768px) {
-    padding: 10px 6px;
-    font-size: 12px;
+    padding: 8px 5px;
   }
   
   @media (max-width: 480px) {
-    padding: 8px 4px;
-    font-size: 11px;
+    padding: 6px 4px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 5px 3px;
   }
 `
 
@@ -256,35 +338,62 @@ const TableCell = styled.td`
   word-break: break-word;
   line-height: 1.6;
   max-width: 150px;
+  font-size: inherit;
+  
+  @media (max-width: 1024px) {
+    padding: 10px 6px;
+    max-width: 130px;
+  }
   
   @media (max-width: 768px) {
-    padding: 10px 6px;
+    padding: 8px 5px;
     max-width: 120px;
   }
   
   @media (max-width: 480px) {
-    padding: 8px 4px;
+    padding: 6px 4px;
     max-width: 100px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 5px 3px;
+    max-width: 90px;
   }
 `
 
 const Button = styled.button`
-  padding: 8px 16px;
+  padding: 10px 16px;
   background-color: ${accentColor};
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
-  margin-top: 20px;
+  margin: 5px;
+  flex: 1;
+  min-width: 120px;
   
   &:hover {
     background-color: ${primaryColor};
   }
   
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 8px 12px;
+    min-width: 100px;
+  }
+  
   @media (max-width: 480px) {
     font-size: 12px;
-    padding: 6px 12px;
+    padding: 8px 10px;
+    margin: 3px;
+    min-width: 80px;
+  }
+  
+  @media (max-width: 360px) {
+    font-size: 11px;
+    padding: 6px 8px;
+    min-width: 70px;
   }
 `
 
@@ -293,6 +402,12 @@ const ButtonGroup = styled.div`
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    gap: 8px;
+    flex-direction: column;
+  }
   
   @media (max-width: 480px) {
     gap: 5px;
@@ -312,9 +427,19 @@ const ViewButton = styled.button`
     background-color: ${accentColor};
   }
   
-  @media (max-width: 480px) {
+  @media (max-width: 768px) {
     padding: 3px 6px;
+    font-size: 11px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 2px 5px;
     font-size: 10px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 2px 4px;
+    font-size: 9px;
   }
 `
 
@@ -334,16 +459,50 @@ const BlinkingLight = styled.div`
       opacity: 0;
     }
   }
+  
+  @media (max-width: 480px) {
+    width: 8px;
+    height: 8px;
+  }
+  
+  @media (max-width: 360px) {
+    width: 6px;
+    height: 6px;
+  }
 `
 
 const ResultsInfo = styled.div`
   text-align: center;
-  margin: 10px 0;
+  margin: 15px 0;
   color: ${textColor};
   font-weight: 500;
+  font-size: 16px;
+  
+  @media (max-width: 768px) {
+    font-size: 14px;
+    margin: 12px 0;
+  }
   
   @media (max-width: 480px) {
-    font-size: 14px;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+  
+  @media (max-width: 360px) {
+    font-size: 12px;
+  }
+`
+
+const ResponsiveTableWrapper = styled.div`
+  width: 100%;
+  margin: 20px 0;
+  
+  @media (max-width: 768px) {
+    margin: 15px 0;
+  }
+  
+  @media (max-width: 480px) {
+    margin: 10px 0;
   }
 `
 
@@ -574,76 +733,78 @@ const InsuranceReport = () => {
 
       <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>
 
-      <ScrollableTableContainer>
-        <Table>
-          <thead>
-            <tr>
-              <TableHeader>Patient UHID</TableHeader>
-              <TableHeader>Patient Name</TableHeader>
-              <TableHeader>Date</TableHeader>
-              <TableHeader>IP / OP Number</TableHeader>
-              <TableHeader>Company Name</TableHeader>
-              <TableHeader>Bill Number</TableHeader>
-              <TableHeader>Bill Amount</TableHeader>
-              <TableHeader>Billing File</TableHeader>
-              <TableHeader>Date of Discharge</TableHeader>
-              <TableHeader>Status</TableHeader>
-              <TableHeader>Submission Status</TableHeader>
-              <TableHeader>Query File</TableHeader>
-              <TableHeader>Approval Amount</TableHeader>
-              <TableHeader>Claimed Amount</TableHeader>
-              <TableHeader>Settled Amount</TableHeader>
-              <TableHeader>Approval</TableHeader>
-              <TableHeader>Follow-Up</TableHeader>
-              <TableHeader>Reason Not Match</TableHeader>
-              <TableHeader>Claim Option</TableHeader>
-              <TableHeader>Claim Details</TableHeader>
-              <TableHeader>Not Claim Reason</TableHeader>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.length > 0 ? (
-              filteredData.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>{item.patient_uhid || "N/A"}</TableCell>
-                  <TableCell>{item.patient_name || "N/A"}</TableCell>
-                  <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
-                  <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
-                  <TableCell>{item.companyName || "N/A"}</TableCell>
-                  <TableCell>{item.billNumber || "N/A"}</TableCell>
-                  <TableCell>{item.billAmount || "N/A"}</TableCell>
-                  <TableCell>
-                    {item.billingFile && <ViewButton onClick={() => handleViewFile(item.billingFile)}>View</ViewButton>}
+      <ResponsiveTableWrapper>
+        <ScrollableTableContainer>
+          <Table>
+            <thead>
+              <tr>
+                <TableHeader>Patient UHID</TableHeader>
+                <TableHeader>Patient Name</TableHeader>
+                <TableHeader>Date</TableHeader>
+                <TableHeader>IP / OP Number</TableHeader>
+                <TableHeader>Company Name</TableHeader>
+                <TableHeader>Bill Number</TableHeader>
+                <TableHeader>Bill Amount</TableHeader>
+                <TableHeader>Billing File</TableHeader>
+                <TableHeader>Date of Discharge</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Submission Status</TableHeader>
+                <TableHeader>Query File</TableHeader>
+                <TableHeader>Approval Amount</TableHeader>
+                <TableHeader>Claimed Amount</TableHeader>
+                <TableHeader>Settled Amount</TableHeader>
+                <TableHeader>Approval</TableHeader>
+                <TableHeader>Follow-Up</TableHeader>
+                <TableHeader>Reason Not Match</TableHeader>
+                <TableHeader>Claim Option</TableHeader>
+                <TableHeader>Claim Details</TableHeader>
+                <TableHeader>Not Claim Reason</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.length > 0 ? (
+                filteredData.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{item.patient_uhid || "N/A"}</TableCell>
+                    <TableCell>{item.patient_name || "N/A"}</TableCell>
+                    <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
+                    <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
+                    <TableCell>{item.companyName || "N/A"}</TableCell>
+                    <TableCell>{item.billNumber || "N/A"}</TableCell>
+                    <TableCell>{item.billAmount || "N/A"}</TableCell>
+                    <TableCell>
+                      {item.billingFile && <ViewButton onClick={() => handleViewFile(item.billingFile)}>View</ViewButton>}
+                    </TableCell>
+                    <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
+                    <TableCell style={{ whiteSpace: "nowrap" }}>
+                      {item.submissionStatus === "Physical" && <BlinkingLight />}
+                    </TableCell>
+                    <TableCell>{item.submissionStatus || "N/A"}</TableCell>
+                    <TableCell>
+                      {item.queryUpload && <ViewButton onClick={() => handleViewFile(item.queryUpload)}>View</ViewButton>}
+                    </TableCell>
+                    <TableCell>{item.approvalAmount || "N/A"}</TableCell>
+                    <TableCell>{item.claimedAmount || "N/A"}</TableCell>
+                    <TableCell>{item.settledAmount || "N/A"}</TableCell>
+                    <TableCell>{item.approval || "N/A"}</TableCell>
+                    <TableCell>{item.followUp || "N/A"}</TableCell>
+                    <TableCell>{item.reasonNotMatch || "N/A"}</TableCell>
+                    <TableCell>{item.claimOption || "N/A"}</TableCell>
+                    <TableCell>{item.claimDetails || "N/A"}</TableCell>
+                    <TableCell>{item.notClaimReason || "N/A"}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="21" style={{ textAlign: "center", padding: "20px" }}>
+                    No records found matching the current filters
                   </TableCell>
-                  <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
-                  <TableCell style={{ whiteSpace: "nowrap" }}>
-                    {item.submissionStatus === "Physical" && <BlinkingLight />}
-                  </TableCell>
-                  <TableCell>{item.submissionStatus || "N/A"}</TableCell>
-                  <TableCell>
-                    {item.queryUpload && <ViewButton onClick={() => handleViewFile(item.queryUpload)}>View</ViewButton>}
-                  </TableCell>
-                  <TableCell>{item.approvalAmount || "N/A"}</TableCell>
-                  <TableCell>{item.claimedAmount || "N/A"}</TableCell>
-                  <TableCell>{item.settledAmount || "N/A"}</TableCell>
-                  <TableCell>{item.approval || "N/A"}</TableCell>
-                  <TableCell>{item.followUp || "N/A"}</TableCell>
-                  <TableCell>{item.reasonNotMatch || "N/A"}</TableCell>
-                  <TableCell>{item.claimOption || "N/A"}</TableCell>
-                  <TableCell>{item.claimDetails || "N/A"}</TableCell>
-                  <TableCell>{item.notClaimReason || "N/A"}</TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan="20" style={{ textAlign: "center", padding: "20px" }}>
-                  No records found matching the current filters
-                </TableCell>
-              </TableRow>
-            )}
-          </tbody>
-        </Table>
-      </ScrollableTableContainer>
+              )}
+            </tbody>
+          </Table>
+        </ScrollableTableContainer>
+      </ResponsiveTableWrapper>
 
       <style jsx global>{`
         .date-picker-popper {
@@ -656,6 +817,35 @@ const InsuranceReport = () => {
         
         .react-datepicker {
           z-index: 9999 !important;
+        }
+        
+        /* Custom scrollbar styling */
+        @media (max-width: 768px) {
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          
+          ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+          }
+          
+          ::-webkit-scrollbar-thumb {
+            background: ${accentColor};
+            border-radius: 4px;
+          }
+          
+          ::-webkit-scrollbar-thumb:hover {
+            background: ${primaryColor};
+          }
+        }
+        
+        /* Ensure body has proper margin for mobile */
+        @media (max-width: 480px) {
+          body {
+            margin: 0;
+            padding: 5px;
+          }
         }
       `}</style>
     </Container>

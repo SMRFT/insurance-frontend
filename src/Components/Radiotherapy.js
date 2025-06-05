@@ -116,6 +116,7 @@ const Button = styled.button`
   border-radius: 5px;
   font-size: 14px;
   transition: all 0.2s ease;
+  white-space: nowrap;
   
   &:hover {
     background-color: ${accentColor};
@@ -302,6 +303,8 @@ const RadiotherapyReport = () => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0])
   const [newPendingAmount, setNewPendingAmount] = useState(0)
 
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -316,7 +319,7 @@ const RadiotherapyReport = () => {
   }, [editValues.paymentAmount, editValues.pendingAmount, currentItem])
 
   const fetchData = () => {
-    fetch("https://insurance.shinovadatabase.in/insurance/")
+    fetch(`${Insurancebaseurl}insurance/`)
       .then((response) => response.json())
       .then((data) => {
         // Filter only radiotherapy patients
@@ -344,7 +347,7 @@ const RadiotherapyReport = () => {
 
   const handleViewFile = (fileId) => {
     if (!fileId) return
-    const fileUrl = `https://insurance.shinovadatabase.in/insurance/serve_file/${fileId}`
+    const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`
     window.open(fileUrl, "_blank")
   }
 
@@ -367,6 +370,38 @@ const RadiotherapyReport = () => {
     setShowEditModal(true)
     setPaymentDate(new Date().toISOString().split("T")[0])
     setNewPendingAmount(Number.parseFloat(item.pendingAmount) || calculatedPending)
+  }
+
+  // Determine the best identifier to use for updates
+  const getUpdateIdentifier = (item) => {
+    // Prefer OP/IP number as identifier
+    if (item.opNumber) {
+      console.log("Using opNumber for update:", item.opNumber)
+      return {
+        identifier: item.opNumber,
+        type: "opNumber"
+      }
+    } else if (item.ipNumber) {
+      console.log("Using ipNumber for update:", item.ipNumber)
+      return {
+        identifier: item.ipNumber,
+        type: "ipNumber"
+      }
+    } 
+    // Only fall back to billNumber if no OP/IP number is available
+    else if (item.billNumber) {
+      console.log("Falling back to billNumber for update:", item.billNumber)
+      return {
+        identifier: item.billNumber,
+        type: "billNumber"
+      }
+    }
+    
+    // If no identifier found
+    return {
+      identifier: null,
+      type: null
+    }
   }
 
   const handleSaveModal = async () => {
@@ -408,6 +443,14 @@ const RadiotherapyReport = () => {
     }
 
     try {
+      // Get the best identifier for update
+      const { identifier, type } = getUpdateIdentifier(currentItem)
+      
+      if (!identifier) {
+        alert("Error: No valid identifier found for update")
+        return
+      }
+
       // Send update to server
       const formData = new FormData()
       Object.keys(updatedItem).forEach((key) => {
@@ -419,7 +462,10 @@ const RadiotherapyReport = () => {
       // Add edit history as JSON string
       formData.append("editHistory", JSON.stringify(updatedItem.editHistory))
 
-      const response = await fetch(`https://insurance.shinovadatabase.in/insurance/update_pendingamount/${currentItem.billNumber}/`, {
+      const updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(identifier)}/`
+      console.log(`Sending PUT request to update record with ${type}:`, identifier)
+      
+      const response = await fetch(updateEndpoint, {
         method: "PUT",
         body: formData,
       })
@@ -434,11 +480,12 @@ const RadiotherapyReport = () => {
         setShowEditModal(false)
         setCurrentItem(null)
       } else {
-        alert("Failed to update record")
+        const errorData = await response.json();
+        alert(`Failed to update record: ${errorData.error || errorData.details || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Error updating record:", error)
-      alert("Error updating record")
+      alert(`Error updating record: ${error.message}`)
     }
   }
 
@@ -475,6 +522,14 @@ const RadiotherapyReport = () => {
     }
 
     try {
+      // Get the best identifier for update
+      const { identifier, type } = getUpdateIdentifier(item)
+      
+      if (!identifier) {
+        alert("Error: No valid identifier found for update")
+        return
+      }
+
       // Send update to server
       const formData = new FormData()
       Object.keys(updatedItem).forEach((key) => {
@@ -486,7 +541,10 @@ const RadiotherapyReport = () => {
       // Add edit history as JSON string
       formData.append("editHistory", JSON.stringify(updatedItem.editHistory))
 
-      const response = await fetch(`https://insurance.shinovadatabase.in/insurance/update_pendingamount/${item.billNumber}/`, {
+      const updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(identifier)}/`
+      console.log(`Sending PUT request to update record with ${type}:`, identifier)
+      
+      const response = await fetch(updateEndpoint, {
         method: "PUT",
         body: formData,
       })
@@ -500,11 +558,12 @@ const RadiotherapyReport = () => {
         filterData(selectedCompany)
         setEditingRow(null)
       } else {
-        alert("Failed to update record")
+        const errorData = await response.json();
+        alert(`Failed to update record: ${errorData.error || errorData.details || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Error updating record:", error)
-      alert("Error updating record")
+      alert(`Error updating record: ${error.message}`)
     }
   }
 
@@ -667,16 +726,12 @@ const RadiotherapyReport = () => {
                         }
                       >
                         {(
-                          Number.parseFloat(item.pendingAmount) ||
-                          calculatePendingAmount(
-                            Number.parseFloat(item.billAmount) || 0,
-                            Number.parseFloat(item.claimedAmount) || 0,
-                          )
+                          Number.parseFloat(item.pendingAmount) 
                         ).toFixed(2)}
                       </PendingAmount>
                     </TableCell>
                     <TableCell>
-                      <Button onClick={() => handleEdit(item)}>Edit</Button>
+                      <Button onClick={() => handleEdit(item)} style={{marginBottom:"10px"}}>Edit</Button>
                       {item.editHistory && item.editHistory.length > 0 && (
                         <Button onClick={() => viewEditHistory(item)}>
                           History

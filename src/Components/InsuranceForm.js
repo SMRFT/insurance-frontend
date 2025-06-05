@@ -238,11 +238,13 @@ function InsuranceForm() {
     treatmentType: "",
     radiotherapyCycles: "",
   })
+
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
   
   useEffect(() => {
     const fetchInsuranceCompanies = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/get_insurance_companies/");
+        const response = await axios.get(`${Insurancebaseurl}get_insurance_companies/`);
         setInsuranceCompanies(response.data);
       } catch (error) {
         console.error("Error fetching insurance companies:", error);
@@ -312,146 +314,147 @@ function InsuranceForm() {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+const handleSubmit = async (e) => {
+  e.preventDefault()
+
+  // Determine if this is a new submission or an update
+  const isUpdate = Object.keys(formDataFromUpdate).length > 0;
   
-    // Determine if this is a new submission or an update
-    const isUpdate = Object.keys(formDataFromUpdate).length > 0;
+  // Simple validation for required fields
+  if (!formData.patient_uhid || !formData.patient_name) {
+    alert("Please fill out all required fields!")
+    return
+  }
+
+  // Prepare formData for submission
+  const formDataToSend = new FormData()
+  
+  if (isUpdate) {
+    // For updates, include all non-null form fields
+    Object.keys(formData).forEach((key) => {
+      if (formData[key] !== null && formData[key] !== "") {
+        // Special handling for opIpNumber
+        if (key === "opIpNumber") {
+          // Add either opNumber or ipNumber based on selection
+          const selectionKey = formData.opIpSelection === "OP" ? "opNumber" : "ipNumber"
+          formDataToSend.append(selectionKey, formData[key])
+        } else {
+          formDataToSend.append(key, formData[key])
+        }
+      }
+    })
+  } else {
+    // For new submissions, include ALL form fields that have values
+    Object.keys(formData).forEach((key) => {
+      if (formData[key] !== null && formData[key] !== "") {
+        // Special handling for opIpNumber
+        if (key === "opIpNumber") {
+          // Add either opNumber or ipNumber based on selection
+          const selectionKey = formData.opIpSelection === "OP" ? "opNumber" : "ipNumber";
+          formDataToSend.append(selectionKey, formData[key]);
+        } else {
+          // Include all other fields with values
+          formDataToSend.append(key, formData[key]);
+        }
+      }
+    });
+  }
+
+  try {
+    let response;
     
-    // Simple validation for required fields
-    if (!formData.patient_uhid || !formData.patient_name) {
-      alert("Please fill out all required fields!")
-      return
-    }
-  
-    // Prepare formData for submission
-    const formDataToSend = new FormData()
+    // Determine which identifier to use for the update
+    let updateIdentifier = "";
     
     if (isUpdate) {
-      // For updates, include all non-null form fields
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== null) {
-          // Special handling for opIpNumber
-          if (key === "opIpNumber") {
-            // Add either opNumber or ipNumber based on selection
-            const selectionKey = formData.opIpSelection === "OP" ? "opNumber" : "ipNumber"
-            formDataToSend.append(selectionKey, formData[key])
-          } else {
-            formDataToSend.append(key, formData[key])
-          }
-        }
-      })
-    } else {
-      // For new submissions, only include the first four fields initially
-      formDataToSend.append("patient_uhid", formData.patient_uhid);
-      formDataToSend.append("patient_name", formData.patient_name);
-      formDataToSend.append("date", formData.date);
-  
-      // Always include the OP/IP number with proper key name
-      const selectionKey = formData.opIpSelection === "OP" ? "opNumber" : "ipNumber";
-      formDataToSend.append(selectionKey, formData.opIpNumber);
-      
-      // Include billNumber only for initial creation
-      if (formData.billNumber) {
-        formDataToSend.append("billNumber", formData.billNumber);
+      // For updates, explicitly prefer OP/IP number as the identifier
+      if (formDataFromUpdate.opNumber) {
+        updateIdentifier = formDataFromUpdate.opNumber;
+        console.log("Using opNumber for update:", updateIdentifier);
+      } else if (formDataFromUpdate.ipNumber) {
+        updateIdentifier = formDataFromUpdate.ipNumber;
+        console.log("Using ipNumber for update:", updateIdentifier);
+      } 
+      // Only fall back to billNumber if no OP/IP number is available
+      else if (formDataFromUpdate.billNumber) {
+        updateIdentifier = formDataFromUpdate.billNumber;
+        console.log("Falling back to billNumber for update:", updateIdentifier);
       }
-    }
-  
-    try {
-      let response;
       
-      // Determine which identifier to use for the update
-      let updateIdentifier = "";
-      
-      if (isUpdate) {
-        // For updates, explicitly prefer OP/IP number as the identifier
-        if (formDataFromUpdate.opNumber) {
-          updateIdentifier = formDataFromUpdate.opNumber;
-          console.log("Using opNumber for update:", updateIdentifier);
-        } else if (formDataFromUpdate.ipNumber) {
-          updateIdentifier = formDataFromUpdate.ipNumber;
-          console.log("Using ipNumber for update:", updateIdentifier);
-        } 
-        // Only fall back to billNumber if no OP/IP number is available
-        else if (formDataFromUpdate.billNumber) {
-          updateIdentifier = formDataFromUpdate.billNumber;
-          console.log("Falling back to billNumber for update:", updateIdentifier);
-        }
-        
-        // If we have an identifier, proceed with update
-        if (updateIdentifier) {
-          console.log(`Sending PUT request to update record with identifier: ${updateIdentifier}`);
-          let updateEndpoint = `http://127.0.0.1:8000/insurance/update/${encodeURIComponent(updateIdentifier)}/`;
+      // If we have an identifier, proceed with update
+      if (updateIdentifier) {
+        console.log(`Sending PUT request to update record with identifier: ${updateIdentifier}`);
+        let updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(updateIdentifier)}/`;
 
-          
-          response = await fetch(updateEndpoint, {
-            method: "PUT",
-            body: formDataToSend,
-          });
-        } else {
-          alert("Error: No valid identifier found for update");
-          return;
-        }
-      } else {
-        // This is a new submission
-        console.log("Sending POST request to create new record");
         
-        response = await fetch("http://127.0.0.1:8000/insurance/", {
-          method: "POST",
+        response = await fetch(updateEndpoint, {
+          method: "PUT",
           body: formDataToSend,
         });
-      }
-  
-      if (response.ok) {
-        const result = await response.json();
-        console.log("Response:", result);
-        
-        alert(isUpdate ? "Form updated successfully!" : "Form submitted successfully!");
-  
-        if (!isUpdate) {
-          // Only reset form if it was a new submission, not an update
-          setFormData({
-            patient_uhid: "",
-            patient_name: "",
-            billNumber: "",
-            date: "",
-            companyName: "",
-            specificInsuranceCompany: "",
-            billingFile: null,
-            queryUpload: null,
-            queryResponse: null,
-            submissionStatus: "Online",
-            approvalAmount: "",
-            claimedAmount: "",
-            settledAmount: "",
-            approval: "As per norm",
-            followUp: "",
-            reasonNotMatch: "",
-            claimOption: "Not Claim",
-            claimDetails: "",
-            notClaimReason: "",
-            opIpSelection: "OP",
-            opIpNumber: "",
-            billDate: "",
-            billAmount: "",
-            fileSubmissionDate: "",
-            queryDate: "",
-            approvalDate: "",
-            remarks: "",
-            treatmentType: "",
-            radiotherapyCycles: "",
-          });
-        }
       } else {
-        const errorData = await response.json();
-        console.error("Error response:", errorData);
-        alert(`Failed: ${errorData.error || errorData.details || "Unknown error"}`);
+        alert("Error: No valid identifier found for update");
+        return;
       }
-    } catch (error) {
-      console.error("Exception:", error);
-      alert(`Error: ${error.message}`);
+    } else {
+      // This is a new submission - send all data
+      console.log("Sending POST request to create new record with all form data");
+      
+      response = await fetch(`${Insurancebaseurl}insurance/`, {
+        method: "POST",
+        body: formDataToSend,
+      });
     }
-  };
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Response:", result);
+      
+      alert(isUpdate ? "Form updated successfully!" : "Form submitted successfully!");
+
+      if (!isUpdate) {
+        // Only reset form if it was a new submission, not an update
+        setFormData({
+          patient_uhid: "",
+          patient_name: "",
+          billNumber: "",
+          date: "",
+          companyName: "",
+          specificInsuranceCompany: "",
+          billingFile: null,
+          queryUpload: null,
+          queryResponse: null,
+          submissionStatus: "Online",
+          approvalAmount: "",
+          claimedAmount: "",
+          settledAmount: "",
+          approval: "As per norm",
+          followUp: "",
+          reasonNotMatch: "",
+          claimOption: "Not Claim",
+          claimDetails: "",
+          notClaimReason: "",
+          opIpSelection: "OP",
+          opIpNumber: "",
+          billDate: "",
+          billAmount: "",
+          fileSubmissionDate: "",
+          queryDate: "",
+          approvalDate: "",
+          remarks: "",
+          treatmentType: "",
+          radiotherapyCycles: "",
+        });
+      }
+    } else {
+      const errorData = await response.json();
+      console.error("Error response:", errorData);
+      alert(`Failed: ${errorData.error || errorData.details || "Unknown error"}`);
+    }
+  } catch (error) {
+    console.error("Exception:", error);
+    alert(`Error: ${error.message}`);
+  }
+};
   
   return (
     <FormWrapper>

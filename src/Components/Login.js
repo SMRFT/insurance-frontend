@@ -167,6 +167,8 @@ const Button = styled.button`
 function Login() {
   const [formData, setFormData] = useState({ id: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -196,7 +198,7 @@ function Login() {
     try {
       toast.info('Logging in...', { autoClose: false, toastId: 'login' });
       
-      const response = await axios.post('https://insurance.shinovadatabase.in/login/', formData);
+      const response = await axios.post(`${Insurancebaseurl}login/`, formData);
       
       if (response.status === 200) {
         toast.dismiss('login');

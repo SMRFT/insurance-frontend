@@ -80,6 +80,8 @@ const DaycareReport = () => {
   const [filteredData, setFilteredData] = useState([])
   const [fileUrl, setFileUrl] = useState(null)
 
+   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
+
   const handleMonthChange = (date) => {
     setSelectedMonth(date)
 
@@ -102,28 +104,10 @@ const DaycareReport = () => {
     setFilteredData(filtered)
   }
 
-  // const handleViewFile = async (fileId) => {
-  //   try {
-  //     const response = await axios.get(
-  //       `https://insurance.shinovadatabase.in/files/${fileId}/`, // Replace with your API endpoint
-  //       { responseType: "blob" }
-  //     );
-
-  //     // Create a URL for the file
-  //     const fileURL = URL.createObjectURL(response.data);
-  //     setFileUrl(fileURL);
-
-  //     // Open the file in a new tab
-  //     window.open(fileURL, "_blank");
-  //   } catch (error) {
-  //     console.error("Error fetching file:", error);
-  //   }
-  // };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("https://insurance.shinovadatabase.in/submit-daycare/")
+        const response = await axios.get(`${Insurancebaseurl}submit-daycare/`)
 
         const processedData = response.data.map((daycare) => {
           const parsedAdmissionType =
@@ -153,7 +137,7 @@ const DaycareReport = () => {
 
   const handleViewFile = (fileId) => {
     // Construct file URL using the actual file ID
-    const fileUrl = `https://insurance.shinovadatabase.in/insurance/serve_file/${fileId}`
+    const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`
     window.open(fileUrl, "_blank")
   }
 

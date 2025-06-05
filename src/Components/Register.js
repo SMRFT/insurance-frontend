@@ -208,6 +208,8 @@ function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
@@ -227,7 +229,7 @@ function Register() {
     }
 
     try {
-      const response = await axios.post('https://insurance.shinovadatabase.in/registration/', formData);
+      const response = await axios.post(`${Insurancebaseurl}registration/`, formData);
       if (response.status === 201) {
         setSuccess('Registration successful! You can now log in to your account.');
         setFormData({

@@ -163,17 +163,6 @@ const Button = styled.button`
   }
 `;
 
-const ForgotPassword = styled.p`
-  margin-top: 20px;
-  font-size: 14px;
-  color: #6F8B83;
-  cursor: pointer;
-  
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 // Component
 function Login() {
   const [formData, setFormData] = useState({ id: '', password: '' });

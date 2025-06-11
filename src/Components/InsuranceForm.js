@@ -212,6 +212,7 @@ function InsuranceForm() {
     patient_name: "",
     billNumber: "",
     date: "",
+    dateOfDischarge: "",
     companyName: "",
     specificInsuranceCompany: "",
     billingFile: null,
@@ -418,6 +419,7 @@ const handleSubmit = async (e) => {
           patient_name: "",
           billNumber: "",
           date: "",
+          dateOfDischarge: "",
           companyName: "",
           specificInsuranceCompany: "",
           billingFile: null,
@@ -459,7 +461,7 @@ const handleSubmit = async (e) => {
   return (
     <FormWrapper>
       <FormContainer>
-        <Title>{formDataFromUpdate.billNumber ? "Update Insurance Form" : "Insurance Form"}</Title>
+        <Title>{formDataFromUpdate.opNumber ? "Update Insurance Form" : "Insurance Form"}</Title>
         <Form onSubmit={handleSubmit}>
           {/* Patient Information Section */}
           <FormSection>
@@ -536,6 +538,10 @@ const handleSubmit = async (e) => {
               <Col sm={3}>
                 <Label>Billing Done</Label>
                 <Input type="file" name="billingFile" onChange={handleChange} />
+              </Col>
+              <Col sm={3}>
+                <Label>Date Of Discharge</Label>
+                <Input type="date" name="dateOfDischarge" value={formData.dateOfDischarge} onChange={handleChange} />
               </Col>
             </Row>
           </FormSection>

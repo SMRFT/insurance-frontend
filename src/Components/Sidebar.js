@@ -369,7 +369,8 @@ console.log(userRole)
       icon: <Shield size={18} />,
       items: [
         { path: "/InsuranceForm", label: "Insurance Form", icon: <FilePlus size={18} /> },
-        { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> }
+        { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> },
+        { path: "/OtherForm", label: "Other Form", icon: <Edit size={18} /> }
       ],
       roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home
     },
@@ -388,6 +389,7 @@ console.log(userRole)
       icon: <FileText size={18} />,
       items: [
         { path: "/InsuranceReport", label: "Insurance Report", icon: <FileCheck size={18} /> },
+        { path: "/OtherReport", label: "Other Report", icon: <FileCheck size={18} /> },
         { path: "/DaycareReport", label: "Daycare Report", icon: <Calendar size={18} /> },
         { path: "/RadiotherapyReport", label: "Radiotherapy Report", icon: <Activity size={18} /> },
       ],

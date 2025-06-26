@@ -26,6 +26,27 @@ export const FormContainer = styled.div`
   transition: all 0.3s ease;
 `
 
+export const FilterWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 150px;
+  flex: 1;
+  
+  @media (max-width: 1024px) {
+    min-width: 130px;
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 8px;
+  }
+`
+
 export const Title = styled.h2`
   text-align: center;
   color: ${primaryColor};

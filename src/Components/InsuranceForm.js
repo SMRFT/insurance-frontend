@@ -207,6 +207,7 @@ function InsuranceForm() {
   const location = useLocation()
   const formDataFromUpdate = location.state || {}
   const [insuranceCompanies, setInsuranceCompanies] = useState([]);
+  const [opIpNumberManuallyChanged, setOpIpNumberManuallyChanged] = useState(false); // Track manual changes
   const [formData, setFormData] = useState({
     patient_uhid: "",
     patient_name: "",
@@ -238,6 +239,7 @@ function InsuranceForm() {
     remarks: "",
     treatmentType: "",
     radiotherapyCycles: "",
+    claimId:""
   })
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
@@ -280,32 +282,68 @@ function InsuranceForm() {
       }
 
       setFormData(newFormData)
+      setOpIpNumberManuallyChanged(true) // Mark as manually set during update
     }
   }, [formDataFromUpdate])
 
-  // Effect to automatically set OP number when UHID is entered
+  // Effect to automatically set OP number when UHID is entered (only for new forms)
   useEffect(() => {
-    // Only auto-set OP number if this is a new form (not an update)
-    if (Object.keys(formDataFromUpdate).length === 0 && formData.patient_uhid) {
+    // Only auto-set OP number if:
+    // 1. This is a new form (not an update)
+    // 2. Patient UHID has a value
+    // 3. OP/IP number hasn't been manually changed
+    // 4. Current selection is OP
+    if (Object.keys(formDataFromUpdate).length === 0 && 
+        formData.patient_uhid && 
+        !opIpNumberManuallyChanged && 
+        formData.opIpSelection === "OP") {
       setFormData(prevData => ({
         ...prevData,
-        opIpSelection: "OP",
         opIpNumber: formData.patient_uhid
       }));
     }
-  }, [formData.patient_uhid, formDataFromUpdate]);
+  }, [formData.patient_uhid, formDataFromUpdate, opIpNumberManuallyChanged, formData.opIpSelection]);
+
+  // Function to check if patient_uhid already exists for today's date
+  const checkPatientExists = async (patient_uhid, date) => {
+    try {
+      const response = await fetch(`${Insurancebaseurl}insurance/check_exists/?patient_uhid=${encodeURIComponent(patient_uhid)}&date=${date}`);
+      if (!response.ok) {
+        console.error("Check patient existence failed:", await response.text());
+        return false;
+      }
+      const result = await response.json();
+      return result.exists;
+    } catch (error) {
+      console.error("Error checking patient existence:", error);
+      return false;
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target
     
+    // Track when OP/IP number or selection is manually changed
+    if (name === "opIpNumber" || name === "opIpSelection") {
+      setOpIpNumberManuallyChanged(true);
+    }
+    
     if (name === "patient_uhid" && !Object.keys(formDataFromUpdate).length) {
-      // For new forms, when UHID changes, update both UHID and OP number
-      setFormData({
-        ...formData,
-        [name]: value,
-        opIpSelection: "OP",
-        opIpNumber: value // Auto-set OP number to match UHID
-      });
+      // For new forms, when UHID changes, only set OP selection if not manually changed
+      if (!opIpNumberManuallyChanged) {
+        setFormData({
+          ...formData,
+          [name]: value,
+          opIpSelection: "OP",
+          opIpNumber: value // Auto-set OP number to match UHID
+        });
+      } else {
+        // If manually changed, only update the UHID field
+        setFormData({
+          ...formData,
+          [name]: value
+        });
+      }
     } else {
       // Normal handling for other fields or during update
       setFormData({
@@ -314,6 +352,10 @@ function InsuranceForm() {
       });
     }
   }
+
+  
+
+// Fixed handleSubmit function - replace the existing one
 
 const handleSubmit = async (e) => {
   e.preventDefault()
@@ -327,6 +369,19 @@ const handleSubmit = async (e) => {
     return
   }
 
+  // For new submissions, check if patient_uhid already exists for today's date
+  if (!isUpdate) {
+    const today = new Date().toISOString().split('T')[0];
+    const submissionDate = formData.date || today;
+    
+    const patientExists = await checkPatientExists(formData.patient_uhid, submissionDate);
+    
+    if (patientExists) {
+      alert(`This patient UHID (${formData.patient_uhid}) for date ${submissionDate} is already stored in the database.`);
+      return;
+    }
+  }
+
   // Prepare formData for submission
   const formDataToSend = new FormData()
   
@@ -336,10 +391,14 @@ const handleSubmit = async (e) => {
       if (formData[key] !== null && formData[key] !== "") {
         // Special handling for opIpNumber
         if (key === "opIpNumber") {
-          // Add either opNumber or ipNumber based on selection
-          const selectionKey = formData.opIpSelection === "OP" ? "opNumber" : "ipNumber"
-          formDataToSend.append(selectionKey, formData[key])
-        } else {
+          // FIXED LOGIC: Always store patient_uhid in opNumber
+          formDataToSend.append("opNumber", formData.patient_uhid);
+          
+          // If IP is selected and opIpNumber is different from patient_uhid, store in ipNumber
+          if (formData.opIpSelection === "IP" && formData.opIpNumber !== formData.patient_uhid) {
+            formDataToSend.append("ipNumber", formData.opIpNumber);
+          }
+        } else if (key !== "opIpSelection") {
           formDataToSend.append(key, formData[key])
         }
       }
@@ -350,15 +409,24 @@ const handleSubmit = async (e) => {
       if (formData[key] !== null && formData[key] !== "") {
         // Special handling for opIpNumber
         if (key === "opIpNumber") {
-          // Add either opNumber or ipNumber based on selection
-          const selectionKey = formData.opIpSelection === "OP" ? "opNumber" : "ipNumber";
-          formDataToSend.append(selectionKey, formData[key]);
-        } else {
-          // Include all other fields with values
+          // FIXED LOGIC: Always store patient_uhid in opNumber
+          formDataToSend.append("opNumber", formData.patient_uhid);
+          
+          // If IP is selected and opIpNumber is different from patient_uhid, store in ipNumber
+          if (formData.opIpSelection === "IP" && formData.opIpNumber !== formData.patient_uhid) {
+            formDataToSend.append("ipNumber", formData.opIpNumber);
+          }
+        } else if (key !== "opIpSelection") {
           formDataToSend.append(key, formData[key]);
         }
       }
     });
+  }
+
+  // Debug: Log what's being sent
+  console.log("Form data being sent:");
+  for (let [key, value] of formDataToSend.entries()) {
+    console.log(key, value);
   }
 
   try {
@@ -387,7 +455,6 @@ const handleSubmit = async (e) => {
         console.log(`Sending PUT request to update record with identifier: ${updateIdentifier}`);
         let updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(updateIdentifier)}/`;
 
-        
         response = await fetch(updateEndpoint, {
           method: "PUT",
           body: formDataToSend,
@@ -445,7 +512,9 @@ const handleSubmit = async (e) => {
           remarks: "",
           treatmentType: "",
           radiotherapyCycles: "",
+          claimId: ""
         });
+        setOpIpNumberManuallyChanged(false);
       }
     } else {
       const errorData = await response.json();
@@ -457,6 +526,12 @@ const handleSubmit = async (e) => {
     alert(`Error: ${error.message}`);
   }
 };
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  }
   
   return (
     <FormWrapper>
@@ -469,7 +544,7 @@ const handleSubmit = async (e) => {
             <Row>
               <Col sm={3}>
                 <Label>Date</Label>
-                <Input type="date" name="date" value={formData.date} onChange={handleChange} />
+                <Input type="date" name="date" value={formData.date} onChange={handleChange} max={getTodayDate()} />
               </Col>
               <Col sm={3}>
                 <Label>Patient UHID</Label>
@@ -529,7 +604,7 @@ const handleSubmit = async (e) => {
               </Col>
               <Col sm={3}>
                 <Label>Bill Date</Label>
-                <Input type="date" name="billDate" value={formData.billDate} onChange={handleChange} />
+                <Input type="date" name="billDate" value={formData.billDate} onChange={handleChange} max={getTodayDate()} />
               </Col>
               <Col sm={3}>
                 <Label>Bill Amount</Label>
@@ -537,11 +612,15 @@ const handleSubmit = async (e) => {
               </Col>
               <Col sm={3}>
                 <Label>Billing Done</Label>
-                <Input type="file" name="billingFile" onChange={handleChange} />
+                <Input type="file" name="billingFile" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg" onChange={handleChange} />
               </Col>
               <Col sm={3}>
                 <Label>Date Of Discharge</Label>
-                <Input type="date" name="dateOfDischarge" value={formData.dateOfDischarge} onChange={handleChange} />
+                <Input type="date" name="dateOfDischarge" value={formData.dateOfDischarge} onChange={handleChange} max={getTodayDate()} />
+              </Col>
+              <Col sm={3}>
+                <Label>Claim Id</Label>
+                <Input type="text" name="claimId" value={formData.claimId} onChange={handleChange} />
               </Col>
             </Row>
           </FormSection>
@@ -651,6 +730,7 @@ const handleSubmit = async (e) => {
                   name="fileSubmissionDate"
                   value={formData.fileSubmissionDate}
                   onChange={handleChange}
+                  max={getTodayDate()} 
                 />
               </Col>
               <Col sm={4}>
@@ -680,7 +760,7 @@ const handleSubmit = async (e) => {
               </Col>
               <Col sm={4}>
                 <Label>Approval Date</Label>
-                <Input type="date" name="approvalDate" value={formData.approvalDate} onChange={handleChange} />
+                <Input type="date" name="approvalDate" value={formData.approvalDate} onChange={handleChange} max={getTodayDate()} />
               </Col>
             </Row>
           </FormSection>
@@ -691,15 +771,15 @@ const handleSubmit = async (e) => {
             <Row>
               <Col sm={4}>
                 <Label>Query Date/Return File Date</Label>
-                <Input type="date" name="queryDate" value={formData.queryDate} onChange={handleChange} />
+                <Input type="date" name="queryDate" value={formData.queryDate} onChange={handleChange} max={getTodayDate()} />
               </Col>
               <Col sm={4}>
                 <Label>Query Upload</Label>
-                <Input type="file" name="queryUpload" onChange={handleChange} />
+                <Input type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg" name="queryUpload" onChange={handleChange} />
               </Col>
               <Col sm={4}>
                 <Label>Query Response</Label>
-                <Input type="file" name="queryResponse" onChange={handleChange} />
+                <Input type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg" name="queryResponse" onChange={handleChange} />
               </Col>
             </Row>
           </FormSection>

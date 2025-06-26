@@ -13,6 +13,7 @@ import PrivateRoute from "./Components/PrivateRoute";
 import { Navigate } from "react-router-dom"; // import Navigate
 import OtherReport from "./Components/OtherReport";
 import OtherForm from "./Components/OtherForm";
+import OtherUpdate from "./Components/OtherUpdate";
 function AppContent() {
   const location = useLocation();
   const hideSidebarRoutes = ["/"];
@@ -88,6 +89,14 @@ function AppContent() {
             element={
               <PrivateRoute>
                 <OtherReport />
+              </PrivateRoute>
+            }
+          />
+           <Route
+            path="/OtherUpdate"
+            element={
+              <PrivateRoute>
+                <OtherUpdate />
               </PrivateRoute>
             }
           />

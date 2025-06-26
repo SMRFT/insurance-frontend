@@ -176,26 +176,6 @@ const Label = styled.label`
   }
 `
 
-const ClearButton = styled.button`
-  padding: 8px 16px;
-  background-color: ${accentColor};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 20px;
-  
-  &:hover {
-    background-color: ${primaryColor};
-  }
-  
-  @media (max-width: 480px) {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-`
-
 const ScrollableTableContainer = styled.div`
   max-height: 440px;
   overflow-y: auto;
@@ -393,15 +373,6 @@ const FormUpdate = () => {
     setSearchValue(event.target.value)
   }
 
-  const handleClearFilters = () => {
-    const today = new Date()
-    setSelectedCompany("")
-    setFromDate(today)
-    setToDate(today)
-    setSearchField("")
-    setSearchValue("")
-  }
-
   const handleEdit = (item) => {
     navigate("/InsuranceForm", {
       state: {
@@ -499,10 +470,6 @@ const FormUpdate = () => {
             />
           </SearchWrapper>
         )}
-
-        <FilterWrapper>
-          <ClearButton onClick={handleClearFilters}>Clear All Filters</ClearButton>
-        </FilterWrapper>
       </FilterContainer>
 
       <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>

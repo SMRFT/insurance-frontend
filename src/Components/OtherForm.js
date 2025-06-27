@@ -65,15 +65,38 @@ const OtherForm = ({ editData = null, onSuccess }) => {
         refund: editDataFromNav.refund ? editDataFromNav.refund.toString() : "",
       })
 
-      // For editing, start with empty payment entries (new payments to add)
-      setPaymentEntries([
-        {
-          id: Date.now(),
+      // Populate existing payment details when editing
+      if (editDataFromNav.payment_details && editDataFromNav.payment_details.length > 0) {
+        const existingPayments = editDataFromNav.payment_details.map((payment, index) => ({
+          id: Date.now() + index, // Unique ID for each payment
+          amount: payment.amount ? payment.amount.toString() : "",
+          payment_method: payment.payment_method || "",
+          date: payment.date || "",
+          isExisting: true, // Flag to identify existing payments
+        }))
+
+        // Add one empty entry for new payments
+        const newPaymentEntry = {
+          id: Date.now() + editDataFromNav.payment_details.length,
           amount: "",
           payment_method: "",
           date: "",
-        },
-      ])
+          isExisting: false,
+        }
+
+        setPaymentEntries([...existingPayments, newPaymentEntry])
+      } else {
+        // If no existing payment details, start with one empty entry
+        setPaymentEntries([
+          {
+            id: Date.now(),
+            amount: "",
+            payment_method: "",
+            date: "",
+            isExisting: false,
+          },
+        ])
+      }
     }
   }, [editDataFromNav])
 
@@ -115,57 +138,33 @@ const OtherForm = ({ editData = null, onSuccess }) => {
     e.preventDefault()
     setLoading(true)
 
-    // Validation
-    if (!formData.patientName || !formData.patientUhid || !formData.mobileNumber) {
-      alert("Please fill all required fields")
+    // Minimal validation - only check if at least one field has data
+    const hasAnyData =
+      Object.values(formData).some((value) => value && value.toString().trim() !== "") ||
+      paymentEntries.some((entry) => entry.amount || entry.payment_method || entry.date)
+
+    if (!hasAnyData) {
+      alert("Please enter at least some information")
       setLoading(false)
       return
     }
 
-    // Mobile number validation
-    if (!/^\d{10}$/.test(formData.mobileNumber)) {
+    // Mobile number validation only if provided
+    if (formData.mobileNumber && !/^\d{10}$/.test(formData.mobileNumber)) {
       alert("Please enter a valid 10-digit mobile number")
       setLoading(false)
       return
     }
 
-    // Validate payment entries
-    const validPaymentEntries = paymentEntries.filter((entry) => entry.amount && Number.parseFloat(entry.amount) > 0)
-
-    if (validPaymentEntries.length === 0) {
-      alert("Please enter at least one payment entry with amount")
-      setLoading(false)
-      return
-    }
-
-    // Date validation - prevent future dates for payment entries
-    const today = new Date()
-    today.setHours(23, 59, 59, 999)
-
-    for (const entry of validPaymentEntries) {
-      if (entry.date) {
-        const entryDate = new Date(entry.date)
-        if (entryDate > today) {
-          alert("Future dates are not allowed for payment entries")
-          setLoading(false)
-          return
-        }
-      }
-
-      // Validate required fields for each payment entry
-      if (!entry.payment_method || !entry.date) {
-        alert("Please fill all required fields for payment entries (Amount, Payment Method, Date)")
-        setLoading(false)
-        return
-      }
-    }
+    // Filter valid payment entries (only those with some data)
+    const validPaymentEntries = paymentEntries.filter((entry) => entry.amount || entry.payment_method || entry.date)
 
     try {
       // Prepare payment entries for backend
       const paymentDetailsForBackend = validPaymentEntries.map((entry) => ({
-        amount: Number.parseFloat(entry.amount),
-        payment_method: entry.payment_method,
-        date: entry.date,
+        amount: entry.amount ? Number.parseFloat(entry.amount) : 0,
+        payment_method: entry.payment_method || "",
+        date: entry.date || "",
       }))
 
       const payload = {
@@ -271,18 +270,18 @@ const OtherForm = ({ editData = null, onSuccess }) => {
             >
               <div>
                 <Label>Date</Label>
-                <Input type="date" name="date" value={formData.date} onChange={handleChange} max={getTodayDate()} />
+                <Input type="date" name="date" value={formData.date} onChange={handleChange} />
               </div>
               <div>
-                <Label>Patient Name *</Label>
-                <Input type="text" name="patientName" value={formData.patientName} onChange={handleChange} required />
+                <Label>Patient Name</Label>
+                <Input type="text" name="patientName" value={formData.patientName} onChange={handleChange} />
               </div>
               <div>
-                <Label>Patient UHID *</Label>
-                <Input type="text" name="patientUhid" value={formData.patientUhid} onChange={handleChange} required />
+                <Label>Patient UHID</Label>
+                <Input type="text" name="patientUhid" value={formData.patientUhid} onChange={handleChange} />
               </div>
               <div>
-                <Label>Mobile Number *</Label>
+                <Label>Mobile Number</Label>
                 <Input
                   type="tel"
                   name="mobileNumber"
@@ -290,7 +289,6 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                   onChange={handleChange}
                   pattern="[0-9]{10}"
                   maxLength="10"
-                  required
                 />
               </div>
             </div>
@@ -316,25 +314,6 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               <div>
                 <Label>Treatment</Label>
                 <Input type="text" name="treatment" value={formData.treatment} onChange={handleChange} />
-              </div>
-            </div>
-          </FormSection>
-
-          {/* Refund Section */}
-          <FormSection>
-            <SectionTitle>Refund Details</SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
-              <div>
-                <Label>Refund Amount</Label>
-                <Input
-                  type="number"
-                  name="refund"
-                  value={formData.refund}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter refund amount"
-                />
               </div>
             </div>
           </FormSection>
@@ -377,10 +356,18 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                     marginBottom: index < paymentEntries.length - 1 ? "15px" : "0",
                     paddingBottom: index < paymentEntries.length - 1 ? "15px" : "0",
                     borderBottom: index < paymentEntries.length - 1 ? "1px solid #ddd" : "none",
+                    backgroundColor: entry.isExisting ? "#e8f5e8" : "transparent", // Light green for existing payments
+                    padding: entry.isExisting ? "10px" : "0",
+                    borderRadius: entry.isExisting ? "5px" : "0",
                   }}
                 >
+                  {entry.isExisting && (
+                    <div style={{ gridColumn: "1 / -1", marginBottom: "10px", fontWeight: "bold", color: "#28a745" }}>
+                      Existing Payment #{index + 1}
+                    </div>
+                  )}
                   <div>
-                    <Label>Amount *</Label>
+                    <Label>Amount</Label>
                     <Input
                       type="number"
                       value={entry.amount}
@@ -388,15 +375,17 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                       min="0"
                       step="0.01"
                       placeholder="Enter amount"
-                      required
+                      readOnly={entry.isExisting} // Make existing payments read-only
+                      style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}
                     />
                   </div>
                   <div>
-                    <Label>Payment Method *</Label>
+                    <Label>Payment Method</Label>
                     <Select
                       value={entry.payment_method}
                       onChange={(e) => handlePaymentEntryChange(entry.id, "payment_method", e.target.value)}
-                      required
+                      disabled={entry.isExisting} // Disable editing for existing payments
+                      style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}
                     >
                       <option value="">Select Method</option>
                       <option value="Cash">Cash</option>
@@ -407,17 +396,17 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                     </Select>
                   </div>
                   <div>
-                    <Label>Date *</Label>
+                    <Label>Date</Label>
                     <Input
                       type="date"
                       value={entry.date}
                       onChange={(e) => handlePaymentEntryChange(entry.id, "date", e.target.value)}
-                      max={getTodayDate()}
-                      required
+                      readOnly={entry.isExisting} // Make existing payments read-only
+                      style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}
                     />
                   </div>
                   <div>
-                    {paymentEntries.length > 1 && (
+                    {paymentEntries.length > 1 && !entry.isExisting && (
                       <Button
                         type="button"
                         onClick={() => removePaymentEntry(entry.id)}
@@ -433,6 +422,25 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </FormSection>
+
+                    {/* Refund Section */}
+          <FormSection>
+            <SectionTitle>Refund Details</SectionTitle>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+              <div>
+                <Label>Refund Amount</Label>
+                <Input
+                  type="number"
+                  name="refund"
+                  value={formData.refund}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter refund amount"
+                />
+              </div>
             </div>
           </FormSection>
 

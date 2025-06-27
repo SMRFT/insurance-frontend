@@ -383,15 +383,15 @@ console.log(userRole)
       ],
       roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home
     },
-    {
-      id: "daycare",
-      label: "Day Care",
-      icon: <Baby size={18} />,
-      items: [
-        { path: "/Daycare", label: "Daycare", icon: <ClipboardList size={18} /> },
-      ],
-      roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home
-    },
+    // {
+    //   id: "daycare",
+    //   label: "Day Care",
+    //   icon: <Baby size={18} />,
+    //   items: [
+    //     { path: "/Daycare", label: "Daycare", icon: <ClipboardList size={18} /> },
+    //   ],
+    //   roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home
+    // },
     {
       id: "reports",
       label: "Reports",
@@ -399,7 +399,7 @@ console.log(userRole)
       items: [
         { path: "/InsuranceReport", label: "Insurance Report", icon: <FileCheck size={18} /> },
         { path: "/OtherReport", label: "Other Report", icon: <FileCheck size={18} /> },
-        { path: "/DaycareReport", label: "Daycare Report", icon: <Calendar size={18} /> },
+        // { path: "/DaycareReport", label: "Daycare Report", icon: <Calendar size={18} /> },
         { path: "/RadiotherapyReport", label: "Radiotherapy Report", icon: <Activity size={18} /> },
       ],
       roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home

@@ -445,6 +445,7 @@ const FormUpdate = () => {
             }}
             popperClassName="date-picker-popper"
           />
+    
         </FilterWrapper>
 
         <FilterWrapper>
@@ -470,6 +471,9 @@ const FormUpdate = () => {
             />
           </SearchWrapper>
         )}
+       <div>
+          <Button onClick={() => navigate("/InsuranceForm")}>Add New Record</Button>
+        </div>    
       </FilterContainer>
 
       <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>

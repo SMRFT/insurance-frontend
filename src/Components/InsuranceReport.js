@@ -522,42 +522,69 @@ const InsuranceReport = () => {
     fetchData()
   }, [selectedCompany, fromDate, toDate, searchField, searchValue])
 
-  const fetchData = async () => {
-    try {
-      const params = new URLSearchParams()
+const fetchData = async () => {
+  try {
+    const params = new URLSearchParams()
 
-      if (selectedCompany) {
-        params.append("companyName", selectedCompany)
-      }
-
-      if (fromDate) {
-        params.append("from_date", fromDate.toLocaleDateString("en-CA"))
-      }
-
-      if (toDate) {
-        params.append("to_date", toDate.toLocaleDateString("en-CA"))
-      }
-
-      if (searchField && searchValue) {
-        params.append("search_field", searchField)
-        params.append("search_value", searchValue)
-      }
-
-      const url = `${Insurancebaseurl}insurance/?${params.toString()}`
-      console.log("Fetching data from:", url)
-
-      const response = await fetch(url)
-      const data = await response.json()
-
-      setInsuranceData(data)
-      setFilteredData(data)
-    } catch (error) {
-      console.error("Error fetching data:", error)
-      setInsuranceData([])
-      setFilteredData([])
+    if (selectedCompany) {
+      params.append("companyName", selectedCompany)
     }
+
+    if (fromDate) {
+      params.append("from_date", fromDate.toLocaleDateString("en-CA"))
+    }
+
+    if (toDate) {
+      params.append("to_date", toDate.toLocaleDateString("en-CA"))
+    }
+
+    // Don't send search parameters to backend - we'll filter locally
+    // This allows us to handle N/A filtering properly
+    const url = `${Insurancebaseurl}insurance/?${params.toString()}`
+    console.log("Fetching data from:", url)
+
+    const response = await fetch(url)
+    const data = await response.json()
+
+    setInsuranceData(data)
+    
+    // Apply local filtering
+    const filtered = applyLocalFilters(data)
+    setFilteredData(filtered)
+  } catch (error) {
+    console.error("Error fetching data:", error)
+    setInsuranceData([])
+    setFilteredData([])
+  }
+}
+
+// New function to handle local filtering including N/A values
+const applyLocalFilters = (data) => {
+  if (!searchField || !searchValue) {
+    return data
   }
 
+  return data.filter((item) => {
+    const fieldValue = item[searchField]
+    
+    // Handle N/A search - check if the field is null, undefined, empty string, or already "N/A"
+    if (searchValue.toLowerCase() === "n/a") {
+      return !fieldValue || fieldValue === "" || fieldValue === "N/A"
+    }
+    
+    // Handle date search
+    if (searchField === "dateOfDischarge" && fieldValue) {
+      return fieldValue.includes(searchValue)
+    }
+    
+    // Handle regular text search (case-insensitive)
+    if (fieldValue) {
+      return fieldValue.toString().toLowerCase().includes(searchValue.toLowerCase())
+    }
+    
+    return false
+  })
+}
   const handleCompanyFilterChange = (event) => {
     setSelectedCompany(event.target.value)
   }
@@ -579,19 +606,10 @@ const InsuranceReport = () => {
     setSearchValue(event.target.value)
   }
 
-  const handleClearFilters = () => {
-    const today = new Date()
-    setSelectedCompany("")
-    setFromDate(today)
-    setToDate(today)
-    setSearchField("")
-    setSearchValue("")
-  }
-
-  const handleViewFile = (fileId) => {
-    const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`
-    window.open(fileUrl, "_blank")
-  }
+const handleViewFile = (fileId) => {
+  const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`;
+  window.open(fileUrl, "_blank");
+};
 
   const exportToExcel = () => {
     // Prepare data for export (excluding file columns)
@@ -630,6 +648,7 @@ const InsuranceReport = () => {
     // Save file
     XLSX.writeFile(wb, filename)
   }
+  
 
   return (
     <Container>
@@ -725,7 +744,6 @@ const InsuranceReport = () => {
 
         <FilterWrapper>
           <ButtonGroup>
-            <Button onClick={handleClearFilters}>Clear All Filters</Button>
             <Button onClick={exportToExcel}>Export to Excel</Button>
           </ButtonGroup>
         </FilterWrapper>

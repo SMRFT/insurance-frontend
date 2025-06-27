@@ -369,8 +369,17 @@ console.log(userRole)
       icon: <Shield size={18} />,
       items: [
         { path: "/InsuranceForm", label: "Insurance Form", icon: <FilePlus size={18} /> },
-        { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> },
         { path: "/OtherForm", label: "Other Form", icon: <Edit size={18} /> }
+      ],
+      roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home
+    },
+    {
+      id: "update",
+      label: "Update Form",
+      icon: <Shield size={18} />,
+      items: [
+        { path: "/FormUpdate", label: "Insurance Update", icon: <Edit size={18} /> },
+        { path: "/OtherUpdate", label: "Other Form Update", icon: <Edit size={18} /> },
       ],
       roles: ["EMPLOYEE", "ADMIN", "SUPER ADMIN"] // Everyone can see home
     },

@@ -326,9 +326,6 @@ const OtherUpdate = () => {
                       ₹{filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0).toFixed(2)}
                     </TableCell>
                     <TableCell></TableCell>
-                    <TableCell>
-                      ₹{filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0).toFixed(2)}
-                    </TableCell>
                     <TableCell></TableCell>
                   </tr>
                 </tfoot>

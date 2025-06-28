@@ -45,22 +45,25 @@ const OtherReport = () => {
     setLoading(true)
     try {
       const response = await axios.get(`${Insurancebaseurl}other_records/report/`, {
-        params: { 
-          from_date: fromDate, 
-          to_date: toDate 
+        params: {
+          from_date: fromDate,
+          to_date: toDate,
         },
       })
-      
+
       // Remove any potential duplicates based on unique combination
-      const uniqueRecords = response.data.filter((record, index, self) => 
-        index === self.findIndex(r => 
-          r.id === record.id && 
-          r.date === record.date && 
-          r.amount === record.amount &&
-          r.payment_method === record.payment_method
-        )
+      const uniqueRecords = response.data.filter(
+        (record, index, self) =>
+          index ===
+          self.findIndex(
+            (r) =>
+              r.id === record.id &&
+              r.date === record.date &&
+              r.amount === record.amount &&
+              r.payment_method === record.payment_method,
+          ),
       )
-      
+
       setRecords(uniqueRecords)
     } catch (error) {
       console.error("Error fetching records:", error)
@@ -72,26 +75,43 @@ const OtherReport = () => {
 
   const filterRecords = () => {
     let filtered = [...records]
-    
+
     if (searchTerm) {
       filtered = filtered.filter(
         (record) =>
           record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           record.patient_uhid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           record.mobile_number?.includes(searchTerm) ||
-          record.treatment?.toLowerCase().includes(searchTerm.toLowerCase())
+          record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
-    
+
     if (selectedCompany) {
       filtered = filtered.filter((record) => record.company_name === selectedCompany)
     }
-    
+
     setFilteredRecords(filtered)
   }
 
   const handleCompanyFilterChange = (event) => {
     setSelectedCompany(event.target.value)
+  }
+
+  // Calculate totals with unique patient_uhid for refunds
+  const calculateTotals = () => {
+    const totalAmount = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
+
+    // For refunds, only count unique patient_uhid to avoid duplicates
+    const uniquePatients = new Map()
+    filteredRecords.forEach((record) => {
+      if (record.patient_uhid && !uniquePatients.has(record.patient_uhid)) {
+        uniquePatients.set(record.patient_uhid, Number.parseFloat(record.refund) || 0)
+      }
+    })
+
+    const totalRefund = Array.from(uniquePatients.values()).reduce((sum, refund) => sum + refund, 0)
+
+    return { totalAmount, totalRefund }
   }
 
   const exportToCSV = () => {
@@ -107,8 +127,7 @@ const OtherReport = () => {
       "Refund",
     ]
 
-    const totalAmount = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
-    const totalRefund = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0)
+    const { totalAmount, totalRefund } = calculateTotals()
 
     const dataRows = filteredRecords.map((record) =>
       [
@@ -124,20 +143,11 @@ const OtherReport = () => {
       ].join(","),
     )
 
-    const grandTotalRow = [
-      "", "", "", "", "",
-      "GRAND TOTAL",
-      totalAmount.toFixed(2),
-      "",
-      totalRefund.toFixed(2),
-    ].join(",")
+    const grandTotalRow = ["", "", "", "", "", "GRAND TOTAL", totalAmount.toFixed(2), "", totalRefund.toFixed(2)].join(
+      ",",
+    )
 
-    const csvContent = [
-      headers.join(","),
-      ...dataRows,
-      "",
-      grandTotalRow,
-    ].join("\n")
+    const csvContent = [headers.join(","), ...dataRows, "", grandTotalRow].join("\n")
 
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
@@ -147,6 +157,8 @@ const OtherReport = () => {
     a.click()
     window.URL.revokeObjectURL(url)
   }
+
+  const { totalAmount, totalRefund } = calculateTotals()
 
   return (
     <FormWrapper>
@@ -248,13 +260,9 @@ const OtherReport = () => {
                     <TableCell colSpan="6" style={{ textAlign: "right" }}>
                       GRAND TOTAL:
                     </TableCell>
-                    <TableCell>
-                      ₹{filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0).toFixed(2)}
-                    </TableCell>
+                    <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
-                    <TableCell>
-                      ₹{filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0).toFixed(2)}
-                    </TableCell>
+                    <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
                   </tr>
                 </tfoot>
               )}

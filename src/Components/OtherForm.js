@@ -156,11 +156,13 @@ const OtherForm = ({ editData = null, onSuccess }) => {
       return
     }
 
-    // Filter valid payment entries (only those with some data)
-    const validPaymentEntries = paymentEntries.filter((entry) => entry.amount || entry.payment_method || entry.date)
+    // Filter valid payment entries (only NEW entries with some data)
+    const validPaymentEntries = paymentEntries.filter(
+      (entry) => !entry.isExisting && (entry.amount || entry.payment_method || entry.date),
+    )
 
     try {
-      // Prepare payment entries for backend
+      // Prepare payment entries for backend (only new payments)
       const paymentDetailsForBackend = validPaymentEntries.map((entry) => ({
         amount: entry.amount ? Number.parseFloat(entry.amount) : 0,
         payment_method: entry.payment_method || "",
@@ -175,7 +177,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
         company_name: formData.companyName,
         treatment: formData.treatment,
         refund: formData.refund || "0",
-        payment_details: paymentDetailsForBackend,
+        payment_details: paymentDetailsForBackend, // Only new payments
       }
 
       let response
@@ -318,6 +320,25 @@ const OtherForm = ({ editData = null, onSuccess }) => {
             </div>
           </FormSection>
 
+          {/* Refund Section */}
+          <FormSection>
+            <SectionTitle>Refund Details</SectionTitle>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+              <div>
+                <Label>Refund Amount</Label>
+                <Input
+                  type="number"
+                  name="refund"
+                  value={formData.refund}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter refund amount"
+                />
+              </div>
+            </div>
+          </FormSection>
+
           {/* Payment Details Section */}
           <FormSection>
             <SectionTitle style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -422,25 +443,6 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                   </div>
                 </div>
               ))}
-            </div>
-          </FormSection>
-
-                    {/* Refund Section */}
-          <FormSection>
-            <SectionTitle>Refund Details</SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
-              <div>
-                <Label>Refund Amount</Label>
-                <Input
-                  type="number"
-                  name="refund"
-                  value={formData.refund}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter refund amount"
-                />
-              </div>
             </div>
           </FormSection>
 

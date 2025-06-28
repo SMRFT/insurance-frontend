@@ -29,48 +29,69 @@ const OtherReport = () => {
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
+  // Fetch data when dates change
   useEffect(() => {
-    fetchRecords()
+    if (fromDate && toDate) {
+      fetchRecords()
+    }
   }, [fromDate, toDate])
 
+  // Filter data when search parameters change
   useEffect(() => {
     filterRecords()
   }, [records, searchTerm, selectedCompany])
 
-  const handleCompanyFilterChange = (event) => {
-    setSelectedCompany(event.target.value)
-  }
-
   const fetchRecords = async () => {
     setLoading(true)
     try {
-      // Use the new report endpoint that flattens payment details
       const response = await axios.get(`${Insurancebaseurl}other_records/report/`, {
-        params: { from_date: fromDate, to_date: toDate },
+        params: { 
+          from_date: fromDate, 
+          to_date: toDate 
+        },
       })
-      setRecords(response.data)
+      
+      // Remove any potential duplicates based on unique combination
+      const uniqueRecords = response.data.filter((record, index, self) => 
+        index === self.findIndex(r => 
+          r.id === record.id && 
+          r.date === record.date && 
+          r.amount === record.amount &&
+          r.payment_method === record.payment_method
+        )
+      )
+      
+      setRecords(uniqueRecords)
     } catch (error) {
       console.error("Error fetching records:", error)
-      alert("Error fetching records")
+      setRecords([])
     } finally {
       setLoading(false)
     }
   }
 
   const filterRecords = () => {
-    let filtered = records
+    let filtered = [...records]
+    
     if (searchTerm) {
       filtered = filtered.filter(
         (record) =>
-          record.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.patient_uhid.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.mobile_number.includes(searchTerm),
+          record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.patient_uhid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.mobile_number?.includes(searchTerm) ||
+          record.treatment?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
+    
     if (selectedCompany) {
       filtered = filtered.filter((record) => record.company_name === selectedCompany)
     }
+    
     setFilteredRecords(filtered)
+  }
+
+  const handleCompanyFilterChange = (event) => {
+    setSelectedCompany(event.target.value)
   }
 
   const exportToCSV = () => {
@@ -86,11 +107,9 @@ const OtherReport = () => {
       "Refund",
     ]
 
-    // Calculate grand totals
     const totalAmount = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
     const totalRefund = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0)
 
-    // Create CSV content with data rows
     const dataRows = filteredRecords.map((record) =>
       [
         record.date,
@@ -105,24 +124,18 @@ const OtherReport = () => {
       ].join(","),
     )
 
-    // Add grand total row
     const grandTotalRow = [
-      "", // Date
-      "", // Patient Name
-      "", // Patient UHID
-      "", // Mobile Number
-      "", // Company Name
-      "GRAND TOTAL", // Treatment column
-      totalAmount.toFixed(2), // Amount total
-      "", // Payment Method
-      totalRefund.toFixed(2), // Refund total
+      "", "", "", "", "",
+      "GRAND TOTAL",
+      totalAmount.toFixed(2),
+      "",
+      totalRefund.toFixed(2),
     ].join(",")
 
-    // Combine all parts
     const csvContent = [
       headers.join(","),
       ...dataRows,
-      "", // Empty row for separation
+      "",
       grandTotalRow,
     ].join("\n")
 
@@ -130,7 +143,7 @@ const OtherReport = () => {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "other_records_report.csv"
+    a.download = `other_records_report_${fromDate}_to_${toDate}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -164,9 +177,8 @@ const OtherReport = () => {
               <option value="ESI">ESI</option>
               <option value="ESIC">ESIC</option>
               <option value="Railway CTSE">Railway CTSE</option>
-              <option value="TNCM">TNCM</option>
               <option value="TKT">TKT</option>
-              <option value="FCA">FCA</option>
+              <option value="FCI">FCI</option>
               <option value="Airport">Airport</option>
             </Select>
           </FilterWrapper>
@@ -179,69 +191,75 @@ const OtherReport = () => {
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
           <div style={{ marginBottom: "20px" }}>
-            <Button onClick={exportToCSV}>Export CSV</Button>
+            <Button onClick={exportToCSV} disabled={filteredRecords.length === 0}>
+              Export CSV
+            </Button>
           </div>
         </FilterContainer>
+
+        <div style={{ textAlign: "center", margin: "10px 0", fontWeight: "500" }}>
+          Showing {filteredRecords.length} payment record(s) from {fromDate} to {toDate}
+        </div>
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-          <Table>
-            <thead>
-              <tr>
-                <TableHeader>Date</TableHeader>
-                <TableHeader>Patient Name</TableHeader>
-                <TableHeader>UHID</TableHeader>
-                <TableHeader>Mobile</TableHeader>
-                <TableHeader>Company</TableHeader>
-                <TableHeader>Treatment</TableHeader>
-                <TableHeader>Amount</TableHeader>
-                <TableHeader>Payment Method</TableHeader>
-                <TableHeader>Refund</TableHeader>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.map((record, index) => (
-                <TableRow key={`${record.id}-${index}`}>
-                  <TableCell style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
-                  <TableCell>{record.patient_name}</TableCell>
-                  <TableCell>{record.patient_uhid}</TableCell>
-                  <TableCell>{record.mobile_number}</TableCell>
-                  <TableCell>{record.company_name}</TableCell>
-                  <TableCell>{record.treatment}</TableCell>
-                  <TableCell>₹{Number.parseFloat(record.amount).toFixed(2)}</TableCell>
-                  <TableCell>{record.payment_method}</TableCell>
-                  <TableCell>₹{Number.parseFloat(record.refund).toFixed(2)}</TableCell>
-                </TableRow>
-              ))}
-            </tbody>
-            {filteredRecords.length > 0 && (
-              <tfoot>
-                <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                  <TableCell colSpan="6" style={{ textAlign: "right" }}>
-                    GRAND TOTAL:
-                  </TableCell>
-                  <TableCell>
-                    ₹
-                    {filteredRecords
-                      .reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
-                      .toFixed(2)}
-                  </TableCell>
-                  <TableCell></TableCell>
-                  <TableCell>
-                    ₹
-                    {filteredRecords
-                      .reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0)
-                      .toFixed(2)}
-                  </TableCell>
+          <div style={{ maxHeight: "500px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "8px" }}>
+            <Table>
+              <thead>
+                <tr>
+                  <TableHeader>Date</TableHeader>
+                  <TableHeader>Patient Name</TableHeader>
+                  <TableHeader>UHID</TableHeader>
+                  <TableHeader>Mobile</TableHeader>
+                  <TableHeader>Company</TableHeader>
+                  <TableHeader>Treatment</TableHeader>
+                  <TableHeader>Amount</TableHeader>
+                  <TableHeader>Payment Method</TableHeader>
+                  <TableHeader>Refund</TableHeader>
                 </tr>
-              </tfoot>
-            )}
-          </Table>
-        )}
-
-        {filteredRecords.length === 0 && !loading && (
-          <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>No records found</div>
+              </thead>
+              <tbody>
+                {filteredRecords.length > 0 ? (
+                  filteredRecords.map((record, index) => (
+                    <TableRow key={`${record.id}-${record.date}-${record.amount}-${index}`}>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
+                      <TableCell>{record.patient_name}</TableCell>
+                      <TableCell>{record.patient_uhid}</TableCell>
+                      <TableCell>{record.mobile_number}</TableCell>
+                      <TableCell>{record.company_name}</TableCell>
+                      <TableCell>{record.treatment}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                      <TableCell>{record.payment_method}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
+                      No payment records found for the selected date range
+                    </TableCell>
+                  </TableRow>
+                )}
+              </tbody>
+              {filteredRecords.length > 0 && (
+                <tfoot>
+                  <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                    <TableCell colSpan="6" style={{ textAlign: "right" }}>
+                      GRAND TOTAL:
+                    </TableCell>
+                    <TableCell>
+                      ₹{filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell></TableCell>
+                    <TableCell>
+                      ₹{filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0).toFixed(2)}
+                    </TableCell>
+                  </tr>
+                </tfoot>
+              )}
+            </Table>
+          </div>
         )}
       </ReportContainer>
     </FormWrapper>

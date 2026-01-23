@@ -1,0 +1,269 @@
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import {
+  Container,
+  Title,
+  Table,
+  TableHeader,
+  TableRow,
+  TableCell,
+  FormControl,
+  Label,
+  SearchInput,
+  FilterWrapper,
+  Button,
+  ResultsInfo,
+  SearchWrapper,
+  FilterContainer,
+  ScrollableTableContainer,
+  StyledDatePicker,
+  ReportContainer
+} from "./SharedStyledComponents"
+import apiRequest from "./ApiRequest"
+
+const FormUpdate = () => {
+  const [insuranceData, setInsuranceData] = useState([])
+  const [filteredData, setFilteredData] = useState([])
+  const [selectedCompany, setSelectedCompany] = useState("")
+  const [fromDate, setFromDate] = useState(new Date())
+  const [toDate, setToDate] = useState(new Date())
+  const [searchField, setSearchField] = useState("")
+  const [searchValue, setSearchValue] = useState("")
+
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
+
+  const navigate = useNavigate()
+
+  // Fetch data when filters change
+  useEffect(() => {
+    fetchData()
+  }, [selectedCompany, fromDate, toDate, searchField, searchValue])
+
+const fetchData = async () => {
+  try {
+    const params = new URLSearchParams();
+
+    if (selectedCompany) {
+      params.append("companyName", selectedCompany);
+    }
+
+    if (fromDate) {
+      params.append("from_date", fromDate.toLocaleDateString("en-CA"));
+    }
+
+    if (toDate) {
+      params.append("to_date", toDate.toLocaleDateString("en-CA"));
+    }
+
+    if (searchField && searchValue) {
+      params.append("search_field", searchField);
+      params.append("search_value", searchValue);
+    }
+
+    const url = `${Insurancebaseurl}insurance/?${params.toString()}`;
+    console.log("Fetching data from:", url);
+
+    const result = await apiRequest(url, "GET");
+
+    if (result.success) {
+      setInsuranceData(result.data);
+      setFilteredData(result.data);
+    } else {
+      console.error("Error fetching data:", result.error);
+      setInsuranceData([]);
+      setFilteredData([]);
+    }
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    setInsuranceData([]);
+    setFilteredData([]);
+  }
+};
+
+  const handleCompanyFilterChange = (event) => {
+    setSelectedCompany(event.target.value)
+  }
+
+  const handleFromDateChange = (date) => {
+    setFromDate(date)
+  }
+
+  const handleToDateChange = (date) => {
+    setToDate(date)
+  }
+
+  const handleSearchFieldChange = (event) => {
+    setSearchField(event.target.value)
+    setSearchValue("") // Clear search value when field changes
+  }
+
+  const handleSearchValueChange = (event) => {
+    setSearchValue(event.target.value)
+  }
+
+  const handleEdit = (item) => {
+    navigate("/", {
+      state: {
+        ...item,
+      },
+    })
+  }
+
+  return (
+    <ReportContainer>
+    <Container>
+      <Title>Form Update</Title>
+      <FilterContainer>
+        <FilterWrapper>
+          <Label htmlFor="companyName">Filter by Company:</Label>
+          <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+            <option value="">Select Company</option>
+            <option value="General Insurance">General Insurance</option>
+            <option value="ECHS">ECHS</option>
+            <option value="ESI">ESI</option>
+            <option value="ESIC">ESIC</option>
+            <option value="Railway CTSE">Railway CTSE</option>
+            <option value="TKT">TKT</option>
+            <option value="FCI">FCI</option>
+            <option value="Airport">Airport</option>
+          </FormControl>
+        </FilterWrapper>
+
+        <FilterWrapper>
+          <Label>From Date:</Label>
+          <StyledDatePicker
+            selected={fromDate}
+            onChange={handleFromDateChange}
+            dateFormat="yyyy-MM-dd"
+            placeholderText="Select from date"
+            popperProps={{
+              strategy: "fixed",
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, 10],
+                  },
+                },
+              ],
+            }}
+            popperClassName="date-picker-popper"
+          />
+        </FilterWrapper>
+
+        <FilterWrapper>
+          <Label>To Date:</Label>
+          <StyledDatePicker
+            selected={toDate}
+            onChange={handleToDateChange}
+            dateFormat="yyyy-MM-dd"
+            placeholderText="Select to date"
+            minDate={fromDate}
+            popperProps={{
+              strategy: "fixed",
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, 10],
+                  },
+                },
+              ],
+            }}
+            popperClassName="date-picker-popper"
+          />
+    
+        </FilterWrapper>
+
+        <FilterWrapper>
+          <Label>Search by:</Label>
+          <FormControl value={searchField} onChange={handleSearchFieldChange}>
+            <option value="">Select Search Field</option>
+            <option value="billNumber">Bill Number</option>
+            <option value="ipNumber">IP Number</option>
+            <option value="opNumber">OP Number</option>
+            <option value="patient_name">Patient Name</option>
+            <option value="dateOfDischarge">Discharge Date</option>
+          </FormControl>
+        </FilterWrapper>
+
+        {searchField && (
+          <SearchWrapper>
+            <Label>Search Value:</Label>
+            <SearchInput
+              type={searchField === "dateOfDischarge" ? "date" : "text"}
+              value={searchValue}
+              onChange={handleSearchValueChange}
+              placeholder={`Enter ${searchField.replace(/([A-Z])/g, " $1").toLowerCase()}`}
+            />
+          </SearchWrapper>
+        )}
+       <div>
+          <Button onClick={() => navigate("/")}>Add New Record</Button>
+        </div>    
+      </FilterContainer>
+
+      <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>
+
+      <ScrollableTableContainer>
+        <Table>
+          <thead>
+            <tr>
+              <TableHeader>Patient UHID</TableHeader>
+              <TableHeader>Patient Name</TableHeader>
+              <TableHeader>Bill Number</TableHeader>
+              <TableHeader>Date</TableHeader>
+              <TableHeader>Company Name</TableHeader>
+              <TableHeader>OP Number</TableHeader>
+              <TableHeader>IP Number</TableHeader>
+              <TableHeader>Date of Discharge</TableHeader>
+              <TableHeader>Action</TableHeader>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.length > 0 ? (
+              filteredData.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell>{item.patient_uhid || "N/A"}</TableCell>
+                  <TableCell>{item.patient_name || "N/A"}</TableCell>
+                  <TableCell>{item.billNumber || "N/A"}</TableCell>
+                  <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
+                  <TableCell>{item.companyName || "N/A"}</TableCell>
+                  <TableCell>{item.opNumber || "N/A"}</TableCell>
+                  <TableCell>{item.ipNumber || "N/A"}</TableCell>
+                  <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
+                  <TableCell>
+                    <Button onClick={() => handleEdit(item)}>Edit</Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
+                  No records found matching the current filters
+                </TableCell>
+              </TableRow>
+            )}
+          </tbody>
+        </Table>
+      </ScrollableTableContainer>
+
+      <style jsx global>{`
+        .date-picker-popper {
+          z-index: 9999 !important;
+        }
+        
+        .react-datepicker-popper {
+          z-index: 9999 !important;
+        }
+        
+        .react-datepicker {
+          z-index: 9999 !important;
+        }
+      `}</style>
+    </Container>
+    </ReportContainer>
+  )
+}
+
+export default FormUpdate

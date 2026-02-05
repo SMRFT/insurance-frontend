@@ -54,7 +54,6 @@ const OtherForm = ({ editData = null, onSuccess }) => {
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
   // Fetch doctors list
-// Fetch doctors list
 useEffect(() => {
   const fetchDoctors = async () => {
     setLoadingDoctors(true)
@@ -153,7 +152,8 @@ useEffect(() => {
   useEffect(() => {
     if (editDataFromNav) {
       const refundValue = editDataFromNav.refund || "0"
-      const hasRefundValue = editDataFromNav.refund && parseFloat(editDataFromNav.refund) > 0
+      // has_refund is independent - check the actual boolean field
+      const hasRefundValue = editDataFromNav.has_refund === true
       
       setFormData({
         date: editDataFromNav.date || "",
@@ -165,7 +165,7 @@ useEffect(() => {
         companyName: editDataFromNav.company_name || "",
         treatment: editDataFromNav.treatment || "",
         hasRefund: hasRefundValue,
-        refundAmount: editDataFromNav.refundAmount || "",
+        refundAmount: refundValue,
       })
 
       // Populate existing payment details when editing
@@ -215,17 +215,10 @@ useEffect(() => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     
-    if (name === "hasRefund") {
-      setFormData((prev) => ({
-        ...prev,
-        hasRefund: checked,
-      }))
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      }))
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }))
   }
 
   const handlePaymentEntryChange = (entryId, field, value) => {
@@ -334,7 +327,8 @@ useEffect(() => {
         doctor_name: formData.doctorName,
         company_name: formData.companyName,
         treatment: formData.treatment,
-        refund: formData.refundAmount || "0",
+        has_refund: formData.hasRefund,  // Always send the boolean value
+        refund: formData.refundAmount || "0",  // Send refund amount regardless of checkbox
         payment_details: paymentDetailsForBackend,
       }
 
@@ -515,7 +509,7 @@ useEffect(() => {
               </div>
 
               <div>
-                <Label>IP/OP Type</Label>
+                <Label>OP/IP Type</Label>
                 <div style={{ display: "flex", gap: "20px", marginTop: "8px" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
                     <input
@@ -543,13 +537,13 @@ useEffect(() => {
               </div>
 
               <div>
-                <Label>Patient UHID</Label>
+                <Label>OP/IP Number</Label>
                 <Input 
                   type="text" 
                   name="patientUhid" 
                   value={formData.patientUhid} 
                   onChange={handleChange}
-                  placeholder="Enter patient UHID"
+                  placeholder="Enter patient op/ip number"
                 />
               </div>
               
@@ -643,15 +637,23 @@ useEffect(() => {
                   <option value="Pediatric">Pediatric</option>
                   <option value="Urology">Urology</option>
                   <option value="Obesity">Obesity</option>
+                  <option value="HDR">HDR</option>
+                  <option value="Dialysis">Dialysis</option>
+                  <option value="Conservative">Conservative</option>
+                  <option value="Pulmonology">Pulmonology</option>
                 </Select>
               </div>
             </div>
           </FormSection>
 
-          {/* Refund Section with Checkbox */}
+          {/* Refund Section */}
           <FormSection>
             <SectionTitle>Refund Details</SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
+              gap: "20px" 
+            }}>
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
                   <input
@@ -665,17 +667,18 @@ useEffect(() => {
                 </label>
               </div>
               
-                  <Label>Refund Amount</Label>
-                  <Input
-                    type="number"
-                    name="refundAmount"
-                    value={formData.refundAmount}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="Enter refund amount"
-                  />
-
+              <div>
+                <Label>Refund Amount</Label>
+                <Input
+                  type="number"
+                  name="refundAmount"
+                  value={formData.refundAmount}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter refund amount (if any)"
+                />
+              </div>
             </div>
           </FormSection>
 
@@ -770,7 +773,6 @@ useEffect(() => {
                       <option value="Cash">Cash</option>
                       <option value="Card">Card</option>
                       <option value="UPI">UPI</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
                       <option value="Cheque">Cheque</option>
                     </Select>
                   </div>

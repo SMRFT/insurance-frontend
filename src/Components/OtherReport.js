@@ -1,7 +1,4 @@
-"use client"
-
 import { useState, useEffect } from "react"
-import styled from "styled-components"
 import {
   FormWrapper,
   FilterWrapper,
@@ -18,131 +15,13 @@ import {
   Button,
   Container,
   FormContainer,
+  ResponsiveFilterContainer,
+  ResponsiveTableWrapper,
+  InfoText,
+  ResponsiveButton,
+  StatusBadge,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
-
-// Responsive Styled Components
-const ResponsiveFilterContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
-
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @media (max-width: 992px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-`
-
-const ResponsiveTableWrapper = styled.div`
-  max-height: 500px;
-  overflow-y: auto;
-  overflow-x: auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  
-  @media (max-width: 768px) {
-    max-height: 400px;
-    border-radius: 4px;
-  }
-`
-
-const MobileCard = styled.div`
-  display: none;
-  
-  @media (max-width: 768px) {
-    display: block;
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-`
-
-const MobileCardRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-`
-
-const MobileCardLabel = styled.span`
-  font-weight: 600;
-  color: #666;
-  font-size: 0.9rem;
-`
-
-const MobileCardValue = styled.span`
-  color: #333;
-  font-size: 0.9rem;
-  text-align: right;
-  max-width: 60%;
-
-  white-space: nowrap;   /* keep in one line */
-  flex-shrink: 0;        /* 🔥 IMPORTANT */
-`
-
-
-const DesktopTable = styled.div`
-  display: block;
-  
-  @media (max-width: 768px) {
-    display: none;
-  }
-`
-
-const MobileCardContainer = styled.div`
-  display: none;
-  
-  @media (max-width: 768px) {
-    display: block;
-  }
-`
-
-const StatusBadge = styled.span`
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: inline-block;
-  background-color: ${props => props.color};
-  color: white;
-  white-space: nowrap; 
-`
-
-const InfoText = styled.div`
-  text-align: center;
-  margin: 10px 0;
-  font-weight: 500;
-  font-size: 0.95rem;
-  
-  @media (max-width: 768px) {
-    font-size: 0.85rem;
-    padding: 0 10px;
-  }
-`
-
-const ResponsiveButton = styled(Button)`
-  @media (max-width: 768px) {
-    width: 100%;
-    padding: 12px;
-    font-size: 0.95rem;
-  }
-`
 
 const OtherReport = () => {
   const [records, setRecords] = useState([])
@@ -150,6 +29,7 @@ const OtherReport = () => {
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompany, setSelectedCompany] = useState("")
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("")
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
   const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
 
@@ -163,7 +43,7 @@ const OtherReport = () => {
 
   useEffect(() => {
     filterRecords()
-  }, [records, searchTerm, selectedCompany])
+  }, [records, searchTerm, selectedCompany, selectedPaymentMethod])
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -213,11 +93,19 @@ const OtherReport = () => {
       filtered = filtered.filter((record) => record.company_name === selectedCompany)
     }
 
+    if (selectedPaymentMethod) {
+      filtered = filtered.filter((record) => record.payment_method === selectedPaymentMethod)
+    }
+
     setFilteredRecords(filtered)
   }
 
   const handleCompanyFilterChange = (event) => {
     setSelectedCompany(event.target.value)
+  }
+
+  const handlePaymentMethodFilterChange = (event) => {
+    setSelectedPaymentMethod(event.target.value)
   }
 
   const calculateTotals = () => {
@@ -239,6 +127,7 @@ const OtherReport = () => {
     const headers = [
       "Date",
       "IP/OP Type",
+      "IP/OP Number",
       "Patient Name",
       "Mobile Number",
       "Doctor Name",
@@ -246,34 +135,48 @@ const OtherReport = () => {
       "Treatment",
       "Amount",
       "Payment Method",
-      "Refund",
+      "Has Refund",
+      "Refund Amount",
       "Status",
+      "Approved By",
+      "Final Approved By",
+      "Refund Approved By"
     ]
 
     const { totalAmount, totalRefund } = calculateTotals()
 
     const dataRows = filteredRecords.map((record) =>
       [
-        record.date,
-        record.ip_op_type,
-        record.patient_uhid,
-        record.patient_name,
-        record.mobile_number,
-        record.doctor_name,
-        record.company_name,
-        record.treatment,
-        record.amount,
-        record.payment_method,
-        record.refund,
-        record.status,
-      ].join(","),
+        record.date || "",
+        record.ip_op_type || "",
+        record.patient_uhid || "",
+        record.patient_name || "",
+        record.mobile_number || "",
+        record.doctor_name || "",
+        record.company_name || "",
+        record.treatment || "",
+        Number.parseFloat(record.amount || 0).toFixed(2),
+        record.payment_method || "",
+        record.has_refund ? "Yes" : "No",
+        Number.parseFloat(record.refund || 0).toFixed(2),
+        record.status || "",
+        record.approved_by_name || "",
+        record.final_approved_by_name || "",
+        record.refund_approved_by_name || ""
+      ].map(field => `"${field}"`).join(",")
     )
 
-    const grandTotalRow = ["", "", "", "", "", "GRAND TOTAL", totalAmount.toFixed(2), "", totalRefund.toFixed(2), ""].join(",")
+    const grandTotalRow = [
+      "", "", "", "", "", "", "GRAND TOTAL", "",
+      `"${totalAmount.toFixed(2)}"`,
+      "", "",
+      `"${totalRefund.toFixed(2)}"`,
+      "", "", "", ""
+    ].join(",")
 
     const csvContent = [headers.join(","), ...dataRows, "", grandTotalRow].join("\n")
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
@@ -324,6 +227,17 @@ const OtherReport = () => {
               <option value="Airport">Airport</option>
             </Select>
           </div>
+
+          <div>
+            <Label htmlFor="paymentMethod">Filter by Payment</Label>
+            <Select id="paymentMethod" value={selectedPaymentMethod} onChange={handlePaymentMethodFilterChange}>
+              <option value="">All Methods</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="UPI">UPI</option>
+              <option value="Cheque">Cheque</option>
+            </Select>
+          </div>
           
           <div>
             <Label>From Date</Label>
@@ -350,142 +264,89 @@ const OtherReport = () => {
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-          <>
-            {/* Desktop Table View */}
-            <DesktopTable>
-              <ResponsiveTableWrapper>
-                <Table>
-                  <thead>
-                    <tr>
-                      <TableHeader>Date</TableHeader>
-                      <TableHeader>IP/OP Type</TableHeader>
-                      <TableHeader>IP/OP Number</TableHeader>
-                      <TableHeader>Patient Name</TableHeader>
-                      <TableHeader>Mobile</TableHeader>
-                      <TableHeader>Doctor Name</TableHeader>
-                      <TableHeader>Company</TableHeader>
-                      <TableHeader>Treatment</TableHeader>
-                      <TableHeader>Amount</TableHeader>
-                      <TableHeader>Payment Method</TableHeader>
-                      <TableHeader>Refundable</TableHeader>
-                      <TableHeader>Refund</TableHeader>
-                      <TableHeader>Status</TableHeader>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.length > 0 ? (
-                      filteredRecords.map((record, index) => (
-                        <TableRow key={`${record.id}-${record.date}-${record.amount}-${index}`}>
-                          <TableCell style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
-                          <TableCell>{record.ip_op_type}</TableCell>
-                          <TableCell>{record.patient_uhid}</TableCell>
-                          <TableCell>{record.patient_name}</TableCell>
-                          <TableCell>{record.mobile_number}</TableCell>
-                          <TableCell>{record.doctor_name}</TableCell>
-                          <TableCell>{record.company_name}</TableCell>
-                          <TableCell>{record.treatment}</TableCell>
-                          <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                          <TableCell>{record.payment_method}</TableCell>
-                          <TableCell>
-                            <StatusBadge color={record.has_refund ? "green" : "red"}>
-                              {record.has_refund ? "Yes" : "No"}
-                            </StatusBadge>
-                          </TableCell>
-                          <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                          <TableCell>
-                            <StatusBadge color={getStatusColor(record.status)}>
-                              {record.status}
-                            </StatusBadge>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
-                          No payment records found for the selected date range
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </tbody>
-                  {filteredRecords.length > 0 && (
-                    <tfoot>
-                      <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                        <TableCell colSpan="6" style={{ textAlign: "right" }}>
-                          GRAND TOTAL:
-                        </TableCell>
-                        <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                        <TableCell></TableCell>
-                      </tr>
-                    </tfoot>
-                  )}
-                </Table>
-              </ResponsiveTableWrapper>
-            </DesktopTable>
-
-            {/* Mobile Card View */}
-            <MobileCardContainer>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record, index) => (
-                  <MobileCard key={`${record.id}-${record.date}-${record.amount}-${index}`}>
-                    <MobileCardRow>
-                      <MobileCardLabel>Date:</MobileCardLabel>
-                      <MobileCardValue>{record.date}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Patient:</MobileCardLabel>
-                      <MobileCardValue>{record.patient_name}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>UHID:</MobileCardLabel>
-                      <MobileCardValue>{record.patient_uhid}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Mobile:</MobileCardLabel>
-                      <MobileCardValue>{record.mobile_number}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Company:</MobileCardLabel>
-                      <MobileCardValue>{record.company_name}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Treatment:</MobileCardLabel>
-                      <MobileCardValue>{record.treatment}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Amount:</MobileCardLabel>
-                      <MobileCardValue style={{ fontWeight: '600', color: '#2196f3' }}>
-                        ₹{Number.parseFloat(record.amount || 0).toFixed(2)}
-                      </MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Payment:</MobileCardLabel>
-                      <MobileCardValue>{record.payment_method}</MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Refund:</MobileCardLabel>
-                      <MobileCardValue style={{ fontWeight: '600', color: '#ff9800' }}>
-                        ₹{Number.parseFloat(record.refund || 0).toFixed(2)}
-                      </MobileCardValue>
-                    </MobileCardRow>
-                    <MobileCardRow>
-                      <MobileCardLabel>Status:</MobileCardLabel>
-                      <MobileCardValue>
-                        <StatusBadge color={getStatusColor(record.status)}>
-                          {record.status}
+          <ResponsiveTableWrapper>
+            <Table>
+              <thead>
+                <tr>
+                  <TableHeader>Date</TableHeader>
+                  <TableHeader>IP/OP Type</TableHeader>
+                  <TableHeader>IP/OP Number</TableHeader>
+                  <TableHeader>Patient Name</TableHeader>
+                  <TableHeader>Mobile</TableHeader>
+                  <TableHeader style={{ minWidth: '150px' }}>Doctor Name</TableHeader>
+                  <TableHeader>Company</TableHeader>
+                  <TableHeader>Treatment</TableHeader>
+                  <TableHeader>Amount</TableHeader>
+                  <TableHeader>Payment Method</TableHeader>
+                  <TableHeader>Has Refund</TableHeader>
+                  <TableHeader>Refund</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader>Approved By</TableHeader>
+                  <TableHeader>Final Approved By</TableHeader>
+                  <TableHeader>Refund Approved By</TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.length > 0 ? (
+                  filteredRecords.map((record, index) => (
+                    <TableRow key={`${record.id}-${record.date}-${record.amount}-${index}`}>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
+                      <TableCell>{record.ip_op_type}</TableCell>
+                      <TableCell>{record.patient_uhid}</TableCell>
+                      <TableCell>{record.patient_name}</TableCell>
+                      <TableCell>{record.mobile_number}</TableCell>
+                      <TableCell style={{ 
+                        wordWrap: 'break-word', 
+                        whiteSpace: 'normal',
+                        maxWidth: '200px',
+                        minWidth: '150px'
+                      }}>
+                        {record.doctor_name}
+                      </TableCell>
+                      <TableCell>{record.company_name}</TableCell>
+                      <TableCell>{record.treatment}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                      <TableCell>{record.payment_method}</TableCell>
+                      <TableCell>
+                        <StatusBadge color={record.has_refund ? "#4caf50" : "#f44336"}>
+                          {record.has_refund ? "Yes" : "No"}
                         </StatusBadge>
-                      </MobileCardValue>
-                    </MobileCardRow>
-                  </MobileCard>
-                ))
-              ) : (
-                <div style={{ textAlign: "center", padding: "40px 20px", color: "#666" }}>
-                  No payment records found for the selected date range
-                </div>
+                      </TableCell>
+                      <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <StatusBadge color={getStatusColor(record.status)}>
+                          {record.status || "Pending"}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell>{record.approved_by_name || "-"}</TableCell>
+                      <TableCell>{record.final_approved_by_name || "-"}</TableCell>
+                      <TableCell>{record.refund_approved_by_name || "-"}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="16" style={{ textAlign: "center", padding: "20px" }}>
+                      No payment records found for the selected filters
+                    </TableCell>
+                  </TableRow>
+                )}
+              </tbody>
+              {filteredRecords.length > 0 && (
+                <tfoot>
+                  <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                    <TableCell colSpan="8" style={{ textAlign: "right" }}>
+                      GRAND TOTAL:
+                    </TableCell>
+                    <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                    <TableCell colSpan="4"></TableCell>
+                  </tr>
+                </tfoot>
               )}
-            </MobileCardContainer>
-          </>
+            </Table>
+          </ResponsiveTableWrapper>
         )}
       </Container>
     </ReportContainer>

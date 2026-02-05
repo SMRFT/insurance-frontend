@@ -268,7 +268,6 @@ export const ButtonWrapper = styled.div`
   }
 `
 
-
 // Shared Form Components
 export const FormWrapper = styled.div`
   display: flex;
@@ -660,7 +659,7 @@ export const TableCell = styled.td`
   color: ${textColor};
   border: 1px solid ${accentColor};
   text-align: center;
-  word-break: break-word;
+  white-space: nowrap;
   line-height: 1.5;
   max-width: 200px;
   font-size: inherit;
@@ -791,21 +790,6 @@ export const ResultsInfo = styled.div`
   }
 `
 
-export const ResponsiveTableWrapper = styled.div`
-  width: 100%;
-  margin: 20px 0;
-  box-sizing: border-box;
-  overflow-x: auto;
-  
-  @media (max-width: 768px) {
-    margin: 15px 0;
-  }
-  
-  @media (max-width: 480px) {
-    margin: 10px 0;
-  }
-`
-
 export const SearchContainer = styled.div`
   display: flex;
   gap: 15px;
@@ -847,5 +831,275 @@ export const FilterContainer = styled.div`
     margin-bottom: 15px;
     flex-direction: column;
     align-items: stretch;
+  }
+`
+
+// Responsive Styled Components for Reports
+export const ResponsiveFilterContainer = styled.div`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 1fr);
+  gap: 15px;
+  align-items: end;
+  width: 100%;
+  overflow-x: auto;   /* 👈 allows scroll instead of wrapping */
+  padding-bottom: 5px;
+
+  /* optional: hide scrollbar visually */
+  scrollbar-width: thin;
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+`;
+
+export const ResponsiveTableWrapper = styled.div`
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  
+  @media (max-width: 1024px) {
+    max-height: 450px;
+  }
+  
+  @media (max-width: 768px) {
+    max-height: 400px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 480px) {
+    max-height: 350px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 360px) {
+    max-height: 300px;
+  }
+`
+
+export const MobileCard = styled.div`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: block;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+  }
+`
+
+export const MobileCardRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 480px) {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+`
+
+export const MobileCardLabel = styled.span`
+  font-weight: 600;
+  color: #666;
+  font-size: 0.9rem;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+  }
+`
+
+export const MobileCardValue = styled.span`
+  color: #333;
+  font-size: 0.9rem;
+  text-align: right;
+  max-width: 60%;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+  }
+`
+
+export const DesktopTable = styled.div`
+  display: block;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`
+
+export const MobileCardContainer = styled.div`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: block;
+  }
+`
+
+export const StatusBadge = styled.span`
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+  background-color: ${props => props.color};
+  color: white;
+  white-space: nowrap;
+
+  @media (max-width: 480px) {
+    padding: 3px 10px;
+    font-size: 0.8rem;
+  }
+`
+
+export const InfoText = styled.div`
+  text-align: center;
+  margin: 10px 0;
+  font-weight: 500;
+  font-size: 0.95rem;
+  
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    padding: 0 10px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    margin: 8px 0;
+  }
+`
+
+export const ResponsiveButton = styled(Button)`
+  white-space: nowrap;
+  width: auto;
+
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    width: auto;   /* 👈 important */
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    width: auto;   /* 👈 important */
+  }
+`
+
+
+export const ActionCell = styled(TableCell)`
+  padding: 8px;
+  min-width: 220px;
+  
+  @media (max-width: 1024px) {
+    min-width: 180px;
+    padding: 6px;
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 160px;
+    padding: 5px;
+  }
+
+  @media (max-width: 480px) {
+    min-width: 140px;
+    padding: 4px;
+  }
+`
+
+export const StatusSelect = styled(Select)`
+  color: ${props => props.statusColor || '#333'};
+  font-weight: 600;
+  border: 2px solid ${props => props.statusColor || '#ccc'};
+  padding: 5px 8px;
+  border-radius: 4px;
+  min-width: 140px;
+  max-width: 100%;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  background-color: ${props => props.disabled ? '#f5f5f5' : 'white'};
+  opacity: ${props => props.disabled ? 0.6 : 1};
+  margin-bottom: 0;
+  
+  @media (max-width: 992px) {
+    min-width: 120px;
+    font-size: 12px;
+    padding: 5px 6px;
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 100%;
+    font-size: 11px;
+    padding: 6px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    padding: 5px;
+  }
+`
+
+export const ButtonGroup = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  width: 100%;
+  
+  @media (max-width: 992px) {
+    gap: 5px;
+  }
+
+  @media (max-width: 768px) {
+    gap: 4px;
+  }
+
+  @media (max-width: 480px) {
+    gap: 3px;
+    flex-direction: column;
+  }
+`
+
+export const EditButton = styled(Button)`
+  min-width: 50px;
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  
+  @media (max-width: 992px) {
+    min-width: 45px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 40px;
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  @media (max-width: 480px) {
+    min-width: 100%;
+    padding: 6px;
+    font-size: 10px;
   }
 `

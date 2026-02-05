@@ -1,27 +1,30 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   FormWrapper,
-  FilterWrapper,
   ReportContainer,
   Title,
   Table,
   TableHeader,
   TableRow,
   TableCell,
-  FilterContainer,
   Label,
   Button,
-  FormControl,
-  SearchInput,
-  ScrollableTableContainer,
-  StyledDatePicker,
   Container,
+  Input,
+  Select,
+  ResponsiveFilterContainer,
+  ResponsiveTableWrapper,
+  StatusSelect,
+  ActionCell,
+  InfoText,
+  ResponsiveButton,
+  ButtonGroup,
+  EditButton,
 } from "./SharedStyledComponents"
 
 import apiRequest from "./ApiRequest"
+import toast, { Toaster } from 'react-hot-toast'
 
 const OtherUpdate = () => {
   const [records, setRecords] = useState([])
@@ -29,12 +32,14 @@ const OtherUpdate = () => {
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompany, setSelectedCompany] = useState("")
-  const [fromDate, setFromDate] = useState(() => new Date())
-  const [toDate, setToDate] = useState(() => new Date())
-  const [approvedRecords, setApprovedRecords] = useState(new Set())
+  const [selectedStatus, setSelectedStatus] = useState("")
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
   const navigate = useNavigate()
+
+  const STATUS_OPTIONS = ["Pending", "Approved", "Collected", "Gate Pass Issued"]
 
   useEffect(() => {
     if (fromDate && toDate) {
@@ -44,80 +49,82 @@ const OtherUpdate = () => {
 
   useEffect(() => {
     filterRecords()
-  }, [records, searchTerm, selectedCompany])
+  }, [records, searchTerm, selectedCompany, selectedStatus])
 
-const fetchRecords = async () => {
-  setLoading(true)
-  try {
-    const params = {}
-    if (fromDate) {
-      params.from_date = fromDate.toLocaleDateString("en-CA")
-    }
-    if (toDate) {
-      params.to_date = toDate.toLocaleDateString("en-CA")
-    }
-    // REMOVE THIS LINE: params.status = "Pending"
-
-    const url = `${Insurancebaseurl}other_records/`
-
-    const response = await apiRequest(url, "GET", null, {}, { params })
-
-    if (response.success && Array.isArray(response.data)) {
-      const processedRecords = []
-      response.data.forEach((record) => {
-        if (record.payment_details && Array.isArray(record.payment_details) && record.payment_details.length > 0) {
-          record.payment_details.forEach((payment) => {
-            processedRecords.push({
-              id: record.id || record._id,
-              original_id: record.id || record._id,
-              date: payment.date || record.date,
-              patient_name: record.patient_name,
-              patient_uhid: record.patient_uhid,
-              mobile_number: record.mobile_number,
-              company_name: record.company_name,
-              treatment: record.treatment,
-              amount: payment.amount,
-              payment_method: payment.payment_method,
-              refund: record.refund || 0,
-              status: record.status || "Pending", // Keep status to display it
-              originalRecord: record,
-            })
-          })
-        }
-      })
-
-      const uniqueRecords = processedRecords.filter(
-        (record, index, self) =>
-          index ===
-          self.findIndex(
-            (r) =>
-              r.original_id === record.original_id &&
-              r.date === record.date &&
-              r.amount === record.amount &&
-              r.payment_method === record.payment_method,
-          ),
-      )
-
-      setRecords(uniqueRecords)
-    } else {
-      setRecords([])
-      if (response.error) {
-        console.error("Fetch error:", response.error)
+  const fetchRecords = async () => {
+    setLoading(true)
+    try {
+      const params = {
+        from_date: fromDate,
+        to_date: toDate
       }
+
+      const url = `${Insurancebaseurl}other_records/`
+      const response = await apiRequest(url, "GET", null, {}, { params })
+
+      if (response.success && Array.isArray(response.data)) {
+        const processedRecords = []
+        response.data.forEach((record) => {
+          if (record.payment_details && Array.isArray(record.payment_details) && record.payment_details.length > 0) {
+            record.payment_details.forEach((payment) => {
+              processedRecords.push({
+                id: record.id || record._id,
+                original_id: record.id || record._id,
+                date: payment.date || record.date,
+                patient_name: record.patient_name,
+                patient_uhid: record.patient_uhid,
+                mobile_number: record.mobile_number,
+                company_name: record.company_name,
+                treatment: record.treatment,
+                amount: payment.amount,
+                payment_method: payment.payment_method,
+                refund: record.refund || 0,
+                status: record.status || "Pending",
+                is_approved: record.is_approved || false,
+                approved_by_name: record.approved_by_name || '',
+                originalRecord: record,
+              })
+            })
+          }
+        })
+
+        const uniqueRecords = processedRecords.filter(
+          (record, index, self) =>
+            index ===
+            self.findIndex(
+              (r) =>
+                r.original_id === record.original_id &&
+                r.date === record.date &&
+                r.amount === record.amount &&
+                r.payment_method === record.payment_method,
+            ),
+        )
+
+        setRecords(uniqueRecords)
+      } else {
+        setRecords([])
+        if (response.error) {
+          console.error("Fetch error:", response.error)
+        }
+      }
+    } catch (error) {
+      setRecords([])
+      console.error("Error fetching records:", error)
+      toast.error("Failed to fetch records")
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    setRecords([])
-    console.error("Error fetching records:", error)
-  } finally {
-    setLoading(false)
   }
-}
 
   const filterRecords = () => {
     let filtered = [...records]
 
     if (selectedCompany) {
       filtered = filtered.filter((record) => record.company_name === selectedCompany)
+    }
+
+    if (selectedStatus) {
+      filtered = filtered.filter((record) => record.status === selectedStatus)
     }
 
     if (searchTerm) {
@@ -137,12 +144,8 @@ const fetchRecords = async () => {
     setSelectedCompany(event.target.value)
   }
 
-  const handleFromDateChange = (date) => {
-    setFromDate(date)
-  }
-
-  const handleToDateChange = (date) => {
-    setToDate(date)
+  const handleStatusFilterChange = (event) => {
+    setSelectedStatus(event.target.value)
   }
 
   const handleEdit = (record) => {
@@ -164,50 +167,100 @@ const fetchRecords = async () => {
     })
   }
 
-  const handleApprove = async (record) => {
+  const getStatusMessage = (previousStatus, newStatus) => {
+    if (newStatus === "Approved") {
+      return "Record Approved successfully!"
+    } else if (newStatus === "Collected") {
+      return "Payment Collected successfully!"
+    } else if (newStatus === "Gate Pass Issued") {
+      return "Gate Pass Issued successfully!"
+    }
+    return `Status updated to ${newStatus}`
+  }
+
+  const handleStatusChange = async (record, newStatus) => {
     try {
       const updatePayload = {
         id: record.original_id || record.id,
-        status: "Approved",
+        status: newStatus,
       }
 
       const response = await apiRequest(`${Insurancebaseurl}other_records/`, "PUT", updatePayload)
 
       if (response.success || response.status === 200) {
-        // Mark record as approved locally
-        setApprovedRecords((prev) => new Set([...prev, record.original_id || record.id]))
-        // Refresh records
-        setTimeout(() => fetchRecords(), 500)
+        // Update local state
+        setRecords((prevRecords) =>
+          prevRecords.map((r) =>
+            (r.original_id || r.id) === (record.original_id || record.id) ? { ...r, status: newStatus } : r,
+          ),
+        )
+
+        // Show toast notification with appropriate message
+        const statusMessage = getStatusMessage(record.status, newStatus)
+        toast.success(statusMessage)
+        
+        // Refresh records to get updated data
+        fetchRecords()
+      } else if (response.error) {
+        // Handle error from backend (like previous day not approved)
+        toast.error(response.error || "Failed to update status")
       }
     } catch (error) {
-      console.error("Error approving record:", error)
+      console.error("Error updating status:", error)
+      
+      // Check if error response has a specific message
+      if (error.response && error.response.data && error.response.data.error) {
+        toast.error(error.response.data.error)
+      } else {
+        toast.error("Failed to update status. Please try again.")
+      }
     }
   }
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending":
+        return "#f44336"
+      case "Approved":
+        return "#2196f3"
+      case "Collected":
+        return "#ff9800"
+      case "Gate Pass Issued":
+        return "#4caf50"
+      default:
+        return "#666"
+    }
+  }
+
+  const calculateTotals = () => {
+    const totalAmount = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
+    const totalRefund = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.refund) || 0), 0)
+    return { totalAmount, totalRefund }
+  }
+
+  const { totalAmount, totalRefund } = calculateTotals()
+
   return (
     <ReportContainer>
+      <Toaster position="top-right" />
       <Container>
-        <Title>Other Records - Pending Approvals</Title>
-        <FilterContainer
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr",
-            gap: "20px",
-          }}
-        >
+        <Title>Other Records - All Statuses</Title>
+
+        <ResponsiveFilterContainer>
           <div>
             <Label>Search</Label>
-            <SearchInput
+            <Input
               type="text"
-              placeholder="Search by name, UHID, mobile, treatment..."
+              placeholder="Search by name, UHID, mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <FilterWrapper>
-            <Label htmlFor="companyName">Filter by Company:</Label>
-            <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-              <option value="">Select Company</option>
+
+          <div>
+            <Label htmlFor="companyName">Filter by Company</Label>
+            <Select id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+              <option value="">All Companies</option>
               <option value="General Insurance">General Insurance</option>
               <option value="ECHS">ECHS</option>
               <option value="ESI">ESI</option>
@@ -216,42 +269,56 @@ const fetchRecords = async () => {
               <option value="TKT">TKT</option>
               <option value="FCI">FCI</option>
               <option value="Airport">Airport</option>
-            </FormControl>
-          </FilterWrapper>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="statusFilter">Filter by Status</Label>
+            <Select id="statusFilter" value={selectedStatus} onChange={handleStatusFilterChange}>
+              <option value="">All Statuses</option>
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </Select>
+          </div>
+
           <div>
             <Label>From Date</Label>
-            <StyledDatePicker
-              selected={fromDate}
-              onChange={handleFromDateChange}
-              dateFormat="yyyy-MM-dd"
-              placeholderText="Select from date"
-              isClearable
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
             />
           </div>
+
           <div>
             <Label>To Date</Label>
-            <StyledDatePicker
-              selected={toDate}
-              onChange={handleToDateChange}
-              dateFormat="yyyy-MM-dd"
-              placeholderText="Select to date"
-              isClearable
-              minDate={fromDate}
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              min={fromDate}
             />
           </div>
-          <div>
-            <Button onClick={() => navigate("/OtherForm")}>Add New Record</Button>
-          </div>
-        </FilterContainer>
 
-        <div style={{ textAlign: "center", margin: "10px 0", fontWeight: "500" }}>
-          Showing {filteredRecords.length} pending payment record(s)
-        </div>
+          <div>
+            <Label style={{ visibility: 'hidden' }}>Add</Label>
+            <ResponsiveButton onClick={() => navigate("/OtherForm")}>
+              Add New Record
+            </ResponsiveButton>
+          </div>
+        </ResponsiveFilterContainer>
+
+        <InfoText>
+          Showing {filteredRecords.length} payment record(s) from {fromDate} to {toDate}
+        </InfoText>
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-          <ScrollableTableContainer>
+          <ResponsiveTableWrapper>
             <Table>
               <thead>
                 <tr>
@@ -271,7 +338,11 @@ const fetchRecords = async () => {
               <tbody>
                 {filteredRecords.length > 0 ? (
                   filteredRecords.map((record, index) => {
-                    const isApproved = approvedRecords.has(record.original_id || record.id)
+                    const isGatePassIssued = record.status === "Gate Pass Issued"
+                    const isApproved = record.status === "Approved"
+                    const isCollected = record.status === "Collected"
+                    const isPending = record.status === "Pending"
+
                     return (
                       <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
                         <TableCell style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
@@ -283,28 +354,60 @@ const fetchRecords = async () => {
                         <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
                         <TableCell>{record.payment_method}</TableCell>
                         <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                        <TableCell style={{ fontWeight: "600", color: "#ff9800" }}>Pending</TableCell>
-                        <TableCell>
-                          <Button
-                            onClick={() => handleApprove(record)}
-                            disabled={isApproved}
-                            style={{
-                              backgroundColor: isApproved ? "#ccc" : "#4caf50",
-                              marginRight: "8px",
-                              cursor: isApproved ? "not-allowed" : "pointer",
-                            }}
-                          >
-                            {isApproved ? "✓ Approved" : "Approve"}
-                          </Button>
-                          <Button onClick={() => handleEdit(record)}>Edit</Button>
+                        <TableCell
+                          style={{
+                            color: getStatusColor(record.status),
+                            fontWeight: "700",
+                            fontSize: "14px",
+                          }}
+                        >
+                          {record.status}
                         </TableCell>
+                        <ActionCell>
+                          <ButtonGroup>
+                            <StatusSelect
+                              value={record.status}
+                              onChange={(e) => handleStatusChange(record, e.target.value)}
+                              disabled={isGatePassIssued}
+                              statusColor={getStatusColor(record.status)}
+                            >
+                              {STATUS_OPTIONS.map((status) => {
+                                // Disable options based on current status
+                                let isDisabled = false
+
+                                if (isPending) {
+                                  // From Pending, can only go to Approved
+                                  isDisabled = status === "Collected" || status === "Gate Pass Issued"
+                                } else if (isApproved) {
+                                  // From Approved, can only go to Collected or stay Approved
+                                  isDisabled = status === "Pending" || status === "Gate Pass Issued"
+                                } else if (isCollected) {
+                                  // From Collected, can only go to Gate Pass Issued or stay Collected
+                                  isDisabled = status === "Pending" || status === "Approved"
+                                } else if (isGatePassIssued) {
+                                  // Gate Pass Issued is final - all disabled
+                                  isDisabled = status !== "Gate Pass Issued"
+                                }
+
+                                return (
+                                  <option key={status} value={status} disabled={isDisabled}>
+                                    {status}
+                                  </option>
+                                )
+                              })}
+                            </StatusSelect>
+                            <EditButton onClick={() => handleEdit(record)}>
+                              Edit
+                            </EditButton>
+                          </ButtonGroup>
+                        </ActionCell>
                       </TableRow>
                     )
                   })
                 ) : (
                   <TableRow>
                     <TableCell colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
-                      No pending records found matching the current filters
+                      No records found matching the current filters
                     </TableCell>
                   </TableRow>
                 )}
@@ -315,20 +418,16 @@ const fetchRecords = async () => {
                     <TableCell colSpan="6" style={{ textAlign: "right" }}>
                       GRAND TOTAL:
                     </TableCell>
-                    <TableCell>
-                      ₹
-                      {filteredRecords
-                        .reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
-                        .toFixed(2)}
-                    </TableCell>
+                    <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
+                    <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                   </tr>
                 </tfoot>
               )}
             </Table>
-          </ScrollableTableContainer>
+          </ResponsiveTableWrapper>
         )}
       </Container>
     </ReportContainer>

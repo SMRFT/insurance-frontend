@@ -63,25 +63,26 @@ const SidebarContainer = styled.div`
   }
   
   @media (max-width: 768px) {
-    width: 200px;
+    width: 220px;
     padding: 18px 12px;
   }
   
   @media (max-width: 576px) {
-    width: 70px;
-    padding: 16px 8px;
+    width: 200px;
+    padding: 16px 10px;
   }
 `;
 
 const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 30px;
+  justify-content: flex-start;
+  margin-bottom: 20px;
   animation: ${pulse} 2s infinite ease-in-out;
   
   @media (max-width: 576px) {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    justify-content: center;
   }
 `;
 
@@ -121,6 +122,24 @@ const SidebarHeader = styled.h2`
   }
 `;
 
+const UserInfoContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 15px;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #6F8B83 0%, #9AB3AB 100%);
+  padding: 8px 0;
+  z-index: 10;
+  
+  @media (max-width: 576px) {
+    gap: 4px;
+    margin-bottom: 10px;
+    padding: 6px 0;
+  }
+`;
+
 const RoleBadge = styled.div`
   background: rgba(255, 255, 255, 0.15);
   padding: 8px 12px;
@@ -128,7 +147,6 @@ const RoleBadge = styled.div`
   font-size: 12px;
   font-weight: 500;
   text-align: center;
-  margin-top: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   letter-spacing: 0.5px;
   word-wrap: break-word;
@@ -142,9 +160,8 @@ const RoleBadge = styled.div`
   }
   
   @media (max-width: 576px) {
-    font-size: 8px;
-    padding: 4px 6px;
-    margin-top: 6px;
+    font-size: 10px;
+    padding: 5px 8px;
   }
 `;
 
@@ -178,6 +195,7 @@ const GroupHeader = styled.div`
   font-size: 15px;
   border-radius: 6px;
   transition: all 0.2s ease;
+  user-select: none;
   
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
@@ -189,9 +207,8 @@ const GroupHeader = styled.div`
   }
   
   @media (max-width: 576px) {
-    font-size: 0;
-    padding: 10px 5px;
-    justify-content: center;
+    font-size: 13px;
+    padding: 10px 8px;
   }
 `;
 
@@ -207,7 +224,7 @@ const GroupItems = styled.div`
   padding-bottom: 5px;
   
   @media (max-width: 576px) {
-    margin-left: 0;
+    margin-left: 8px;
   }
 `;
 
@@ -240,12 +257,11 @@ const SidebarLink = styled(Link)`
   }
   
   @media (max-width: 576px) {
-    font-size: 0;
-    padding: 10px 8px;
-    justify-content: center;
+    font-size: 12px;
+    padding: 8px;
     
     &:hover {
-      transform: translateX(0) scale(1.05);
+      transform: translateX(3px);
     }
   }
 `;
@@ -271,9 +287,9 @@ const IconWrapper = styled.div`
   }
   
   @media (max-width: 576px) {
-    margin-right: 0;
-    width: 20px;
-    height: 20px;
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -293,9 +309,9 @@ const GroupIconWrapper = styled.div`
   }
   
   @media (max-width: 576px) {
-    margin-right: 0;
-    width: 20px;
-    height: 20px;
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -309,7 +325,8 @@ const ChevronIconWrapper = styled.div`
   flex-shrink: 0;
   
   @media (max-width: 576px) {
-    display: none;
+    width: 14px;
+    height: 14px;
   }
 `;
 
@@ -377,14 +394,14 @@ const LogoutButton = styled.button`
   }
   
   @media (max-width: 576px) {
-    font-size: 0;
-    padding: 10px 4px;
+    font-size: 12px;
+    padding: 10px 8px;
   }
 `;
 
 const LogoutText = styled.span`
   @media (max-width: 576px) {
-    display: none;
+    display: inline;
   }
 `;
 
@@ -394,11 +411,13 @@ function Sidebar({ userRole }) {
   const [userName, setUserName] = useState("");
   const [role, setRole] = useState("");
 
+  // Initialize all groups as closed
   const [openGroups, setOpenGroups] = useState({
-    insurance: true,
-    update: true,
-    reports: true,
-    collection: true,
+    insurance: false,
+    update: false,
+    reports: false,
+    collection: false,
+    "Final Approval": false,
   });
 
   // Fetch user data from localStorage on component mount
@@ -411,10 +430,10 @@ function Sidebar({ userRole }) {
   }, [userRole]);
   
   const toggleGroup = (group) => {
-    setOpenGroups({
-      ...openGroups,
-      [group]: !openGroups[group]
-    });
+    setOpenGroups(prev => ({
+      ...prev,
+      [group]: !prev[group]
+    }));
   };
 
   const isActive = (path) => {
@@ -452,6 +471,14 @@ function Sidebar({ userRole }) {
             ]
           },
           {
+            id: "update",
+            label: "Update Forms",
+            icon: <Edit size={18} />,
+            items: [
+              { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> },
+            ]
+          },
+          {
             id: "reports",
             label: "Reports",
             icon: <FileText size={18} />,
@@ -469,9 +496,8 @@ function Sidebar({ userRole }) {
             label: "Update Forms",
             icon: <Edit size={18} />,
             items: [
+              { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> },
               { path: "/OtherUpdate", label: "Other Update", icon: <Edit size={18} /> },
-              { path: "/OtherCollect", label: "Other Collect", icon: <Edit size={18} /> },
-              { path: "/OtherGatePass", label: "Other Gate Pass", icon: <Edit size={18} /> },
             ]
           },
           {
@@ -502,55 +528,21 @@ function Sidebar({ userRole }) {
         case "Insurance Super Admin":
         return [
           {
-            id: "insurance",
-            label: "Insurance Forms",
-            icon: <Shield size={18} />,
-            items: [
-              { path: "/", label: "Insurance Form", icon: <FilePlus size={18} /> },
-              { path: "/OtherForm", label: "Other Form", icon: <FilePlus size={18} /> }
-            ]
-          },
-          {
             id: "update",
             label: "Update Forms",
             icon: <Edit size={18} />,
             items: [
+              { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> },
               { path: "/OtherUpdate", label: "Other Update", icon: <Edit size={18} /> },
-              { path: "/OtherCollect", label: "Other Collect", icon: <Edit size={18} /> },
-              { path: "/OtherGatePass", label: "Other Gate Pass", icon: <Edit size={18} /> },
             ]
           },
           {
-            id: "reports",
-            label: "Reports",
-            icon: <FileText size={18} />,
+            id: "Final Approval",
+            label: "Approve Forms",
+            icon: <FileCheck size={18} />,
             items: [
-              { path: "/InsuranceReport", label: "Insurance Report", icon: <FileCheck size={18} /> },
-              { path: "/OtherReport", label: "Other Report", icon: <FileCheck size={18} /> },
-              { path: "/RadiotherapyReport", label: "Radiotherapy Report", icon: <Activity size={18} /> },
-            ]
-          },
-        ];
-
-        case "Insurance Super Admin":
-        return [
-          {
-            id: "insurance",
-            label: "Insurance Forms",
-            icon: <Shield size={18} />,
-            items: [
-              { path: "/", label: "Insurance Form", icon: <FilePlus size={18} /> },
-              { path: "/OtherForm", label: "Other Form", icon: <FilePlus size={18} /> }
-            ]
-          },
-          {
-            id: "update",
-            label: "Update Forms",
-            icon: <Edit size={18} />,
-            items: [
-              { path: "/OtherUpdate", label: "Other Update", icon: <Edit size={18} /> },
-              { path: "/OtherCollect", label: "Other Collect", icon: <Edit size={18} /> },
-              { path: "/OtherGatePass", label: "Other Gate Pass", icon: <Edit size={18} /> },
+              { path: "/OverallApproval", label: "Overall Approval", icon: <FileCheck size={18} /> },
+              { path: "/RefundApproval", label: "Refund Approval", icon: <FileCheck size={18} /> },
             ]
           },
           {
@@ -571,7 +563,6 @@ function Sidebar({ userRole }) {
     }
   };
 
-
   const navigationGroups = getNavigationGroups();
 
   return (
@@ -583,15 +574,17 @@ function Sidebar({ userRole }) {
         <SidebarHeader>Insurance</SidebarHeader>
       </LogoContainer>
       
-      {userName && (
-        <RoleBadge>{userName}</RoleBadge>
-      )}
-      
-      {role && (
-        <RoleBadge style={{ marginTop: '5px', background: 'rgba(255, 255, 255, 0.25)' }}>
-          {role}
-        </RoleBadge>
-      )}
+      <UserInfoContainer>
+        {userName && (
+          <RoleBadge>{userName}</RoleBadge>
+        )}
+        
+        {role && (
+          <RoleBadge style={{ background: 'rgba(255, 255, 255, 0.25)' }}>
+            {role}
+          </RoleBadge>
+        )}
+      </UserInfoContainer>
 
       <Divider />
       

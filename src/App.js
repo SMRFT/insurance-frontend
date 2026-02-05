@@ -11,6 +11,8 @@ import OtherUpdate from "./Components/OtherUpdate";
 import OtherCollect from "./Components/OtherCollected";
 import OtherReport from "./Components/OtherReport";
 import OtherGatePass from "./Components/OtherGatePass";
+import OverallApproval from "./Components/OverallApproval";
+import RefundApproval from "./Components/RefundApproval";
 
 function AppContent() {
   const location = useLocation();
@@ -27,9 +29,6 @@ function AppContent() {
         break;
       case "Insurance Admin":
         navigate("/OtherUpdate");
-        break;
-      case "Insurance Receptionist":
-        navigate("/OtherCollect");
         break;
       case "Insurance Accounts":
         navigate("/InsuranceReport");
@@ -100,6 +99,7 @@ function AppContent() {
             <>
               <Route path="/" element={<InsuranceForm />} />
               <Route path="/OtherForm" element={<OtherForm />} />
+              <Route path="/FormUpdate" element={<FormUpdate />} />
               <Route path="/InsuranceReport" element={<InsuranceReport />} />
               <Route path="/OtherReport" element={<OtherReport />} />
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
@@ -112,18 +112,9 @@ function AppContent() {
               <Route path="/" element={<OtherUpdate />} />
               <Route path="/FormUpdate" element={<FormUpdate />} />
               <Route path="/OtherUpdate" element={<OtherUpdate />} />
-              <Route path="/OtherGatePass" element={<OtherGatePass />} />
               <Route path="/InsuranceReport" element={<InsuranceReport />} />
               <Route path="/OtherReport" element={<OtherReport />} />
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
-            </>
-          )}
-
-          {/* Insurance Receptionist Routes */}
-          {role === "Insurance Receptionist" && (
-            <>
-              <Route path="/" element={<OtherCollect />} />
-              <Route path="/OtherCollect" element={<OtherCollect />} />
             </>
           )}
 
@@ -137,17 +128,16 @@ function AppContent() {
             </>
           )}
 
-          {/* Insurance Accounts Routes */}
+          {/* Insurance Super Admin Routes */}
           {role === "Insurance Super Admin" && (
             <>
-              <Route path="/" element={<InsuranceForm />} />
-              <Route path="/OtherForm" element={<OtherForm />} />
+              <Route path="/" element={<OverallApproval />} />
               <Route path="/FormUpdate" element={<FormUpdate />} />
               <Route path="/OtherUpdate" element={<OtherUpdate />} />
-              <Route path="/OtherCollect" element={<OtherCollect />} />
-              <Route path="/OtherGatePass" element={<OtherGatePass />} />
               <Route path="/InsuranceReport" element={<InsuranceReport />} />
               <Route path="/OtherReport" element={<OtherReport />} />
+              <Route path="/OverallApproval" element={<OverallApproval />} />
+              <Route path="/RefundApproval" element={<RefundApproval />} />
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
             </>
           )}

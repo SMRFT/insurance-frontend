@@ -21,6 +21,14 @@ import {
   ResponsiveButton,
   ButtonGroup,
   EditButton,
+  FilterContainer,
+  FilterWrapper,
+  FormControl,
+  SearchWrapper,
+  SearchInput,
+  StyledDatePicker,
+  ScrollableTableContainer,
+  StatusBadge,
 } from "./SharedStyledComponents"
 
 import apiRequest from "./ApiRequest"
@@ -33,57 +41,63 @@ const OtherUpdate = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompany, setSelectedCompany] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
-  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [fromDate, setFromDate] = useState(new Date())
+  const [toDate, setToDate] = useState(new Date())
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
   const navigate = useNavigate()
 
-  const STATUS_OPTIONS = ["Pending", "Approved", "Collected", "Gate Pass Issued"]
+  const STATUS_OPTIONS = ["Pending", "Approved", "Collected"]
 
+    // Fetch data when filters change
   useEffect(() => {
-    if (fromDate && toDate) {
-      fetchRecords()
-    }
+    fetchRecords()
   }, [fromDate, toDate])
 
   useEffect(() => {
     filterRecords()
   }, [records, searchTerm, selectedCompany, selectedStatus])
 
+
   const fetchRecords = async () => {
     setLoading(true)
     try {
-      const params = {
-        from_date: fromDate,
-        to_date: toDate
-      }
 
       const url = `${Insurancebaseurl}other_records/`
-      const response = await apiRequest(url, "GET", null, {}, { params })
+      const response = await apiRequest(url, "GET", null, {}, { 
+        params: { 
+          from_date: fromDate.toLocaleDateString("en-CA"), 
+          to_date: toDate.toLocaleDateString("en-CA")
+        } 
+      })
 
       if (response.success && Array.isArray(response.data)) {
         const processedRecords = []
         response.data.forEach((record) => {
           if (record.payment_details && Array.isArray(record.payment_details) && record.payment_details.length > 0) {
             record.payment_details.forEach((payment) => {
-              processedRecords.push({
-                id: record.id || record._id,
-                original_id: record.id || record._id,
-                date: payment.date || record.date,
-                patient_name: record.patient_name,
-                patient_uhid: record.patient_uhid,
-                mobile_number: record.mobile_number,
-                company_name: record.company_name,
-                treatment: record.treatment,
-                amount: payment.amount,
-                payment_method: payment.payment_method,
-                refund: record.refund || 0,
-                status: record.status || "Pending",
-                is_approved: record.is_approved || false,
-                approved_by_name: record.approved_by_name || '',
-                originalRecord: record,
-              })
+            processedRecords.push({
+              id: record.id || record._id,
+              original_id: record.id || record._id,
+              date: payment.date
+                ? new Date(payment.date).toLocaleDateString("en-CA")
+                : record.date
+                ? new Date(record.date).toLocaleDateString("en-CA")
+                : "",
+              patient_name: record.patient_name,
+              patient_uhid: record.patient_uhid,
+              mobile_number: record.mobile_number,
+              company_name: record.company_name,
+              treatment: record.treatment,
+              amount: payment.amount,
+              payment_method: payment.payment_method,
+              refund: record.refund || 0,
+              status: record.status || "Pending",
+              is_approved: record.is_approved || false,
+              approved_by_name: record.approved_by_name || "",
+              originalRecord: record,
+            })
+
             })
           }
         })
@@ -114,6 +128,15 @@ const OtherUpdate = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+
+  const handleFromDateChange = (date) => {
+    setFromDate(date)
+  }
+
+  const handleToDateChange = (date) => {
+    setToDate(date)
   }
 
   const filterRecords = () => {
@@ -172,8 +195,6 @@ const OtherUpdate = () => {
       return "Record Approved successfully!"
     } else if (newStatus === "Collected") {
       return "Payment Collected successfully!"
-    } else if (newStatus === "Gate Pass Issued") {
-      return "Gate Pass Issued successfully!"
     }
     return `Status updated to ${newStatus}`
   }
@@ -216,19 +237,20 @@ const OtherUpdate = () => {
       }
     }
   }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Pending":
-        return "#f44336"
-      case "Approved":
-        return "#2196f3"
-      case "Collected":
-        return "#ff9800"
-      case "Gate Pass Issued":
-        return "#4caf50"
-      default:
-        return "#666"
+const getStatusColor = (status) => {
+  switch (status) {
+    case "Pending":
+      return "#f44336"       // red
+    case "Approved":
+      return "#2196f3"       // blue
+    case "Collected":
+      return "#ff9800"       // orange
+    case "Final Approved":
+      return "#f9ee5dfa"     // yellow
+    case "Gate Pass Issued": 
+      return "#4caf50"
+    default: 
+      return "#666"
     }
   }
 
@@ -246,189 +268,280 @@ const OtherUpdate = () => {
       <Container>
         <Title>Other Records - All Statuses</Title>
 
-        <ResponsiveFilterContainer>
-          <div>
+      <FilterContainer>
+        <SearchWrapper>
             <Label>Search</Label>
-            <Input
+            <SearchInput
               type="text"
               placeholder="Search by name, UHID, mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          </SearchWrapper>
 
-          <div>
-            <Label htmlFor="companyName">Filter by Company</Label>
-            <Select id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-              <option value="">All Companies</option>
-              <option value="General Insurance">General Insurance</option>
-              <option value="ECHS">ECHS</option>
-              <option value="ESI">ESI</option>
-              <option value="ESIC">ESIC</option>
-              <option value="Railway CTSE">Railway CTSE</option>
-              <option value="TKT">TKT</option>
-              <option value="FCI">FCI</option>
-              <option value="Airport">Airport</option>
-            </Select>
-          </div>
+        <FilterWrapper>
+          <Label htmlFor="companyName">Filter by Company:</Label>
+          <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+            <option value="">Select Company</option>
+            <option value="General Insurance">General Insurance</option>
+            <option value="ECHS">ECHS</option>
+            <option value="ESI">ESI</option>
+            <option value="ESIC">ESIC</option>
+            <option value="Railway CTSE">Railway CTSE</option>
+            <option value="TNCM">TNCM</option>
+            <option value="TKT">TKT</option>
+            <option value="FCA">FCA</option>
+            <option value="Airport">Airport</option>
+          </FormControl>
+        </FilterWrapper>
 
-          <div>
+          <FilterWrapper>
             <Label htmlFor="statusFilter">Filter by Status</Label>
-            <Select id="statusFilter" value={selectedStatus} onChange={handleStatusFilterChange}>
+            <FormControl id="statusFilter" value={selectedStatus} onChange={handleStatusFilterChange}>
               <option value="">All Statuses</option>
               {STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>
               ))}
-            </Select>
-          </div>
+            </FormControl>
+          </FilterWrapper>
 
-          <div>
+          <FilterWrapper>
             <Label>From Date</Label>
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+            <StyledDatePicker
+              selected={fromDate}
+              onChange={handleFromDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select from date"
+              popperProps={{
+                strategy: "fixed",
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, 10],
+                    },
+                  },
+                ],
+              }}
+              popperClassName="date-picker-popper"
             />
-          </div>
+          </FilterWrapper>
 
-          <div>
+          <FilterWrapper>
             <Label>To Date</Label>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              min={fromDate}
+            <StyledDatePicker
+              selected={toDate}
+              onChange={handleToDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select to date"
+              minDate={fromDate}
+              popperProps={{
+                strategy: "fixed",
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, 10],
+                    },
+                  },
+                ],
+              }}
+              popperClassName="date-picker-popper"
             />
-          </div>
+          </FilterWrapper>
 
-          <div>
-            <Label style={{ visibility: 'hidden' }}>Add</Label>
-            <ResponsiveButton onClick={() => navigate("/OtherForm")}>
+          <FilterWrapper>
+            <Button onClick={() => navigate("/OtherForm")}>
               Add New Record
-            </ResponsiveButton>
-          </div>
-        </ResponsiveFilterContainer>
+            </Button>
+          </FilterWrapper>
+        </FilterContainer>
 
         <InfoText>
-          Showing {filteredRecords.length} payment record(s) from {fromDate} to {toDate}
+          Showing {filteredRecords.length} payment record(s) from {fromDate.toLocaleDateString("en-CA")} to {toDate.toLocaleDateString("en-CA")}
         </InfoText>
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
           <ResponsiveTableWrapper>
-            <Table>
-              <thead>
-                <tr>
-                  <TableHeader>Date</TableHeader>
-                  <TableHeader>Patient Name</TableHeader>
-                  <TableHeader>UHID</TableHeader>
-                  <TableHeader>Mobile</TableHeader>
-                  <TableHeader>Company</TableHeader>
-                  <TableHeader>Treatment</TableHeader>
-                  <TableHeader>Amount</TableHeader>
-                  <TableHeader>Payment Method</TableHeader>
-                  <TableHeader>Refund</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader>Action</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecords.length > 0 ? (
-                  filteredRecords.map((record, index) => {
-                    const isGatePassIssued = record.status === "Gate Pass Issued"
-                    const isApproved = record.status === "Approved"
-                    const isCollected = record.status === "Collected"
-                    const isPending = record.status === "Pending"
-
-                    return (
-                      <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
-                        <TableCell style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
-                        <TableCell>{record.patient_name}</TableCell>
-                        <TableCell>{record.patient_uhid}</TableCell>
-                        <TableCell>{record.mobile_number}</TableCell>
-                        <TableCell>{record.company_name}</TableCell>
-                        <TableCell>{record.treatment}</TableCell>
-                        <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                        <TableCell>{record.payment_method}</TableCell>
-                        <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                        <TableCell
-                          style={{
-                            color: getStatusColor(record.status),
-                            fontWeight: "700",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {record.status}
-                        </TableCell>
-                        <ActionCell>
-                          <ButtonGroup>
-                            <StatusSelect
-                              value={record.status}
-                              onChange={(e) => handleStatusChange(record, e.target.value)}
-                              disabled={isGatePassIssued}
-                              statusColor={getStatusColor(record.status)}
-                            >
-                              {STATUS_OPTIONS.map((status) => {
-                                // Disable options based on current status
-                                let isDisabled = false
-
-                                if (isPending) {
-                                  // From Pending, can only go to Approved
-                                  isDisabled = status === "Collected" || status === "Gate Pass Issued"
-                                } else if (isApproved) {
-                                  // From Approved, can only go to Collected or stay Approved
-                                  isDisabled = status === "Pending" || status === "Gate Pass Issued"
-                                } else if (isCollected) {
-                                  // From Collected, can only go to Gate Pass Issued or stay Collected
-                                  isDisabled = status === "Pending" || status === "Approved"
-                                } else if (isGatePassIssued) {
-                                  // Gate Pass Issued is final - all disabled
-                                  isDisabled = status !== "Gate Pass Issued"
-                                }
-
-                                return (
-                                  <option key={status} value={status} disabled={isDisabled}>
-                                    {status}
-                                  </option>
-                                )
-                              })}
-                            </StatusSelect>
-                            <EditButton onClick={() => handleEdit(record)}>
-                              Edit
-                            </EditButton>
-                          </ButtonGroup>
-                        </ActionCell>
-                      </TableRow>
-                    )
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
-                      No records found matching the current filters
-                    </TableCell>
-                  </TableRow>
-                )}
-              </tbody>
-              {filteredRecords.length > 0 && (
-                <tfoot>
-                  <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                    <TableCell colSpan="6" style={{ textAlign: "right" }}>
-                      GRAND TOTAL:
-                    </TableCell>
-                    <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
+            <ScrollableTableContainer>
+              <Table className="frozen-columns-table">
+                <thead>
+                  <tr>
+                    <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
+                    <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                    <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
+                    <TableHeader>Mobile</TableHeader>
+                    <TableHeader>Company</TableHeader>
+                    <TableHeader>Treatment</TableHeader>
+                    <TableHeader>Amount</TableHeader>
+                    <TableHeader>Payment Method</TableHeader>
+                    <TableHeader>Refund</TableHeader>
+                    <TableHeader>Status</TableHeader>
+                    <TableHeader>Action</TableHeader>
                   </tr>
-                </tfoot>
-              )}
-            </Table>
+                </thead>
+                <tbody>
+                  {filteredRecords.length > 0 ? (
+                    filteredRecords.map((record, index) => {
+                      const isDropdownDisabled =
+                        record.status === "Gate Pass Issued" ||
+                        record.status === "Final Approved" ||
+                        record.status === "Collected"
+
+                      return (
+                        <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
+                          <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
+                          <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
+                          <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
+                          <TableCell>{record.mobile_number}</TableCell>
+                          <TableCell>{record.company_name}</TableCell>
+                          <TableCell>{record.treatment}</TableCell>
+                          <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                          <TableCell>{record.payment_method}</TableCell>
+                          <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                          <TableCell>
+                          <StatusBadge color={getStatusColor(record.status)}>
+                            {record.status || "Pending"}
+                          </StatusBadge>                          
+                          </TableCell>
+                          <ActionCell>
+                          <ButtonGroup>
+
+                          <StatusSelect
+                            value={record.status}
+                            disabled={isDropdownDisabled}
+                            onChange={(e) => handleStatusChange(record, e.target.value)}
+                            statusColor={getStatusColor(record.status)}
+                          >
+                            {STATUS_OPTIONS.map((status) => {
+                              let isDisabled = false
+
+                              if (record.status === "Pending") {
+                                // From Pending → only Approved
+                                isDisabled = status === "Collected"
+                              } else if (record.status === "Approved") {
+                                // From Approved → Collected or stay Approved
+                                isDisabled = status === "Pending"
+                              } else if (record.status === "Collected") {
+                                // Collected is final
+                                isDisabled = status !== "Collected"
+                              }
+
+                              return (
+                                <option key={status} value={status} disabled={isDisabled}>
+                                  {status}
+                                </option>
+                              )
+                            })}
+                          </StatusSelect>
+
+                              <EditButton onClick={() => handleEdit(record)}>
+                                Edit
+                              </EditButton>
+                            </ButtonGroup>
+                          </ActionCell>
+                        </TableRow>
+                      )
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
+                        No records found matching the current filters
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </tbody>
+                {filteredRecords.length > 0 && (
+                  <tfoot>
+                    <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                      <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
+                        GRAND TOTAL:
+                      </TableCell>
+                      <TableCell colSpan="3"></TableCell>
+                      <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                    </tr>
+                  </tfoot>
+                )}
+              </Table>
+            </ScrollableTableContainer>
           </ResponsiveTableWrapper>
         )}
+
+        <style jsx global>{`
+          /* Frozen columns styling */
+          .frozen-columns-table {
+            position: relative;
+          }
+          
+          .frozen-col {
+            position: sticky !important;
+            background-color: white;
+            z-index: 10;
+          }
+          
+          .frozen-col-1 {
+            left: 0px;
+            min-width: 110px;
+          }
+          
+          .frozen-col-2 {
+            left: 110px;
+            min-width: 150px;
+          }
+          
+          .frozen-col-3 {
+            left: 260px;
+            min-width: 120px;
+            border-right: 2px solid #ddd;
+          }
+          
+          /* Add shadow effect to frozen columns */
+          .frozen-col-3::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -10px;
+            bottom: 0;
+            width: 10px;
+            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+            pointer-events: none;
+          }
+          
+          /* Ensure header frozen columns have darker background */
+          thead .frozen-col {
+          background-color: #6F8B83;
+          }
+          
+          /* Ensure footer frozen columns match */
+          tfoot .frozen-col {
+            background-color: #f8f9fa;
+          }
+          
+          /* Ensure row hover doesn't break frozen column background */
+          tbody tr:hover .frozen-col {
+            background-color: #f5f5f5;
+          }
+          
+          .date-picker-popper {
+            z-index: 9999 !important;
+          }
+          
+          .react-datepicker-popper {
+            z-index: 9999 !important;
+          }
+          
+          .react-datepicker {
+            z-index: 9999 !important;
+          }
+        `}</style>
       </Container>
     </ReportContainer>
   )

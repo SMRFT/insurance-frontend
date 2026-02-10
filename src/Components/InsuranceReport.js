@@ -267,9 +267,7 @@ const handleViewFile = (fileId) => {
         )}
 
         <FilterWrapper>
-          <ButtonWrapper>
             <Button onClick={exportToExcel}>Export to Excel</Button>
-          </ButtonWrapper>
         </FilterWrapper>
       </FilterContainer>
 

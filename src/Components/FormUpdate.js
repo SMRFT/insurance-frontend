@@ -102,7 +102,7 @@ const fetchData = async () => {
   }
 
   const handleEdit = (item) => {
-    navigate("/", {
+    navigate("/InsuranceForm", {
       state: {
         ...item,
       },

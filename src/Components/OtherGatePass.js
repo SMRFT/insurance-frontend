@@ -19,9 +19,25 @@ import {
   ScrollableTableContainer,
   StyledDatePicker,
   Container,
+  ResponsiveTableWrapper,
 } from "./SharedStyledComponents"
 
 import apiRequest from "./ApiRequest"
+import styled from 'styled-components'
+
+// Override wrapper to ensure proper z-index for datepickers
+const DatePickerWrapper = styled.div`
+  position: relative;
+  z-index: 100;
+  
+  .react-datepicker-popper {
+    z-index: 9999 !important;
+  }
+  
+  .react-datepicker {
+    z-index: 9999 !important;
+  }
+`
 
 const OtherGatePass = () => {
   const [records, setRecords] = useState([])
@@ -29,18 +45,17 @@ const OtherGatePass = () => {
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompany, setSelectedCompany] = useState("")
-  const [fromDate, setFromDate] = useState(() => new Date())
-  const [toDate, setToDate] = useState(() => new Date())
+  const [fromDate, setFromDate] = useState(new Date())
+  const [toDate, setToDate] = useState(new Date())
   const [issuedRecords, setIssuedRecords] = useState(new Set())
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
   const navigate = useNavigate()
 
+  // Fetch data when filters change
   useEffect(() => {
-    if (fromDate && toDate) {
-      fetchRecords()
-    }
-  }, [fromDate, toDate])
+    fetchRecords()
+  }, [ fromDate, toDate, ])
 
   useEffect(() => {
     filterRecords()
@@ -49,56 +64,29 @@ const OtherGatePass = () => {
   const fetchRecords = async () => {
     setLoading(true)
     try {
-      const params = {}
-      if (fromDate) {
-        params.from_date = fromDate.toLocaleDateString("en-CA")
-      }
-      if (toDate) {
-        params.to_date = toDate.toLocaleDateString("en-CA")
-      }
-      params.status = "Collected"
 
-      const url = `${Insurancebaseurl}other_records/`
+      const url = `${Insurancebaseurl}other_records/collected_finalapproved/` 
 
-      const response = await apiRequest(url, "GET", null, {}, { params })
+      const response = await apiRequest(url, "GET", null, {}, { params: { from_date: fromDate.toLocaleDateString("en-CA"), to_date: toDate.toLocaleDateString("en-CA") } })
 
       if (response.success && Array.isArray(response.data)) {
-        const processedRecords = []
-        response.data.forEach((record) => {
-          if (record.payment_details && Array.isArray(record.payment_details) && record.payment_details.length > 0) {
-            record.payment_details.forEach((payment) => {
-              processedRecords.push({
-                id: record.id || record._id,
-                original_id: record.id || record._id,
-                date: payment.date || record.date,
-                patient_name: record.patient_name,
-                patient_uhid: record.patient_uhid,
-                mobile_number: record.mobile_number,
-                company_name: record.company_name,
-                treatment: record.treatment,
-                amount: payment.amount,
-                payment_method: payment.payment_method,
-                refund: record.refund || 0,
-                status: record.status || "Collected",
-                originalRecord: record,
-              })
-            })
-          }
-        })
+        const processedRecords = response.data.map((record) => ({
+          id: record.id,
+          original_id: record.id,
+          date: record.date,
+          patient_name: record.patient_name,
+          patient_uhid: record.patient_uhid,
+          mobile_number: record.mobile_number,
+          company_name: record.company_name,
+          treatment: record.treatment,
+          amount: record.amount,
+          payment_method: record.payment_method,
+          refund: record.refund || 0,
+          status: record.status || "Final Approved",
+          originalRecord: record,
+        }))
 
-        const uniqueRecords = processedRecords.filter(
-          (record, index, self) =>
-            index ===
-            self.findIndex(
-              (r) =>
-                r.original_id === record.original_id &&
-                r.date === record.date &&
-                r.amount === record.amount &&
-                r.payment_method === record.payment_method,
-            ),
-        )
-
-        setRecords(uniqueRecords)
+        setRecords(processedRecords)
       } else {
         setRecords([])
       }
@@ -108,6 +96,15 @@ const OtherGatePass = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+
+    const handleFromDateChange = (date) => {
+    setFromDate(date)
+  }
+
+  const handleToDateChange = (date) => {
+    setToDate(date)
   }
 
   const filterRecords = () => {
@@ -132,14 +129,6 @@ const OtherGatePass = () => {
 
   const handleCompanyFilterChange = (event) => {
     setSelectedCompany(event.target.value)
-  }
-
-  const handleFromDateChange = (date) => {
-    setFromDate(date)
-  }
-
-  const handleToDateChange = (date) => {
-    setToDate(date)
   }
 
   const handleIssueGatePass = async (record) => {
@@ -194,27 +183,49 @@ const OtherGatePass = () => {
               <option value="Airport">Airport</option>
             </FormControl>
           </FilterWrapper>
-          <div>
-            <Label>From Date</Label>
-            <StyledDatePicker
+          <DatePickerWrapper>
+            <Label>From Date:</Label>
+            <StyledDatePicker 
               selected={fromDate}
               onChange={handleFromDateChange}
               dateFormat="yyyy-MM-dd"
               placeholderText="Select from date"
-              isClearable
+              popperProps={{
+                strategy: "fixed",
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, 10],
+                    },
+                  },
+                ],
+              }}
+              popperClassName="date-picker-popper"
             />
-          </div>
-          <div>
-            <Label>To Date</Label>
-            <StyledDatePicker
+          </DatePickerWrapper>
+          <DatePickerWrapper>
+            <Label>To Date:</Label>
+            <StyledDatePicker 
               selected={toDate}
               onChange={handleToDateChange}
               dateFormat="yyyy-MM-dd"
               placeholderText="Select to date"
-              isClearable
               minDate={fromDate}
+              popperProps={{
+                strategy: "fixed",
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, 10],
+                    },
+                  },
+                ],
+              }}
+              popperClassName="date-picker-popper"
             />
-          </div>
+          </DatePickerWrapper>
         </FilterContainer>
 
         <div style={{ textAlign: "center", margin: "10px 0", fontWeight: "500" }}>
@@ -224,8 +235,9 @@ const OtherGatePass = () => {
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-          <ScrollableTableContainer>
-            <Table>
+          <ResponsiveTableWrapper>
+            <ScrollableTableContainer>
+              <Table>
               <thead>
                 <tr>
                   <TableHeader>Date</TableHeader>
@@ -256,7 +268,7 @@ const OtherGatePass = () => {
                         <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
                         <TableCell>{record.payment_method}</TableCell>
                         <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                        <TableCell style={{ fontWeight: "600", color: "#ff9800" }}>Collected</TableCell>
+                        <TableCell style={{ fontWeight: "600", color: "#4e814f" }}>Final Approved</TableCell>
                         <TableCell>
                           <Button
                             onClick={() => handleIssueGatePass(record)}
@@ -300,6 +312,7 @@ const OtherGatePass = () => {
               )}
             </Table>
           </ScrollableTableContainer>
+          </ResponsiveTableWrapper>
         )}
       </Container>
     </ReportContainer>

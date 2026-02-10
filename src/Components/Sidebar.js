@@ -9,7 +9,9 @@ import {
   Activity,
   ChevronDown,
   LogOut,
-  FileText
+  FileText,
+  Menu,
+  X
 } from "lucide-react";
 
 // Animations
@@ -22,6 +24,68 @@ const pulse = keyframes`
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
+`;
+
+const slideIn = keyframes`
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+`;
+
+// Overlay for mobile
+const Overlay = styled.div`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: ${props => props.isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    animation: ${fadeIn} 0.3s ease;
+  }
+`;
+
+// Mobile toggle button
+const MobileToggle = styled.button`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: linear-gradient(135deg, #6F8B83 0%, #9AB3AB 100%);
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+  
+  @media (max-width: 576px) {
+    top: 15px;
+    left: 15px;
+    width: 45px;
+    height: 45px;
+  }
 `;
 
 const SidebarContainer = styled.div`
@@ -57,34 +121,43 @@ const SidebarContainer = styled.div`
     border-radius: 10px;
   }
   
-  @media (max-width: 1024px) {
+  @media (max-width: 1200px) {
     width: 240px;
     padding: 20px 14px;
   }
   
   @media (max-width: 768px) {
-    width: 220px;
-    padding: 18px 12px;
+    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
+    animation: ${props => props.isOpen ? slideIn : 'none'} 0.3s ease;
+    z-index: 1000;
+    width: 280px;
+    box-shadow: ${props => props.isOpen ? '4px 0 20px rgba(0, 0, 0, 0.3)' : 'none'};
   }
   
   @media (max-width: 576px) {
-    width: 200px;
-    padding: 16px 10px;
+    width: 260px;
+    padding: 16px 12px;
   }
 `;
 
+const SidebarHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 16px;
+  }
+`;
 const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 20px;
+  justify-content: center;
   animation: ${pulse} 2s infinite ease-in-out;
-  
-  @media (max-width: 576px) {
-    margin-bottom: 15px;
-    justify-content: center;
-  }
+  flex: 1;
 `;
+
 
 const Logo = styled.div`
   background-color: white;
@@ -100,13 +173,12 @@ const Logo = styled.div`
   flex-shrink: 0;
   
   @media (max-width: 576px) {
-    margin-right: 0;
     width: 36px;
     height: 36px;
   }
 `;
 
-const SidebarHeader = styled.h2`
+const Title = styled.h2`
   font-size: 20px;
   font-weight: 600;
   margin: 0;
@@ -116,9 +188,32 @@ const SidebarHeader = styled.h2`
   @media (max-width: 768px) {
     font-size: 18px;
   }
+`;
+
+const CloseButton = styled.button`
+  display: none;
   
-  @media (max-width: 576px) {
-    display: none;
+  @media (max-width: 768px) {
+    display: flex;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
   }
 `;
 
@@ -129,7 +224,6 @@ const UserInfoContainer = styled.div`
   margin-bottom: 15px;
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, #6F8B83 0%, #9AB3AB 100%);
   padding: 8px 0;
   z-index: 10;
   
@@ -410,6 +504,7 @@ function Sidebar({ userRole }) {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [role, setRole] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Initialize all groups as closed
   const [openGroups, setOpenGroups] = useState({
@@ -428,7 +523,31 @@ function Sidebar({ userRole }) {
     setUserName(name || "");
     setRole(userRole || storedRole || "");
   }, [userRole]);
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (window.innerWidth <= 768) {
+      if (isSidebarOpen) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = 'unset';
+      }
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isSidebarOpen]);
   
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   const toggleGroup = (group) => {
     setOpenGroups(prev => ({
       ...prev,
@@ -452,7 +571,7 @@ function Sidebar({ userRole }) {
       localStorage.removeItem("userEmail");
     }
 
-    const redirectURL = "/login";
+    const redirectURL = "/secure";
     window.location.href = redirectURL;
   };
 
@@ -498,6 +617,7 @@ function Sidebar({ userRole }) {
             items: [
               { path: "/FormUpdate", label: "Form Update", icon: <Edit size={18} /> },
               { path: "/OtherUpdate", label: "Other Update", icon: <Edit size={18} /> },
+              { path: "/OtherGatePass", label: "Issue Gate Pass", icon: <Edit size={18} /> },
             ]
           },
           {
@@ -566,89 +686,102 @@ function Sidebar({ userRole }) {
   const navigationGroups = getNavigationGroups();
 
   return (
-    <SidebarContainer>
-      <LogoContainer>
-        <Logo>
-          <Shield size={22} />
-        </Logo>
-        <SidebarHeader>Insurance</SidebarHeader>
-      </LogoContainer>
+    <>
+      <MobileToggle onClick={toggleSidebar} aria-label="Toggle sidebar">
+        <Menu size={24} />
+      </MobileToggle>
       
-      <UserInfoContainer>
-        {userName && (
-          <RoleBadge>{userName}</RoleBadge>
-        )}
+      <Overlay isOpen={isSidebarOpen} onClick={toggleSidebar} />
+      
+      <SidebarContainer isOpen={isSidebarOpen}>
+        <SidebarHeader>
+          <LogoContainer>
+            <Logo>
+              <Shield size={22} />
+            </Logo>
+            <Title>Insurance</Title>
+          </LogoContainer>
+          <CloseButton onClick={toggleSidebar} aria-label="Close sidebar">
+            <X size={20} />
+          </CloseButton>
+        </SidebarHeader>
         
-        {role && (
-          <RoleBadge style={{ background: 'rgba(255, 255, 255, 0.25)' }}>
-            {role}
-          </RoleBadge>
-        )}
-      </UserInfoContainer>
-
-      <Divider />
-      
-      {navigationGroups.map((group, index) => (
-        <NavGroup key={group.id} index={index}>
-          {group.label ? (
-            <>
-              <GroupHeader onClick={() => toggleGroup(group.id)}>
-                <GroupIconWrapper>
-                  {group.icon}
-                </GroupIconWrapper>
-                {group.label}
-                <ChevronIconWrapper isOpen={openGroups[group.id]}>
-                  <ChevronDown size={16} />
-                </ChevronIconWrapper>
-              </GroupHeader>
-              
-              <GroupItemsContainer isOpen={openGroups[group.id]}>
-                <GroupItems>
-                  {group.items.map((item) => (
-                    <SidebarLink 
-                      key={item.path} 
-                      to={item.path}
-                      active={isActive(item.path) ? "true" : undefined}
-                    >
-                      <ActiveIndicator active={isActive(item.path)} />
-                      <IconWrapper>
-                        {item.icon}
-                      </IconWrapper>
-                      {item.label}
-                    </SidebarLink>
-                  ))}
-                </GroupItems>
-              </GroupItemsContainer>
-            </>
-          ) : (
-            group.items.map((item) => (
-              <SidebarLink 
-                key={item.path} 
-                to={item.path}
-                active={isActive(item.path) ? "true" : undefined}
-              >
-                <ActiveIndicator active={isActive(item.path)} />
-                <IconWrapper>
-                  {item.icon}
-                </IconWrapper>
-                {item.label}
-              </SidebarLink>
-            ))
+        <UserInfoContainer>
+          {userName && (
+            <RoleBadge>{userName}</RoleBadge>
           )}
-        </NavGroup>
-      ))}
-      
-      <Spacer />
-   
-      <LogoutContainer>
-        <LogoutButton onClick={handleLogout}>
-          <IconWrapper>
-            <LogOut size={18} />
-          </IconWrapper>
-          <LogoutText>Logout</LogoutText>
-        </LogoutButton>
-      </LogoutContainer>
-    </SidebarContainer>
+          
+          {role && (
+            <RoleBadge style={{ background: 'rgba(255, 255, 255, 0.25)' }}>
+              {role}
+            </RoleBadge>
+          )}
+        </UserInfoContainer>
+
+        <Divider />
+        
+        {navigationGroups.map((group, index) => (
+          <NavGroup key={group.id} index={index}>
+            {group.label ? (
+              <>
+                <GroupHeader onClick={() => toggleGroup(group.id)}>
+                  <GroupIconWrapper>
+                    {group.icon}
+                  </GroupIconWrapper>
+                  {group.label}
+                  <ChevronIconWrapper isOpen={openGroups[group.id]}>
+                    <ChevronDown size={16} />
+                  </ChevronIconWrapper>
+                </GroupHeader>
+                
+                <GroupItemsContainer isOpen={openGroups[group.id]}>
+                  <GroupItems>
+                    {group.items.map((item) => (
+                      <SidebarLink 
+                        key={item.path} 
+                        to={item.path}
+                        active={isActive(item.path) ? "true" : undefined}
+                      >
+                        <ActiveIndicator active={isActive(item.path)} />
+                        <IconWrapper>
+                          {item.icon}
+                        </IconWrapper>
+                        {item.label}
+                      </SidebarLink>
+                    ))}
+                  </GroupItems>
+                </GroupItemsContainer>
+              </>
+            ) : (
+              group.items.map((item) => (
+                <SidebarLink 
+                  key={item.path} 
+                  to={item.path}
+                  active={isActive(item.path) ? "true" : undefined}
+                >
+                  <ActiveIndicator active={isActive(item.path)} />
+                  <IconWrapper>
+                    {item.icon}
+                  </IconWrapper>
+                  {item.label}
+                </SidebarLink>
+              ))
+            )}
+          </NavGroup>
+        ))}
+        
+        <Spacer />
+     
+        <LogoutContainer>
+          <LogoutButton onClick={handleLogout}>
+            <IconWrapper>
+              <LogOut size={18} />
+            </IconWrapper>
+            <LogoutText>Logout</LogoutText>
+          </LogoutButton>
+        </LogoutContainer>
+      </SidebarContainer>
+    </>
   );
 }
 

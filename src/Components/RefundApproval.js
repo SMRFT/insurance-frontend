@@ -16,10 +16,30 @@ import {
   InfoText,
   ResponsiveButton,
   ButtonGroup,
+  FilterWrapper,
+  FilterContainer,
+  SearchWrapper,
+  SearchInput,
+  StyledDatePicker,
 } from "./SharedStyledComponents"
 
 import apiRequest from "./ApiRequest"
 import toast from 'react-hot-toast'
+import styled from 'styled-components'
+
+// Override FilterWrapper to ensure proper z-index for datepickers
+const DatePickerWrapper = styled(FilterWrapper)`
+  position: relative;
+  z-index: 100;
+  
+  .react-datepicker-popper {
+    z-index: 9999 !important;
+  }
+  
+  .react-datepicker {
+    z-index: 9999 !important;
+  }
+`
 
 const RefundApproval = () => {
   const [records, setRecords] = useState([])
@@ -28,16 +48,15 @@ const RefundApproval = () => {
   const [approving, setApproving] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRecords, setSelectedRecords] = useState(new Set())
-  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split("T")[0])
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [fromDate, setFromDate] = useState(new Date())
+  const [toDate, setToDate] = useState(new Date())
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
+  // Fetch data when filters change
   useEffect(() => {
-    if (fromDate && toDate) {
-      fetchRecords()
-    }
-  }, [fromDate, toDate])
+    fetchRecords()
+  }, [fromDate, toDate, ])
 
   useEffect(() => {
     groupRecordsByDate()
@@ -46,13 +65,9 @@ const RefundApproval = () => {
 const fetchRecords = async () => {
   setLoading(true)
   try {
-    const payload = {
-      from_date: fromDate,
-      to_date: toDate
-    }
 
     const url = `${Insurancebaseurl}other_records/refund_approval/`
-    const response = await apiRequest(url, "GET", payload)
+      const response = await apiRequest(url, "GET", null, {}, { params: { from_date: fromDate.toLocaleDateString("en-CA"), to_date: toDate.toLocaleDateString("en-CA") } })
 
     if (response.success && Array.isArray(response.data)) {
       setRecords(response.data)
@@ -173,6 +188,15 @@ const fetchRecords = async () => {
     }
   }
 
+      const handleFromDateChange = (date) => {
+    setFromDate(date)
+  }
+
+  const handleToDateChange = (date) => {
+    setToDate(date)
+  }
+
+
   const calculateTotals = () => {
     let totalAmount = 0
     let totalRefund = 0
@@ -194,39 +218,65 @@ const fetchRecords = async () => {
       <Container>
         <Title>Refund Amount Approval</Title>
 
-        <ResponsiveFilterContainer>
-          <div>
+        <FilterContainer>
+          <SearchWrapper>
             <Label>Search</Label>
-            <Input
+            <SearchInput
               type="text"
               placeholder="Search by name, UHID, mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          </SearchWrapper>
 
-          <div>
-            <Label>From Date</Label>
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+          <DatePickerWrapper>
+            <Label>From Date:</Label>
+            <StyledDatePicker 
+              selected={fromDate}
+              onChange={handleFromDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select from date"
+              popperProps={{
+                strategy: "fixed",
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, 10],
+                    },
+                  },
+                ],
+              }}
+              popperClassName="date-picker-popper"
             />
-          </div>
-
-          <div>
-            <Label>To Date</Label>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              min={fromDate}
+          </DatePickerWrapper>
+          
+          <DatePickerWrapper>
+            <Label>To Date:</Label>
+            <StyledDatePicker 
+              selected={toDate}
+              onChange={handleToDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select to date"
+              minDate={fromDate}
+              popperProps={{
+                strategy: "fixed",
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: {
+                      offset: [0, 10],
+                    },
+                  },
+                ],
+              }}
+              popperClassName="date-picker-popper"
             />
-          </div>
+          </DatePickerWrapper>
 
-          <div>
+          <FilterWrapper>
             <Label style={{ visibility: 'hidden' }}>Action</Label>
-            <ResponsiveButton
+            <Button
               onClick={handleApproveRefunds}
               disabled={selectedRecords.size === 0 || approving}
               style={{
@@ -235,12 +285,12 @@ const fetchRecords = async () => {
               }}
             >
               {approving ? 'Approving...' : `Approve Refunds (${selectedRecords.size})`}
-            </ResponsiveButton>
-          </div>
-        </ResponsiveFilterContainer>
+            </Button>
+          </FilterWrapper>
+        </FilterContainer>
 
         <InfoText>
-          Showing {records.length} refund record(s) pending approval from {fromDate} to {toDate}
+          Showing {records.length} refund record(s)
         </InfoText>
 
         {loading ? (

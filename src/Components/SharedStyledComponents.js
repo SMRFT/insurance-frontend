@@ -8,31 +8,31 @@ const backgroundColor = "#F9F9F9"
 const textColor = "#333"
 const accentColor = "#9aaea9"
 
-// Update the FormContainer for a more modern look
+// Fully responsive FormContainer - no fixed max-width
 export const FormContainer = styled.div`
   background-color: #FFFFFF;
   padding: 40px;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   width: 100%;
-  max-width: 1000px;
   transition: all 0.3s ease;
   box-sizing: border-box;
   
+  @media (max-width: 1200px) {
+    padding: 35px;
+  }
+  
   @media (max-width: 1024px) {
     padding: 30px;
-    max-width: 100%;
   }
   
   @media (max-width: 768px) {
     padding: 20px;
-    max-width: 100%;
     border-radius: 10px;
   }
   
   @media (max-width: 576px) {
     padding: 15px;
-    max-width: 100%;
     border-radius: 8px;
   }
   
@@ -80,7 +80,6 @@ export const FormSection = styled.div`
   }
 `
 
-// Update SectionTitle for better visual hierarchy
 export const SectionTitle = styled.h3`
   color: ${primaryColor};
   font-size: 18px;
@@ -101,14 +100,13 @@ export const SectionTitle = styled.h3`
   }
 `
 
-// Update CenteredContainer to match the new style
+// Fully responsive CenteredContainer - adapts to screen width
 export const CenteredContainer = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 400px;
   margin: 0 auto 25px;
   padding: 25px;
   background-color: #ffffff;
@@ -118,7 +116,6 @@ export const CenteredContainer = styled.div`
   box-sizing: border-box;
   
   @media (max-width: 768px) {
-    max-width: 100%;
     padding: 15px;
     margin-bottom: 15px;
   }
@@ -130,7 +127,6 @@ export const CenteredContainer = styled.div`
   }
 `
 
-// Update Input for a more modern look
 export const Input = styled.input`
   padding: 12px 15px;
   border: 1px solid #e0e0e0;
@@ -162,7 +158,6 @@ export const Input = styled.input`
   }
 `
 
-// Update Select to match Input styling
 export const Select = styled.select`
   padding: 12px 15px;
   border: 1px solid #e0e0e0;
@@ -194,7 +189,6 @@ export const Select = styled.select`
   }
 `
 
-// Update RadioGroup for better alignment
 export const RadioGroup = styled.div`
   display: flex;
   gap: 20px;
@@ -213,7 +207,6 @@ export const RadioGroup = styled.div`
   }
 `
 
-// Update RadioLabel for better styling
 export const RadioLabel = styled.label`
   font-size: 14px;
   font-weight: 500;
@@ -268,7 +261,7 @@ export const ButtonWrapper = styled.div`
   }
 `
 
-// Shared Form Components
+// Fully responsive FormWrapper - takes full width on all screens
 export const FormWrapper = styled.div`
   display: flex;
   justify-content: center;
@@ -281,10 +274,15 @@ export const FormWrapper = styled.div`
   
   @media (max-width: 768px) {
     padding: 15px;
+    min-height: 100vh;
   }
   
   @media (max-width: 480px) {
     padding: 10px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 8px;
   }
 `
 
@@ -416,20 +414,26 @@ export const Button = styled.button`
   }
 `
 
-// Report specific components
+// Fully responsive ReportContainer - adapts to all screen sizes
 export const ReportContainer = styled.div`
   background-color: #FFFFFF;
   padding: 40px;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   width: 100%;
-  max-width: 1400px;
   transition: all 0.3s ease;
   box-sizing: border-box;
   
   @media (max-width: 1400px) {
-    max-width: 100%;
+    padding: 35px;
+  }
+  
+  @media (max-width: 1200px) {
     padding: 30px;
+  }
+  
+  @media (max-width: 1024px) {
+    padding: 25px;
   }
   
   @media (max-width: 768px) {
@@ -446,12 +450,16 @@ export const ReportContainer = styled.div`
     padding: 12px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   }
+  
+  @media (max-width: 360px) {
+    padding: 10px;
+  }
 `
 
 export const SearchInput = styled.input`
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 14px;
   background-color: white;
   width: 100%;
@@ -476,9 +484,9 @@ export const SearchInput = styled.input`
 
 export const FormControl = styled.select`
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 14px;
   background-color: white;
   box-sizing: border-box;
@@ -501,9 +509,9 @@ export const FormControl = styled.select`
 `
 
 export const StyledDatePicker = styled(DatePicker)`
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 10px 14px;
+  border: 1px soid #ccc;
+  border-radius: 5px;
   font-size: 14px;
   background-color: white;
   width: 100%;
@@ -687,16 +695,20 @@ export const TableCell = styled.td`
   }
 `
 
+// Fully responsive Container - adapts to all screens
 export const Container = styled.div`
   background: linear-gradient(to bottom right, ${backgroundColor}, ${primaryColor});
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 100%;
   margin: 0 auto;
   transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
   box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    padding: 18px;
+  }
 
   @media (max-width: 768px) {
     padding: 15px;
@@ -710,11 +722,14 @@ export const Container = styled.div`
 
   @media (max-width: 480px) {
     padding: 10px;
-    margin: 0;
+  }
+
+  @media (max-width: 360px) {
+    padding: 8px;
   }
 
   @media (max-width: 320px) {
-    padding: 8px;
+    padding: 6px;
   }
 `
 
@@ -834,7 +849,7 @@ export const FilterContainer = styled.div`
   }
 `
 
-// Responsive Styled Components for Reports
+// Fully responsive filter container that scrolls horizontally on small screens
 export const ResponsiveFilterContainer = styled.div`
   display: grid;
   grid-auto-flow: column;
@@ -842,16 +857,42 @@ export const ResponsiveFilterContainer = styled.div`
   gap: 15px;
   align-items: end;
   width: 100%;
-  overflow-x: auto;   /* 👈 allows scroll instead of wrapping */
+  overflow-x: auto;
   padding-bottom: 5px;
-
-  /* optional: hide scrollbar visually */
+  box-sizing: border-box;
   scrollbar-width: thin;
   
   &::-webkit-scrollbar {
     height: 6px;
   }
-`;
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: ${accentColor};
+    border-radius: 3px;
+  }
+  
+  @media (max-width: 1024px) {
+    grid-auto-columns: minmax(150px, 1fr);
+    gap: 12px;
+  }
+  
+  @media (max-width: 768px) {
+    grid-auto-columns: minmax(120px, 1fr);
+    gap: 10px;
+  }
+  
+  @media (max-width: 480px) {
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+`
 
 export const ResponsiveTableWrapper = styled.div`
   max-height: 500px;
@@ -859,6 +900,8 @@ export const ResponsiveTableWrapper = styled.div`
   overflow-x: auto;
   border: 1px solid #ddd;
   border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
   
   @media (max-width: 1024px) {
     max-height: 450px;
@@ -890,12 +933,19 @@ export const MobileCard = styled.div`
     padding: 15px;
     margin-bottom: 15px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   @media (max-width: 480px) {
     padding: 12px;
     margin-bottom: 12px;
     border-radius: 6px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 10px;
+    margin-bottom: 10px;
   }
 `
 
@@ -904,6 +954,8 @@ export const MobileCardRow = styled.div`
   justify-content: space-between;
   padding: 8px 0;
   border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+  box-sizing: border-box;
   
   &:last-child {
     border-bottom: none;
@@ -912,6 +964,11 @@ export const MobileCardRow = styled.div`
   @media (max-width: 480px) {
     padding: 6px 0;
     font-size: 12px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 5px 0;
+    font-size: 11px;
   }
 `
 
@@ -922,6 +979,10 @@ export const MobileCardLabel = styled.span`
 
   @media (max-width: 480px) {
     font-size: 0.85rem;
+  }
+  
+  @media (max-width: 360px) {
+    font-size: 0.8rem;
   }
 `
 
@@ -936,10 +997,15 @@ export const MobileCardValue = styled.span`
   @media (max-width: 480px) {
     font-size: 0.85rem;
   }
+  
+  @media (max-width: 360px) {
+    font-size: 0.8rem;
+  }
 `
 
 export const DesktopTable = styled.div`
   display: block;
+  width: 100%;
   
   @media (max-width: 768px) {
     display: none;
@@ -948,6 +1014,7 @@ export const DesktopTable = styled.div`
 
 export const MobileCardContainer = styled.div`
   display: none;
+  width: 100%;
   
   @media (max-width: 768px) {
     display: block;
@@ -968,6 +1035,11 @@ export const StatusBadge = styled.span`
     padding: 3px 10px;
     font-size: 0.8rem;
   }
+  
+  @media (max-width: 360px) {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+  }
 `
 
 export const InfoText = styled.div`
@@ -975,6 +1047,8 @@ export const InfoText = styled.div`
   margin: 10px 0;
   font-weight: 500;
   font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
   
   @media (max-width: 768px) {
     font-size: 0.85rem;
@@ -985,6 +1059,10 @@ export const InfoText = styled.div`
     font-size: 0.8rem;
     margin: 8px 0;
   }
+  
+  @media (max-width: 360px) {
+    font-size: 0.75rem;
+  }
 `
 
 export const ResponsiveButton = styled(Button)`
@@ -994,16 +1072,20 @@ export const ResponsiveButton = styled(Button)`
   @media (max-width: 768px) {
     padding: 12px 16px;
     font-size: 0.95rem;
-    width: auto;   /* 👈 important */
+    width: auto;
   }
 
   @media (max-width: 480px) {
     padding: 10px 14px;
     font-size: 0.9rem;
-    width: auto;   /* 👈 important */
+    width: 100%;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 9px 12px;
+    font-size: 0.85rem;
   }
 `
-
 
 export const ActionCell = styled(TableCell)`
   padding: 8px;
@@ -1022,6 +1104,11 @@ export const ActionCell = styled(TableCell)`
   @media (max-width: 480px) {
     min-width: 140px;
     padding: 4px;
+  }
+  
+  @media (max-width: 360px) {
+    min-width: 120px;
+    padding: 3px;
   }
 `
 
@@ -1054,6 +1141,11 @@ export const StatusSelect = styled(Select)`
     font-size: 10px;
     padding: 5px;
   }
+  
+  @media (max-width: 360px) {
+    font-size: 9px;
+    padding: 4px;
+  }
 `
 
 export const ButtonGroup = styled.div`
@@ -1063,6 +1155,7 @@ export const ButtonGroup = styled.div`
   justify-content: center;
   flex-wrap: nowrap;
   width: 100%;
+  box-sizing: border-box;
   
   @media (max-width: 992px) {
     gap: 5px;
@@ -1101,5 +1194,10 @@ export const EditButton = styled(Button)`
     min-width: 100%;
     padding: 6px;
     font-size: 10px;
+  }
+  
+  @media (max-width: 360px) {
+    padding: 5px;
+    font-size: 9px;
   }
 `

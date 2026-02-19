@@ -98,45 +98,81 @@ const SidebarContainer = styled.div`
   color: white;
   display: flex;
   flex-direction: column;
-  padding: 24px 16px;
   font-family: 'Poppins', sans-serif;
   transition: all 0.3s ease;
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 1000;
+
+  @media (max-width: 1200px) {
+    width: 240px;
+  }
+
+  @media (max-width: 768px) {
+    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
+    animation: ${props => props.isOpen ? slideIn : 'none'} 0.3s ease;
+    width: 280px;
+    box-shadow: ${props => props.isOpen ? '4px 0 20px rgba(0, 0, 0, 0.3)' : 'none'};
+  }
+
+  @media (max-width: 576px) {
+    width: 260px;
+  }
+`;
+
+const SidebarTop = styled.div`
+  padding: 24px 16px 0 16px;
+  flex-shrink: 0;
+
+  @media (max-width: 1200px) {
+    padding: 20px 14px 0 14px;
+  }
+
+  @media (max-width: 576px) {
+    padding: 16px 12px 0 12px;
+  }
+`;
+
+const ScrollableContent = styled.div`
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 0 16px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-  z-index: 1000;
-  
+
   &::-webkit-scrollbar {
     width: 5px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.3);
     border-radius: 10px;
   }
-  
+
   @media (max-width: 1200px) {
-    width: 240px;
-    padding: 20px 14px;
+    padding: 0 14px;
   }
-  
-  @media (max-width: 768px) {
-    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
-    animation: ${props => props.isOpen ? slideIn : 'none'} 0.3s ease;
-    z-index: 1000;
-    width: 280px;
-    box-shadow: ${props => props.isOpen ? '4px 0 20px rgba(0, 0, 0, 0.3)' : 'none'};
-  }
-  
+
   @media (max-width: 576px) {
-    width: 260px;
-    padding: 16px 12px;
+    padding: 0 12px;
+  }
+`;
+
+const SidebarBottom = styled.div`
+  padding: 10px 16px 16px 16px;
+  flex-shrink: 0;
+
+  @media (max-width: 1200px) {
+    padding: 10px 14px 14px 14px;
+  }
+
+  @media (max-width: 576px) {
+    padding: 8px 12px 12px 12px;
   }
 `;
 
@@ -150,6 +186,7 @@ const SidebarHeader = styled.div`
     margin-bottom: 16px;
   }
 `;
+
 const LogoContainer = styled.div`
   display: flex;
   align-items: center;
@@ -157,7 +194,6 @@ const LogoContainer = styled.div`
   animation: ${pulse} 2s infinite ease-in-out;
   flex: 1;
 `;
-
 
 const Logo = styled.div`
   background-color: white;
@@ -222,15 +258,10 @@ const UserInfoContainer = styled.div`
   flex-direction: column;
   gap: 6px;
   margin-bottom: 15px;
-  position: sticky;
-  top: 0;
-  padding: 8px 0;
-  z-index: 10;
-  
+
   @media (max-width: 576px) {
     gap: 4px;
     margin-bottom: 10px;
-    padding: 6px 0;
   }
 `;
 
@@ -262,10 +293,10 @@ const RoleBadge = styled.div`
 const Divider = styled.div`
   height: 1px;
   background-color: rgba(255, 255, 255, 0.2);
-  margin: 15px 0;
+  margin: 0 0 15px 0;
   
   @media (max-width: 576px) {
-    margin: 12px 0;
+    margin: 0 0 12px 0;
   }
 `;
 
@@ -435,21 +466,11 @@ const ActiveIndicator = styled.div`
   opacity: ${props => props.active ? '1' : '0'};
 `;
 
-const Spacer = styled.div`
-  flex: 1;
-  min-height: 20px;
-`;
-
 const LogoutContainer = styled.div`
-  margin-top: auto;
-  padding-top: 10px;
-  animation: ${fadeIn} 0.5s ease-out;
-  animation-fill-mode: both;
-  animation-delay: 0.2s;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 5px;
-  
+
   @media (max-width: 576px) {
     padding: 3px;
   }
@@ -506,7 +527,6 @@ function Sidebar({ userRole }) {
   const [role, setRole] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Initialize all groups as closed
   const [openGroups, setOpenGroups] = useState({
     insurance: false,
     update: false,
@@ -515,7 +535,6 @@ function Sidebar({ userRole }) {
     "Final Approval": false,
   });
 
-  // Fetch user data from localStorage on component mount
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     const storedRole = localStorage.getItem("role");
@@ -524,12 +543,10 @@ function Sidebar({ userRole }) {
     setRole(userRole || storedRole || "");
   }, [userRole]);
 
-  // Close sidebar when route changes on mobile
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [location.pathname]);
 
-  // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
     if (window.innerWidth <= 768) {
       if (isSidebarOpen) {
@@ -538,21 +555,24 @@ function Sidebar({ userRole }) {
         document.body.style.overflow = 'unset';
       }
     }
-    
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [isSidebarOpen]);
-  
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
   const toggleGroup = (group) => {
-    setOpenGroups(prev => ({
-      ...prev,
-      [group]: !prev[group]
-    }));
+    setOpenGroups(prev => {
+      const isCurrentlyOpen = prev[group];
+      const allClosed = Object.keys(prev).reduce((acc, key) => {
+        acc[key] = false;
+        return acc;
+      }, {});
+      return { ...allClosed, [group]: !isCurrentlyOpen };
+    });
   };
 
   const isActive = (path) => {
@@ -570,12 +590,9 @@ function Sidebar({ userRole }) {
       localStorage.removeItem("employeeId");
       localStorage.removeItem("userEmail");
     }
-
-    const redirectURL = "/secure";
-    window.location.href = redirectURL;
+    window.location.href = "https://shinova.in/secure";
   };
 
-  // Define navigation groups based on role
   const getNavigationGroups = () => {
     switch(role) {
       case "Insurance Staff":
@@ -645,7 +662,7 @@ function Sidebar({ userRole }) {
           },
         ];
 
-        case "Insurance Super Admin":
+      case "Insurance Super Admin":
         return [
           {
             id: "update",
@@ -677,7 +694,6 @@ function Sidebar({ userRole }) {
           },
         ];
 
-
       default:
         return [];
     }
@@ -690,96 +706,96 @@ function Sidebar({ userRole }) {
       <MobileToggle onClick={toggleSidebar} aria-label="Toggle sidebar">
         <Menu size={24} />
       </MobileToggle>
-      
-      <Overlay isOpen={isSidebarOpen} onClick={toggleSidebar} />
-      
-      <SidebarContainer isOpen={isSidebarOpen}>
-        <SidebarHeader>
-          <LogoContainer>
-            <Logo>
-              <Shield size={22} />
-            </Logo>
-            <Title>Insurance</Title>
-          </LogoContainer>
-          <CloseButton onClick={toggleSidebar} aria-label="Close sidebar">
-            <X size={20} />
-          </CloseButton>
-        </SidebarHeader>
-        
-        <UserInfoContainer>
-          {userName && (
-            <RoleBadge>{userName}</RoleBadge>
-          )}
-          
-          {role && (
-            <RoleBadge style={{ background: 'rgba(255, 255, 255, 0.25)' }}>
-              {role}
-            </RoleBadge>
-          )}
-        </UserInfoContainer>
 
-        <Divider />
-        
-        {navigationGroups.map((group, index) => (
-          <NavGroup key={group.id} index={index}>
-            {group.label ? (
-              <>
-                <GroupHeader onClick={() => toggleGroup(group.id)}>
-                  <GroupIconWrapper>
-                    {group.icon}
-                  </GroupIconWrapper>
-                  {group.label}
-                  <ChevronIconWrapper isOpen={openGroups[group.id]}>
-                    <ChevronDown size={16} />
-                  </ChevronIconWrapper>
-                </GroupHeader>
-                
-                <GroupItemsContainer isOpen={openGroups[group.id]}>
-                  <GroupItems>
-                    {group.items.map((item) => (
-                      <SidebarLink 
-                        key={item.path} 
-                        to={item.path}
-                        active={isActive(item.path) ? "true" : undefined}
-                      >
-                        <ActiveIndicator active={isActive(item.path)} />
-                        <IconWrapper>
-                          {item.icon}
-                        </IconWrapper>
-                        {item.label}
-                      </SidebarLink>
-                    ))}
-                  </GroupItems>
-                </GroupItemsContainer>
-              </>
-            ) : (
-              group.items.map((item) => (
-                <SidebarLink 
-                  key={item.path} 
-                  to={item.path}
-                  active={isActive(item.path) ? "true" : undefined}
-                >
-                  <ActiveIndicator active={isActive(item.path)} />
-                  <IconWrapper>
-                    {item.icon}
-                  </IconWrapper>
-                  {item.label}
-                </SidebarLink>
-              ))
+      <Overlay isOpen={isSidebarOpen} onClick={toggleSidebar} />
+
+      <SidebarContainer isOpen={isSidebarOpen}>
+
+        {/* FIXED TOP */}
+        <SidebarTop>
+          <SidebarHeader>
+            <LogoContainer>
+              <Logo>
+                <Shield size={22} />
+              </Logo>
+              <Title>Insurance</Title>
+            </LogoContainer>
+            <CloseButton onClick={toggleSidebar} aria-label="Close sidebar">
+              <X size={20} />
+            </CloseButton>
+          </SidebarHeader>
+
+          <UserInfoContainer>
+            {userName && <RoleBadge>{userName}</RoleBadge>}
+            {role && (
+              <RoleBadge style={{ background: 'rgba(255, 255, 255, 0.25)' }}>
+                {role}
+              </RoleBadge>
             )}
-          </NavGroup>
-        ))}
-        
-        <Spacer />
-     
-        <LogoutContainer>
-          <LogoutButton onClick={handleLogout}>
-            <IconWrapper>
-              <LogOut size={18} />
-            </IconWrapper>
-            <LogoutText>Logout</LogoutText>
-          </LogoutButton>
-        </LogoutContainer>
+          </UserInfoContainer>
+
+          <Divider />
+        </SidebarTop>
+
+        {/* SCROLLABLE MIDDLE */}
+        <ScrollableContent>
+          {navigationGroups.map((group, index) => (
+            <NavGroup key={group.id} index={index}>
+              {group.label ? (
+                <>
+                  <GroupHeader onClick={() => toggleGroup(group.id)}>
+                    <GroupIconWrapper>{group.icon}</GroupIconWrapper>
+                    {group.label}
+                    <ChevronIconWrapper isOpen={openGroups[group.id]}>
+                      <ChevronDown size={16} />
+                    </ChevronIconWrapper>
+                  </GroupHeader>
+
+                  <GroupItemsContainer isOpen={openGroups[group.id]}>
+                    <GroupItems>
+                      {group.items.map((item) => (
+                        <SidebarLink
+                          key={item.path}
+                          to={item.path}
+                          active={isActive(item.path) ? "true" : undefined}
+                        >
+                          <ActiveIndicator active={isActive(item.path)} />
+                          <IconWrapper>{item.icon}</IconWrapper>
+                          {item.label}
+                        </SidebarLink>
+                      ))}
+                    </GroupItems>
+                  </GroupItemsContainer>
+                </>
+              ) : (
+                group.items.map((item) => (
+                  <SidebarLink
+                    key={item.path}
+                    to={item.path}
+                    active={isActive(item.path) ? "true" : undefined}
+                  >
+                    <ActiveIndicator active={isActive(item.path)} />
+                    <IconWrapper>{item.icon}</IconWrapper>
+                    {item.label}
+                  </SidebarLink>
+                ))
+              )}
+            </NavGroup>
+          ))}
+        </ScrollableContent>
+
+        {/* FIXED BOTTOM */}
+        <SidebarBottom>
+          <LogoutContainer>
+            <LogoutButton onClick={handleLogout}>
+              <IconWrapper>
+                <LogOut size={18} />
+              </IconWrapper>
+              <LogoutText>Logout</LogoutText>
+            </LogoutButton>
+          </LogoutContainer>
+        </SidebarBottom>
+
       </SidebarContainer>
     </>
   );

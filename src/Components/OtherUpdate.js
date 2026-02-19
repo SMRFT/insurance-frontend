@@ -475,73 +475,83 @@ const getStatusColor = (status) => {
           </ResponsiveTableWrapper>
         )}
 
-        <style jsx global>{`
-          /* Frozen columns styling */
-          .frozen-columns-table {
-            position: relative;
-          }
-          
-          .frozen-col {
-            position: sticky !important;
-            background-color: white;
-            z-index: 10;
-          }
-          
-          .frozen-col-1 {
-            left: 0px;
-            min-width: 110px;
-          }
-          
-          .frozen-col-2 {
-            left: 110px;
-            min-width: 150px;
-          }
-          
-          .frozen-col-3 {
-            left: 260px;
-            min-width: 120px;
-            border-right: 2px solid #ddd;
-          }
-          
-          /* Add shadow effect to frozen columns */
-          .frozen-col-3::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: -10px;
-            bottom: 0;
-            width: 10px;
-            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-            pointer-events: none;
-          }
-          
-          /* Ensure header frozen columns have darker background */
-          thead .frozen-col {
+      <style jsx global>{`
+        /* Frozen columns styling */
+        .frozen-columns-table {
+          position: relative;
+        }
+
+        .frozen-col {
+          position: sticky !important;
+          background-color: white;
+          z-index: 10;
+        }
+
+        .frozen-col-1 {
+          left: 0px;
+          min-width: 110px;
+        }
+
+        .frozen-col-2 {
+          left: 110px;
+          min-width: 150px;
+        }
+
+        .frozen-col-3 {
+          left: 260px;
+          min-width: 120px;
+          border-right: 2px solid #ddd;
+        }
+
+        /* Add shadow effect to frozen columns */
+        .frozen-col-3::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: -10px;
+          bottom: 0;
+          width: 10px;
+          background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+          pointer-events: none;
+        }
+
+        /* Sticky header row — freezes on vertical scroll */
+        thead tr th {
+          position: sticky !important;
+          top: 0;
+          z-index: 11;
+        }
+
+        /* Ensure header frozen columns have darker background + highest z-index */
+        thead .frozen-col {
           background-color: #6F8B83;
-          }
-          
-          /* Ensure footer frozen columns match */
-          tfoot .frozen-col {
-            background-color: #f8f9fa;
-          }
-          
-          /* Ensure row hover doesn't break frozen column background */
-          tbody tr:hover .frozen-col {
-            background-color: #f5f5f5;
-          }
-          
-          .date-picker-popper {
-            z-index: 9999 !important;
-          }
-          
-          .react-datepicker-popper {
-            z-index: 9999 !important;
-          }
-          
-          .react-datepicker {
-            z-index: 9999 !important;
-          }
-        `}</style>
+          position: sticky !important;
+          top: 0;
+          z-index: 20 !important;
+        }
+
+        /* Ensure footer frozen columns match */
+        tfoot .frozen-col {
+          background-color: #f8f9fa;
+        }
+
+        /* Ensure row hover doesn't break frozen column background */
+        tbody tr:hover .frozen-col {
+          background-color: #f5f5f5;
+        }
+
+        .date-picker-popper {
+          z-index: 9999 !important;
+        }
+
+        .react-datepicker-popper {
+          z-index: 9999 !important;
+        }
+
+        .react-datepicker {
+          z-index: 9999 !important;
+        }
+      `}</style>
       </Container>
     </ReportContainer>
   )

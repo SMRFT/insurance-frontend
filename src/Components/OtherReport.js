@@ -17,8 +17,8 @@ import {
   FormContainer,
   ResponsiveFilterContainer,
   ResponsiveTableWrapper,
-  InfoText,
-  ResponsiveButton,
+  SearchInput,
+  SearchWrapper,
   StatusBadge,
   ButtonWrapper,
   ScrollableTableContainer,
@@ -33,8 +33,8 @@ const accentColor = "#9aaea9"
 const OtherReport = () => {
   const [records, setRecords] = useState([])
   const [filteredRecords, setFilteredRecords] = useState([])
-  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("")
   const [fromDate, setFromDate] = useState(new Date())
@@ -376,7 +376,6 @@ const OtherReport = () => {
               <th>Treatment</th>
               <th>Amount</th>
               <th>Payment Method</th>
-              <th>Has Refund</th>
               <th>Refund</th>
               <th>Status</th>
               <th>Approved By</th>
@@ -397,11 +396,6 @@ const OtherReport = () => {
                 <td>${record.treatment || ''}</td>
                 <td>₹${Number.parseFloat(record.amount || 0).toFixed(2)}</td>
                 <td>${record.payment_method || ''}</td>
-                <td>
-                  <span class="status-badge ${record.has_refund ? 'refund-yes' : 'refund-no'}">
-                    ${record.has_refund ? 'Yes' : 'No'}
-                  </span>
-                </td>
                 <td>₹${Number.parseFloat(record.refund || 0).toFixed(2)}</td>
                 <td>
                   <span class="status-badge ${
@@ -425,9 +419,8 @@ const OtherReport = () => {
               <td colspan="8" style="text-align: right;"><strong>GRAND TOTAL:</strong></td>
               <td><strong>₹${totalAmount.toFixed(2)}</strong></td>
               <td></td>
-              <td></td>
               <td><strong>₹${totalRefund.toFixed(2)}</strong></td>
-              <td colspan="4"></td>
+              <td colspan="3"></td>
             </tr>
           </tfoot>
         </table>
@@ -463,7 +456,16 @@ const getStatusColor = (status) => {
       <Container>
         <Title>Other Records Report - All Status</Title>
         
-       <FilterContainer>
+     <FilterContainer>
+        <SearchWrapper>
+            <Label>Search</Label>
+            <SearchInput
+              type="text"
+              placeholder="Search by name, UHID, mobile..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </SearchWrapper>
           <FilterWrapper>
             <Label htmlFor="companyName">Filter by Company:</Label>
             <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
@@ -537,9 +539,7 @@ const getStatusColor = (status) => {
 
 
           <FilterWrapper>
-            <ButtonWrapper>
               <Button onClick={exportToCSV} disabled={filteredRecords.length === 0}>Export CSV</Button>
-            </ButtonWrapper>
           </FilterWrapper>
 
           <FilterWrapper>
@@ -637,105 +637,85 @@ const getStatusColor = (status) => {
             </ScrollableTableContainer>
           </ResponsiveTableWrapper>
 
-        <style jsx global>{`
+      <style jsx global>{`
         /* Frozen columns styling */
         .frozen-columns-table {
           position: relative;
         }
-        
-        .frozen-col {
+
+      .frozen-col {
+        position: sticky !important;
+        background-color: white;
+        z-index: 10;
+      }
+
+      .frozen-col-1 {
+        left: 0px;
+        min-width: 110px;
+      }
+
+      .frozen-col-2 {
+        left: 110px;
+        min-width: 150px;
+      }
+
+      .frozen-col-3 {
+        left: 260px;
+        min-width: 120px;
+      }
+
+      .frozen-col-4 {
+        left: 380px;
+        min-width: 130px;
+        border-right: 2px solid #ddd;
+      }
+
+      /* Shadow moves to col-4 now */
+      .frozen-col-4::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -10px;
+        bottom: 0;
+        width: 10px;
+        background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+        pointer-events: none;
+      }
+        /* Sticky header row — freezes on vertical scroll */
+        thead tr th {
           position: sticky !important;
-          background-color: white;
-          z-index: 10;
-        }
-        
-        .frozen-col-1 {
-          left: 0px;
-          min-width: 110px;
-        }
-        
-        .frozen-col-2 {
-          left: 110px;
-          min-width: 100px;
-        }
-        
-        .frozen-col-3 {
-          left: 210px;
-          min-width: 120px;
-        }
-        
-        .frozen-col-4 {
-          left: 330px;
-          min-width: 150px;
-          border-right: 2px solid #ddd;
-        }
-        
-        /* Add shadow effect to frozen columns */
-        .frozen-col-4::after {
-          content: '';
-          position: absolute;
           top: 0;
-          right: -10px;
-          bottom: 0;
-          width: 10px;
-          background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-          pointer-events: none;
+          z-index: 11;
         }
-        
-        /* Ensure header frozen columns have darker background */
+
+        /* Ensure header frozen columns have darker background + highest z-index */
         thead .frozen-col {
           background-color: #6F8B83;
+          position: sticky !important;
+          top: 0;
+          z-index: 20 !important;
         }
-        
+
         /* Ensure footer frozen columns match */
         tfoot .frozen-col {
           background-color: #f8f9fa;
         }
-        
+
         /* Ensure row hover doesn't break frozen column background */
         tbody tr:hover .frozen-col {
           background-color: #f5f5f5;
         }
-        
+
         .date-picker-popper {
           z-index: 9999 !important;
         }
-        
+
         .react-datepicker-popper {
           z-index: 9999 !important;
         }
-        
+
         .react-datepicker {
           z-index: 9999 !important;
-        }
-        
-        /* Custom scrollbar styling */
-        @media (max-width: 768px) {
-          ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-          }
-          
-          ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-          }
-          
-          ::-webkit-scrollbar-thumb {
-            background: ${accentColor};
-            border-radius: 4px;
-          }
-          
-          ::-webkit-scrollbar-thumb:hover {
-            background: ${primaryColor};
-          }
-        }
-        
-        /* Ensure body has proper margin for mobile */
-        @media (max-width: 480px) {
-          body {
-            margin: 0;
-            padding: 5px;
-          }
         }
       `}</style>
       </Container>

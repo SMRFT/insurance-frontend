@@ -829,7 +829,7 @@ export const SearchContainer = styled.div`
 
 export const FilterContainer = styled.div`
   display: flex;
-  gap: 15px;
+  gap: 10px;
   margin-bottom: 25px;
   flex-wrap: wrap;
   align-items: end;

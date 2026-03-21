@@ -110,6 +110,7 @@ const applyLocalFilters = (data) => {
     return false
   })
 }
+
   const handleCompanyFilterChange = (event) => {
     setSelectedCompany(event.target.value)
   }
@@ -137,8 +138,9 @@ const handleViewFile = (fileId) => {
 };
 
   const exportToExcel = () => {
-    // Prepare data for export (excluding file columns)
-    const exportData = filteredData.map((item) => ({
+    // Prepare data for export (excluding file columns), with S.No as first column
+    const exportData = filteredData.map((item, index) => ({
+      "S.No": index + 1,
       "Patient UHID": item.patient_uhid || "N/A",
       "Patient Name": item.patient_name || "N/A",
       Date: item.date || "N/A",
@@ -278,6 +280,7 @@ const handleViewFile = (fileId) => {
           <Table>
             <thead>
               <tr>
+                <TableHeader>S.No</TableHeader>
                 <TableHeader>Patient UHID</TableHeader>
                 <TableHeader>Patient Name</TableHeader>
                 <TableHeader>Date</TableHeader>
@@ -306,6 +309,7 @@ const handleViewFile = (fileId) => {
               {filteredData.length > 0 ? (
                 filteredData.map((item, index) => (
                   <TableRow key={index}>
+                    <TableCell style={{ textAlign: "center" }}>{index + 1}</TableCell>
                     <TableCell>{item.patient_uhid || "N/A"}</TableCell>
                     <TableCell>{item.patient_name || "N/A"}</TableCell>
                     <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
@@ -325,7 +329,7 @@ const handleViewFile = (fileId) => {
                       {item.queryUpload && <Button onClick={() => handleViewFile(item.queryUpload)}>View</Button>}
                     </TableCell>
                     <TableCell>{item.approvalAmount || "N/A"}</TableCell>
-                    <TableCell>{item.claimId|| "N/A"}</TableCell>
+                    <TableCell>{item.claimId || "N/A"}</TableCell>
                     <TableCell>{item.claimedAmount || "N/A"}</TableCell>
                     <TableCell>{item.settledAmount || "N/A"}</TableCell>
                     <TableCell>{item.approval || "N/A"}</TableCell>
@@ -338,7 +342,7 @@ const handleViewFile = (fileId) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="21" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="23" style={{ textAlign: "center", padding: "20px" }}>
                     No records found matching the current filters
                   </TableCell>
                 </TableRow>

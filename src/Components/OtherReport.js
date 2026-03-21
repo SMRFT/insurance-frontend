@@ -141,6 +141,7 @@ const OtherReport = () => {
 
   const exportToCSV = () => {
     const headers = [
+      "S.No",
       "Date",
       "IP/OP Type",
       "IP/OP Number",
@@ -161,8 +162,9 @@ const OtherReport = () => {
 
     const { totalAmount, totalRefund } = calculateTotals()
 
-    const dataRows = filteredRecords.map((record) =>
+    const dataRows = filteredRecords.map((record, index) =>
       [
+        index + 1,
         record.date || "",
         record.ip_op_type || "",
         record.patient_uhid || "",
@@ -183,7 +185,7 @@ const OtherReport = () => {
     )
 
     const grandTotalRow = [
-      "", "", "", "", "", "", "GRAND TOTAL", "",
+      "", "", "", "", "", "", "", "GRAND TOTAL", "",
       `"${totalAmount.toFixed(2)}"`,
       "", "",
       `"${totalRefund.toFixed(2)}"`,
@@ -366,6 +368,7 @@ const OtherReport = () => {
         <table>
           <thead>
             <tr>
+              <th>S.No</th>
               <th>Date</th>
               <th>IP/OP Type</th>
               <th>IP/OP Number</th>
@@ -384,8 +387,9 @@ const OtherReport = () => {
             </tr>
           </thead>
           <tbody>
-            ${filteredRecords.map(record => `
+            ${filteredRecords.map((record, index) => `
               <tr>
+                <td>${index + 1}</td>
                 <td>${record.date || ''}</td>
                 <td>${record.ip_op_type || ''}</td>
                 <td>${record.patient_uhid || ''}</td>
@@ -416,11 +420,11 @@ const OtherReport = () => {
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="8" style="text-align: right;"><strong>GRAND TOTAL:</strong></td>
+              <td colspan="9" style="text-align: right;"><strong>GRAND TOTAL:</strong></td>
               <td><strong>₹${totalAmount.toFixed(2)}</strong></td>
               <td></td>
               <td><strong>₹${totalRefund.toFixed(2)}</strong></td>
-              <td colspan="3"></td>
+              <td colspan="4"></td>
             </tr>
           </tfoot>
         </table>
@@ -435,13 +439,13 @@ const OtherReport = () => {
 const getStatusColor = (status) => {
   switch (status) {
     case "Pending":
-      return "#f44336"       // red
+      return "#f44336"
     case "Approved":
-      return "#2196f3"       // blue
+      return "#2196f3"
     case "Collected":
-      return "#ff9800"       // orange
+      return "#ff9800"
     case "Final Approved":
-      return "#f9ee5dfa"     // yellow
+      return "#f9ee5dfa"
     case "Gate Pass Issued": 
       return "#4caf50"
     default: 
@@ -555,6 +559,7 @@ const getStatusColor = (status) => {
               <Table className="frozen-columns-table">
               <thead>
                 <tr>
+                  <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
                   <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
                   <TableHeader className="frozen-col frozen-col-2">IP/OP Type</TableHeader>
                   <TableHeader className="frozen-col frozen-col-3">IP/OP Number</TableHeader>
@@ -577,6 +582,7 @@ const getStatusColor = (status) => {
                 {filteredRecords.length > 0 ? (
                   filteredRecords.map((record, index) => (
                     <TableRow key={`${record.id}-${record.date}-${record.amount}-${index}`}>
+                      <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
                       <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
                       <TableCell className="frozen-col frozen-col-2">{record.ip_op_type}</TableCell>
                       <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
@@ -612,7 +618,7 @@ const getStatusColor = (status) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="16" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="17" style={{ textAlign: "center", padding: "20px" }}>
                     No records found matching the current filters
                   </TableCell>
                 </TableRow>
@@ -621,6 +627,7 @@ const getStatusColor = (status) => {
               {filteredRecords.length > 0 && (
                 <tfoot>
                   <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                    <TableCell className="frozen-col frozen-col-0"></TableCell>
                     <TableCell className="frozen-col frozen-col-1" colSpan="4" style={{ textAlign: "right" }}>
                       GRAND TOTAL:
                     </TableCell>
@@ -649,28 +656,34 @@ const getStatusColor = (status) => {
         z-index: 10;
       }
 
-      .frozen-col-1 {
+      .frozen-col-0 {
         left: 0px;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      .frozen-col-1 {
+        left: 60px;
         min-width: 110px;
       }
 
       .frozen-col-2 {
-        left: 110px;
+        left: 170px;
         min-width: 150px;
       }
 
       .frozen-col-3 {
-        left: 260px;
+        left: 320px;
         min-width: 120px;
       }
 
       .frozen-col-4 {
-        left: 380px;
+        left: 440px;
         min-width: 130px;
         border-right: 2px solid #ddd;
       }
 
-      /* Shadow moves to col-4 now */
+      /* Shadow on last frozen column */
       .frozen-col-4::after {
         content: '';
         position: absolute;
@@ -681,6 +694,7 @@ const getStatusColor = (status) => {
         background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
         pointer-events: none;
       }
+
         /* Sticky header row — freezes on vertical scroll */
         thead tr th {
           position: sticky !important;

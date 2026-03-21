@@ -17,11 +17,345 @@ import {
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest";
 
+const primaryColor = "#6F8B83"
+const accentColor = "#9aaea9"
+
+// ─── Add Doctor Modal ────────────────────────────────────────────────────────
+const AddDoctorModal = ({ onClose, onSuccess, baseUrl }) => {
+  const [doctorName, setDoctorName] = useState("")
+  const [department, setDepartment] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const getTodayFormatted = () => {
+    const today = new Date()
+    const dd = String(today.getDate()).padStart(2, "0")
+    const mm = String(today.getMonth() + 1).padStart(2, "0")
+    const yyyy = today.getFullYear()
+    return `${dd}-${mm}-${yyyy}`
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!doctorName.trim()) {
+      toast.error("Doctor name is required", { duration: 3000 })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const payload = {
+        doctor_name: doctorName.trim(),
+        department: department.trim(),
+        created_by: "system",
+        created_date: getTodayFormatted(),
+        last_modified_by: "system",
+        last_modified_date: getTodayFormatted(),
+        is_active: true,
+      }
+
+      const response = await apiRequest(`${baseUrl}add_doctor/`, "POST", payload)
+
+      if (response.success || response.status === 200 || response.status === 201) {
+        toast.success("✅ Doctor added successfully!", {
+          duration: 3000,
+          style: { background: "#10b981", color: "#fff" },
+        })
+        onSuccess(payload.doctor_name)
+        onClose()
+      } else {
+        toast.error(response.error || "Failed to add doctor", { duration: 4000 })
+      }
+    } catch (error) {
+      console.error("Error adding doctor:", error)
+      toast.error(`Error: ${error.response?.data?.error || error.message}`, {
+        duration: 4000,
+        style: { background: "#dc2626", color: "#fff" },
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={modalHeaderStyle}>
+          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#1f2937" }}>
+            Add New Doctor
+          </h3>
+          <button onClick={onClose} style={closeButtonStyle}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: "24px" }}>
+          <div style={modalFieldStyle}>
+            <label style={modalLabelStyle}>Doctor Name <span style={{ color: "#ef4444" }}>*</span></label>
+            <input
+              type="text"
+              value={doctorName}
+              onChange={(e) => setDoctorName(e.target.value)}
+              placeholder="e.g. DR.JOHN DOE, MS (ORTHO)"
+              style={modalInputStyle}
+              required
+            />
+          </div>
+
+          <div style={modalFieldStyle}>
+            <label style={modalLabelStyle}>Department</label>
+            <input
+              type="text"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="e.g. Orthopedics"
+              style={modalInputStyle}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              style={{ ...modalCancelBtnStyle }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ ...modalSubmitBtnStyle, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? "Adding..." : "Add Doctor"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Add Treatment Modal ─────────────────────────────────────────────────────
+const AddTreatmentModal = ({ onClose, onSuccess, baseUrl }) => {
+  const [treatmentName, setTreatmentName] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const getTodayFormatted = () => {
+    const today = new Date()
+    const dd = String(today.getDate()).padStart(2, "0")
+    const mm = String(today.getMonth() + 1).padStart(2, "0")
+    const yyyy = today.getFullYear()
+    return `${dd}-${mm}-${yyyy}`
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!treatmentName.trim()) {
+      toast.error("Treatment name is required", { duration: 3000 })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const payload = {
+        name: treatmentName.trim(),
+        created_by: "system",
+        created_date: getTodayFormatted(),
+        last_modified_by: "system",
+        last_modified_date: getTodayFormatted(),
+        is_active: true,
+      }
+
+      const response = await apiRequest(`${baseUrl}add_treatment/`, "POST", payload)
+
+      if (response.success || response.status === 200 || response.status === 201) {
+        toast.success("✅ Treatment added successfully!", {
+          duration: 3000,
+          style: { background: "#10b981", color: "#fff" },
+        })
+        onSuccess(payload.name)
+        onClose()
+      } else {
+        toast.error(response.error || "Failed to add treatment", { duration: 4000 })
+      }
+    } catch (error) {
+      console.error("Error adding treatment:", error)
+      toast.error(`Error: ${error.response?.data?.error || error.message}`, {
+        duration: 4000,
+        style: { background: "#dc2626", color: "#fff" },
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={modalHeaderStyle}>
+          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#1f2937" }}>
+            Add New Treatment
+          </h3>
+          <button onClick={onClose} style={closeButtonStyle}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: "24px" }}>
+          <div style={modalFieldStyle}>
+            <label style={modalLabelStyle}>Treatment Name <span style={{ color: "#ef4444" }}>*</span></label>
+            <input
+              type="text"
+              value={treatmentName}
+              onChange={(e) => setTreatmentName(e.target.value)}
+              placeholder="e.g. Cardiology"
+              style={modalInputStyle}
+              required
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              style={{ ...modalCancelBtnStyle }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ ...modalSubmitBtnStyle, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? "Adding..." : "Add Treatment"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Shared Modal Styles ──────────────────────────────────────────────────────
+const overlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 9999,
+  backdropFilter: "blur(4px)",
+}
+
+const modalStyle = {
+  backgroundColor: "#ffffff",
+  borderRadius: "16px",
+  width: "100%",
+  maxWidth: "480px",
+  boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+  overflow: "hidden",
+  animation: "modalSlideIn 0.2s ease-out",
+}
+
+const modalHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "20px 24px",
+  borderBottom: "1px solid #e5e7eb",
+  backgroundColor: "#f9fafb",
+}
+
+const closeButtonStyle = {
+  background: "none",
+  border: "none",
+  fontSize: "18px",
+  cursor: "pointer",
+  color: "#6b7280",
+  width: "32px",
+  height: "32px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "6px",
+  transition: "background 0.15s",
+}
+
+const modalFieldStyle = {
+  marginBottom: "16px",
+}
+
+const modalLabelStyle = {
+  display: "block",
+  fontSize: "14px",
+  fontWeight: "600",
+  color: "#374151",
+  marginBottom: "6px",
+}
+
+const modalInputStyle = {
+  width: "100%",
+  padding: "10px 14px",
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
+  fontSize: "14px",
+  color: "#1f2937",
+  outline: "none",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+}
+
+const modalSubmitBtnStyle = {
+  backgroundColor: primaryColor,
+  color: "#fff",
+  border: "none",
+  padding: "10px 24px",
+  borderRadius: "8px",
+  fontSize: "14px",
+  fontWeight: "600",
+  cursor: "pointer",
+  transition: "background 0.15s",
+}
+
+const modalCancelBtnStyle = {
+  backgroundColor: "#f3f4f6",
+  color: "#374151",
+  border: "1px solid #d1d5db",
+  padding: "10px 24px",
+  borderRadius: "8px",
+  fontSize: "14px",
+  fontWeight: "600",
+  cursor: "pointer",
+  transition: "background 0.15s",
+}
+
+// ─── Plus Button Style ────────────────────────────────────────────────────────
+const plusButtonStyle = {
+  backgroundColor: primaryColor,
+  color: "#fff",
+  border: "none",
+  borderRadius: "50%",
+  width: "28px",
+  height: "28px",
+  minWidth: "28px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  fontSize: "18px",
+  fontWeight: "bold",
+  lineHeight: 1,
+  flexShrink: 0,
+  transition: "background 0.15s, transform 0.1s",
+  boxShadow: "0 2px 6px rgba(111,139,131,0.3)",
+}
+
+// ─── Main Form Component ──────────────────────────────────────────────────────
 const OtherForm = ({ editData = null, onSuccess }) => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Get edit data from navigation state
   const editDataFromNav = location.state || editData
 
   const [formData, setFormData] = useState({
@@ -37,124 +371,114 @@ const OtherForm = ({ editData = null, onSuccess }) => {
     refundAmount: "",
   })
 
-  // Payment entries state - always start with one entry
   const [paymentEntries, setPaymentEntries] = useState([
-    {
-      id: Date.now(),
-      amount: "",
-      payment_method: "",
-      date: "",
-    },
+    { id: Date.now(), amount: "", payment_method: "", date: "" },
   ])
 
   const [loading, setLoading] = useState(false)
   const [doctorsList, setDoctorsList] = useState([])
   const [loadingDoctors, setLoadingDoctors] = useState(false)
-  
+  const [treatmentsList, setTreatmentsList] = useState([])
+  const [loadingTreatments, setLoadingTreatments] = useState(false)
+
+  // Modal states
+  const [showDoctorModal, setShowDoctorModal] = useState(false)
+  const [showTreatmentModal, setShowTreatmentModal] = useState(false)
+
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
-  // Fetch doctors list
-useEffect(() => {
-  const fetchDoctors = async () => {
-    setLoadingDoctors(true)
-    try {
-      const response = await apiRequest(
-        `${Insurancebaseurl}get_doctor_list/`,
-        "GET"
-      )
-      
-      console.log("Doctors API Response:", response) // Debug log
-      
-      // Handle both response formats
-      let doctorsData = []
-      
-      if (Array.isArray(response)) {
-        // Direct array response
-        doctorsData = response
-      } else if (response && response.data && Array.isArray(response.data)) {
-        // Wrapped in data object
-        doctorsData = response.data
-      } else if (response && Array.isArray(response.doctors)) {
-        // Wrapped in doctors object
-        doctorsData = response.doctors
-      } else {
-        console.error("Unexpected response format:", response)
-        toast.error("Invalid response format from doctors API", {
+  // ── Fetch Doctors ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setLoadingDoctors(true)
+      try {
+        const response = await apiRequest(`${Insurancebaseurl}get_doctor_list/`, "GET")
+
+        let doctorsData = []
+        if (Array.isArray(response)) {
+          doctorsData = response
+        } else if (response?.data && Array.isArray(response.data)) {
+          doctorsData = response.data
+        } else if (response?.doctors && Array.isArray(response.doctors)) {
+          doctorsData = response.doctors
+        } else {
+          console.error("Unexpected doctors response format:", response)
+          setDoctorsList([])
+          setLoadingDoctors(false)
+          return
+        }
+
+        const activeDoctors = doctorsData.filter((d) => d.is_active === true)
+        const sortedDoctors = activeDoctors.sort((a, b) =>
+          (a.doctor_name || "").trim().localeCompare((b.doctor_name || "").trim())
+        )
+        setDoctorsList(sortedDoctors)
+      } catch (error) {
+        console.error("Error fetching doctors:", error)
+        toast.error("Failed to load doctors list", {
           duration: 3000,
-          style: {
-            background: '#ef4444',
-            color: '#fff',
-          },
+          style: { background: "#ef4444", color: "#fff" },
         })
         setDoctorsList([])
+      } finally {
         setLoadingDoctors(false)
-        return
       }
-      
-      // Filter only active doctors
-      const activeDoctors = doctorsData.filter(doctor => doctor.is_active === true)
-      
-      // Sort by doctor name
-      const sortedDoctors = activeDoctors.sort((a, b) => {
-        const nameA = (a.doctor_name || "").trim()
-        const nameB = (b.doctor_name || "").trim()
-        return nameA.localeCompare(nameB)
-      })
-      
-      console.log("Active Doctors Count:", activeDoctors.length) // Debug log
-      console.log("Sorted Doctors:", sortedDoctors) // Debug log
-      
-      setDoctorsList(sortedDoctors)
-      
-      if (sortedDoctors.length === 0) {
-        toast.info("No active doctors found", {
-          duration: 3000,
-        })
-      } else {
-        console.log(`✅ Loaded ${sortedDoctors.length} doctors successfully`)
-      }
-    } catch (error) {
-      console.error("Error fetching doctors list:", error)
-      console.error("Error details:", error.response || error.message)
-      toast.error("Failed to load doctors list", {
-        duration: 3000,
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-        },
-      })
-      setDoctorsList([])
-    } finally {
-      setLoadingDoctors(false)
     }
-  }
 
-  if (Insurancebaseurl) {
-    fetchDoctors()
-  } else {
-    console.error("Insurancebaseurl is not defined")
-    toast.error("Backend URL not configured", {
-      duration: 3000,
-      style: {
-        background: '#ef4444',
-        color: '#fff',
-      },
-    })
-  }
-}, [Insurancebaseurl])
+    if (Insurancebaseurl) fetchDoctors()
+  }, [Insurancebaseurl])
 
-  // Debug: Log the edit data to see what we're receiving
+  // ── Fetch Treatments ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      setLoadingTreatments(true)
+      try {
+        const response = await apiRequest(`${Insurancebaseurl}get_treatment_list/`, "GET")
+
+        let treatmentsData = []
+        if (Array.isArray(response)) {
+          treatmentsData = response
+        } else if (response?.data && Array.isArray(response.data)) {
+          treatmentsData = response.data
+        } else if (response?.treatments && Array.isArray(response.treatments)) {
+          treatmentsData = response.treatments
+        } else {
+          console.error("Unexpected treatments response format:", response)
+          setTreatmentsList([])
+          setLoadingTreatments(false)
+          return
+        }
+
+        // Sort alphabetically by name
+        const sortedTreatments = treatmentsData.sort((a, b) =>
+          (a.name || "").trim().localeCompare((b.name || "").trim())
+        )
+        setTreatmentsList(sortedTreatments)
+      } catch (error) {
+        console.error("Error fetching treatments:", error)
+        toast.error("Failed to load treatments list", {
+          duration: 3000,
+          style: { background: "#ef4444", color: "#fff" },
+        })
+        setTreatmentsList([])
+      } finally {
+        setLoadingTreatments(false)
+      }
+    }
+
+    if (Insurancebaseurl) fetchTreatments()
+  }, [Insurancebaseurl])
+
   useEffect(() => {
     console.log("Edit data received:", editDataFromNav)
   }, [editDataFromNav])
 
-  // Populate form data when editing
+  // ── Populate Edit Data ───────────────────────────────────────────────────────
   useEffect(() => {
     if (editDataFromNav) {
       const refundValue = editDataFromNav.refund || "0"
-      // has_refund is independent - check the actual boolean field
       const hasRefundValue = editDataFromNav.has_refund === true
-      
+
       setFormData({
         date: editDataFromNav.date || "",
         patientName: editDataFromNav.patient_name || "",
@@ -168,8 +492,7 @@ useEffect(() => {
         refundAmount: refundValue,
       })
 
-      // Populate existing payment details when editing
-      if (editDataFromNav.payment_details && editDataFromNav.payment_details.length > 0) {
+      if (editDataFromNav.payment_details?.length > 0) {
         const existingPayments = editDataFromNav.payment_details.map((payment, index) => ({
           id: Date.now() + index,
           amount: payment.amount ? payment.amount.toString() : "",
@@ -177,7 +500,6 @@ useEffect(() => {
           date: payment.date || "",
           isExisting: true,
         }))
-
         const newPaymentEntry = {
           id: Date.now() + editDataFromNav.payment_details.length,
           amount: "",
@@ -185,60 +507,36 @@ useEffect(() => {
           date: "",
           isExisting: false,
         }
-
         setPaymentEntries([...existingPayments, newPaymentEntry])
       } else {
-        setPaymentEntries([
-          {
-            id: Date.now(),
-            amount: "",
-            payment_method: "",
-            date: "",
-            isExisting: false,
-          },
-        ])
+        setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", date: "", isExisting: false }])
       }
-      
-      toast.success("📝 Form data loaded for editing", {
-        duration: 2000,
-        icon: '✏️',
-      })
+
+      toast.success("📝 Form data loaded for editing", { duration: 2000, icon: "✏️" })
     }
   }, [editDataFromNav])
 
-  // Get today's date in YYYY-MM-DD format
-  const getTodayDate = () => {
-    const today = new Date()
-    return today.toISOString().split("T")[0]
-  }
+  const getTodayDate = () => new Date().toISOString().split("T")[0]
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }))
+    setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }))
   }
 
   const handlePaymentEntryChange = (entryId, field, value) => {
-    setPaymentEntries((prev) => prev.map((entry) => (entry.id === entryId ? { ...entry, [field]: value } : entry)))
+    setPaymentEntries((prev) =>
+      prev.map((entry) => (entry.id === entryId ? { ...entry, [field]: value } : entry))
+    )
   }
 
   const addPaymentEntry = () => {
-    const newEntry = {
-      id: Date.now(),
-      amount: "",
-      payment_method: "",
-      date: "",
-    }
-    setPaymentEntries((prev) => [...prev, newEntry])
+    setPaymentEntries((prev) => [
+      ...prev,
+      { id: Date.now(), amount: "", payment_method: "", date: "" },
+    ])
     toast.success("➕ New payment entry added!", {
       duration: 2000,
-      style: {
-        background: '#10b981',
-        color: '#fff',
-      },
+      style: { background: "#10b981", color: "#fff" },
     })
   }
 
@@ -247,36 +545,51 @@ useEffect(() => {
       setPaymentEntries((prev) => prev.filter((entry) => entry.id !== entryId))
       toast.success("🗑️ Payment entry removed", {
         duration: 2000,
-        style: {
-          background: '#f59e0b',
-          color: '#fff',
-        },
+        style: { background: "#f59e0b", color: "#fff" },
       })
     } else {
       toast.error("⚠️ At least one payment entry is required", {
         duration: 3000,
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-        },
+        style: { background: "#ef4444", color: "#fff" },
       })
     }
   }
 
+  // ── Callbacks from modals ────────────────────────────────────────────────────
+  const handleDoctorAdded = (newDoctorName) => {
+    // Add to list and auto-select
+    setDoctorsList((prev) => {
+      const newEntry = { doctor_name: newDoctorName, is_active: true }
+      return [...prev, newEntry].sort((a, b) =>
+        (a.doctor_name || "").localeCompare(b.doctor_name || "")
+      )
+    })
+    setFormData((prev) => ({ ...prev, doctorName: newDoctorName }))
+  }
+
+  const handleTreatmentAdded = (newTreatmentName) => {
+    // Add to list and auto-select
+    setTreatmentsList((prev) => {
+      const newEntry = { name: newTreatmentName }
+      return [...prev, newEntry].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "")
+      )
+    })
+    setFormData((prev) => ({ ...prev, treatment: newTreatmentName }))
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     const loadingToast = toast.loading("Processing your request...", {
-      style: {
-        background: '#3b82f6',
-        color: '#fff',
-      },
+      style: { background: "#3b82f6", color: "#fff" },
     })
 
     const hasAnyData =
       Object.values(formData).some((value) => {
-        if (typeof value === 'boolean') return false // Skip boolean values
+        if (typeof value === "boolean") return false
         return value && value.toString().trim() !== ""
       }) ||
       paymentEntries.some((entry) => entry.amount || entry.payment_method || entry.date)
@@ -285,10 +598,7 @@ useEffect(() => {
       toast.dismiss(loadingToast)
       toast.error("📋 Please enter at least some information", {
         duration: 4000,
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-        },
+        style: { background: "#ef4444", color: "#fff" },
       })
       setLoading(false)
       return
@@ -298,17 +608,14 @@ useEffect(() => {
       toast.dismiss(loadingToast)
       toast.error("📱 Please enter a valid 10-digit mobile number", {
         duration: 4000,
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-        },
+        style: { background: "#ef4444", color: "#fff" },
       })
       setLoading(false)
       return
     }
 
     const validPaymentEntries = paymentEntries.filter(
-      (entry) => !entry.isExisting && (entry.amount || entry.payment_method || entry.date),
+      (entry) => !entry.isExisting && (entry.amount || entry.payment_method || entry.date)
     )
 
     try {
@@ -327,8 +634,8 @@ useEffect(() => {
         doctor_name: formData.doctorName,
         company_name: formData.companyName,
         treatment: formData.treatment,
-        has_refund: formData.hasRefund,  // Always send the boolean value
-        refund: formData.refundAmount || "0",  // Send refund amount regardless of checkbox
+        has_refund: formData.hasRefund,
+        refund: formData.refundAmount || "0",
         payment_details: paymentDetailsForBackend,
       }
 
@@ -339,47 +646,26 @@ useEffect(() => {
         (editDataFromNav.id || editDataFromNav._id || (editDataFromNav._id && editDataFromNav._id.$oid))
 
       if (isEditMode) {
-        let recordId = editDataFromNav.id;
-
+        let recordId = editDataFromNav.id
         if (editDataFromNav._id) {
           if (typeof editDataFromNav._id === "object" && editDataFromNav._id.$oid) {
-            recordId = editDataFromNav._id.$oid;
+            recordId = editDataFromNav._id.$oid
           } else {
-            recordId = editDataFromNav._id;
+            recordId = editDataFromNav._id
           }
         }
-
-        payload.id = recordId;
-
-        response = await apiRequest(
-          `${Insurancebaseurl}other_records/`,
-          "PUT",
-          payload
-        );
+        payload.id = recordId
+        response = await apiRequest(`${Insurancebaseurl}other_records/`, "PUT", payload)
       } else {
-        response = await apiRequest(
-          `${Insurancebaseurl}other_records/`,
-          "POST",
-          payload
-        );
+        response = await apiRequest(`${Insurancebaseurl}other_records/`, "POST", payload)
       }
 
       toast.dismiss(loadingToast)
 
       if (response.status === 200 || response.status === 201) {
         toast.success(
-          isEditMode ? "✅ Record updated successfully!" : "🎉 Record created successfully!", 
-          {
-            duration: 4000,
-            style: {
-              background: '#10b981',
-              color: '#fff',
-            },
-            iconTheme: {
-              primary: '#fff',
-              secondary: '#10b981',
-            },
-          }
+          isEditMode ? "✅ Record updated successfully!" : "🎉 Record created successfully!",
+          { duration: 4000, style: { background: "#10b981", color: "#fff" } }
         )
 
         setTimeout(() => {
@@ -396,44 +682,28 @@ useEffect(() => {
               hasRefund: false,
               refundAmount: "",
             })
-            setPaymentEntries([
-              {
-                id: Date.now(),
-                amount: "",
-                payment_method: "",
-                date: "",
-              },
-            ])
+            setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", date: "" }])
             toast.success("📝 Form reset for new entry", {
               duration: 2000,
-              style: {
-                background: '#6b7280',
-                color: '#fff',
-              },
+              style: { background: "#6b7280", color: "#fff" },
             })
           } else {
             navigate("/OtherUpdate")
           }
-
           if (onSuccess) onSuccess()
         }, 1500)
       }
     } catch (error) {
       toast.dismiss(loadingToast)
       console.error("Error submitting form:", error)
-      console.error("Error response:", error.response?.data)
-      
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message || 
-                          error.message || 
-                          "An unexpected error occurred"
-      
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "An unexpected error occurred"
       toast.error(`💥 Error: ${errorMessage}`, {
         duration: 6000,
-        style: {
-          background: '#dc2626',
-          color: '#fff',
-        },
+        style: { background: "#dc2626", color: "#fff" },
       })
     } finally {
       setLoading(false)
@@ -443,55 +713,48 @@ useEffect(() => {
   const handleCancel = () => {
     toast.success("🔄 Operation cancelled", {
       duration: 2000,
-      style: {
-        background: '#6b7280',
-        color: '#fff',
-      },
+      style: { background: "#6b7280", color: "#fff" },
     })
     navigate("/OtherUpdate")
   }
 
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <FormWrapper>
       <FormContainer>
         <Title>{editDataFromNav ? "Edit Other Record" : "Other Form"}</Title>
-        
-        <Toaster 
+
+        <Toaster
           position="top-right"
           reverseOrder={false}
           gutter={8}
           toastOptions={{
-            className: '',
+            className: "",
             duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-              fontWeight: '500',
-            },
-            success: {
-              duration: 3000,
-              theme: {
-                primary: '#10b981',
-                secondary: '#fff',
-              },
-            },
-            error: {
-              duration: 5000,
-              theme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
-            },
-            loading: {
-              theme: {
-                primary: '#3b82f6',
-                secondary: '#fff',
-              },
-            },
+            style: { background: "#363636", color: "#fff", fontWeight: "500" },
+            success: { duration: 3000 },
+            error: { duration: 5000 },
           }}
         />
 
+        {/* Modals */}
+        {showDoctorModal && (
+          <AddDoctorModal
+            onClose={() => setShowDoctorModal(false)}
+            onSuccess={handleDoctorAdded}
+            baseUrl={Insurancebaseurl}
+          />
+        )}
+        {showTreatmentModal && (
+          <AddTreatmentModal
+            onClose={() => setShowTreatmentModal(false)}
+            onSuccess={handleTreatmentAdded}
+            baseUrl={Insurancebaseurl}
+          />
+        )}
+
         <Form onSubmit={handleSubmit}>
+          {/* ── Patient Information ── */}
           <FormSection>
             <SectionTitle>Patient Information</SectionTitle>
             <div
@@ -538,21 +801,21 @@ useEffect(() => {
 
               <div>
                 <Label>OP/IP Number</Label>
-                <Input 
-                  type="text" 
-                  name="patientUhid" 
-                  value={formData.patientUhid} 
+                <Input
+                  type="text"
+                  name="patientUhid"
+                  value={formData.patientUhid}
                   onChange={handleChange}
                   placeholder="Enter patient op/ip number"
                 />
               </div>
-              
+
               <div>
                 <Label>Patient Name</Label>
-                <Input 
-                  type="text" 
-                  name="patientName" 
-                  value={formData.patientName} 
+                <Input
+                  type="text"
+                  name="patientName"
+                  value={formData.patientName}
                   onChange={handleChange}
                   placeholder="Enter patient name"
                 />
@@ -571,35 +834,49 @@ useEffect(() => {
                 />
               </div>
 
+              {/* Doctor Name with + button */}
               <div>
                 <Label>Doctor Name</Label>
-                <Select 
-                  name="doctorName" 
-                  value={formData.doctorName} 
-                  onChange={handleChange}
-                  disabled={loadingDoctors}
-                >
-                  <option value="">
-                    {loadingDoctors ? "Loading doctors..." : "Select Doctor"}
-                  </option>
-                  {doctorsList.map((doctor, index) => (
-                    <option key={index} value={doctor.doctor_name}>
-                      {doctor.doctor_name}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Select
+                    name="doctorName"
+                    value={formData.doctorName}
+                    onChange={handleChange}
+                    disabled={loadingDoctors}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">
+                      {loadingDoctors ? "Loading doctors..." : "Select Doctor"}
                     </option>
-                  ))}
-                </Select>
+                    {doctorsList.map((doctor, index) => (
+                      <option key={index} value={doctor.doctor_name}>
+                        {doctor.doctor_name}
+                      </option>
+                    ))}
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => setShowDoctorModal(true)}
+                    style={plusButtonStyle}
+                    title="Add new doctor"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           </FormSection>
 
+          {/* ── Insurance & Treatment Details ── */}
           <FormSection>
             <SectionTitle>Insurance & Treatment Details</SectionTitle>
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
-              gap: "20px" 
-            }}
-            className="responsive-grid"
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                gap: "20px",
+              }}
+              className="responsive-grid"
             >
               <div>
                 <Label>Company Name</Label>
@@ -615,47 +892,50 @@ useEffect(() => {
                   <option value="Airport">Airport</option>
                 </Select>
               </div>
+
+              {/* Treatment with + button */}
               <div>
                 <Label>Treatment</Label>
-                <Select name="treatment" value={formData.treatment} onChange={handleChange}>
-                  <option value="">Select Treatment</option>
-                  <option value="General Surgery">General Surgery</option>
-                  <option value="Onco Surgery">Onco Surgery</option>
-                  <option value="Uro Surgery">Uro Surgery</option>
-                  <option value="Cardiac Surgery">Cardiac Surgery</option>
-                  <option value="Lap Surgery">Lap Surgery</option>
-                  <option value="Robotic Surgery">Robotic Surgery</option>
-                  <option value="Gynec Surgery">Gynec Surgery</option>
-                  <option value="Gastro Entrology Surgery">Gastro Entrology Surgery</option>
-                  <option value="LSCS">LSCS</option>
-                  <option value="General Medicine">General Medicine</option>
-                  <option value="Cardiology">Cardiology</option>
-                  <option value="Neurology">Neurology</option>
-                  <option value="Nephrology">Nephrology</option>
-                  <option value="Ortho">Ortho</option>
-                  <option value="Radiation">Radiation</option>
-                  <option value="Chemo">Chemo</option>
-                  <option value="ICU">ICU</option>
-                  <option value="Pediatric">Pediatric</option>
-                  <option value="Urology">Urology</option>
-                  <option value="Obesity">Obesity</option>
-                  <option value="HDR">HDR</option>
-                  <option value="Dialysis">Dialysis</option>
-                  <option value="Conservative">Conservative</option>
-                  <option value="Pulmonology">Pulmonology</option>
-                </Select>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Select
+                    name="treatment"
+                    value={formData.treatment}
+                    onChange={handleChange}
+                    disabled={loadingTreatments}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">
+                      {loadingTreatments ? "Loading treatments..." : "Select Treatment"}
+                    </option>
+                    {treatmentsList.map((t, index) => (
+                      <option key={index} value={t.name}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => setShowTreatmentModal(true)}
+                    style={plusButtonStyle}
+                    title="Add new treatment"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           </FormSection>
 
-          {/* Refund Section */}
+          {/* ── Refund Section ── */}
           <FormSection>
             <SectionTitle>Refund Details</SectionTitle>
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
-              gap: "20px" 
-            }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                gap: "20px",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
                   <input
@@ -668,7 +948,7 @@ useEffect(() => {
                   <span style={{ fontSize: "16px", fontWeight: "600" }}>Has Refund</span>
                 </label>
               </div>
-              
+
               <div>
                 <Label>Refund Amount</Label>
                 <Input
@@ -684,7 +964,7 @@ useEffect(() => {
             </div>
           </FormSection>
 
-          {/* Payment Details Section */}
+          {/* ── Payment Details Section ── */}
           <FormSection>
             <SectionTitle style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <span>{editDataFromNav ? "Add New Payment Details" : "Payment Details"}</span>
@@ -706,7 +986,7 @@ useEffect(() => {
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  border: "none"
+                  border: "none",
                 }}
                 title="Add new payment entry"
               >
@@ -740,13 +1020,15 @@ useEffect(() => {
                   className="payment-entry-grid"
                 >
                   {entry.isExisting && (
-                    <div style={{ 
-                      gridColumn: "1 / -1", 
-                      marginBottom: "10px", 
-                      fontWeight: "bold", 
-                      color: "#28a745",
-                      fontSize: "14px"
-                    }}>
+                    <div
+                      style={{
+                        gridColumn: "1 / -1",
+                        marginBottom: "10px",
+                        fontWeight: "bold",
+                        color: "#28a745",
+                        fontSize: "14px",
+                      }}
+                    >
                       Existing Payment #{index + 1} (Read-only)
                     </div>
                   )}
@@ -808,14 +1090,16 @@ useEffect(() => {
                   </div>
                 </div>
               ))}
-              
-              {paymentEntries.filter(entry => !entry.isExisting).length === 0 && editDataFromNav && (
-                <div style={{
-                  textAlign: "center",
-                  padding: "20px",
-                  color: "#666",
-                  fontStyle: "italic"
-                }}>
+
+              {paymentEntries.filter((entry) => !entry.isExisting).length === 0 && editDataFromNav && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "20px",
+                    color: "#666",
+                    fontStyle: "italic",
+                  }}
+                >
                   Click the + button above to add new payment entries
                 </div>
               )}
@@ -824,13 +1108,10 @@ useEffect(() => {
 
           <ButtonWrapper>
             {editDataFromNav && (
-              <Button 
-                type="button" 
-                onClick={handleCancel} 
-                style={{ 
-                  backgroundColor: "#6c757d", 
-                  marginRight: "10px" 
-                }}
+              <Button
+                type="button"
+                onClick={handleCancel}
+                style={{ backgroundColor: "#6c757d", marginRight: "10px" }}
                 disabled={loading}
               >
                 Cancel
@@ -842,33 +1123,36 @@ useEffect(() => {
           </ButtonWrapper>
         </Form>
       </FormContainer>
-      
+
       <style>{`
-        @keyframes fadeIn {
+        @keyframes modalSlideIn {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-20px) scale(0.97);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
-        
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 768px) {
           .responsive-grid {
             grid-template-columns: 1fr !important;
           }
-          
           .payment-entry-grid {
             grid-template-columns: 1fr !important;
           }
-          
           .payment-entry-grid > div:last-child {
             margin-top: 10px;
           }
         }
-        
+
         @media (max-width: 480px) {
           .responsive-grid {
             gap: 15px !important;

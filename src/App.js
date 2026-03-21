@@ -98,6 +98,7 @@ function AppContent() {
             <>
               <Route path="/" element={<InsuranceForm />} />
               <Route path="/OtherForm" element={<OtherForm />} />
+              <Route path="/InsuranceForm" element={<InsuranceForm />} />
               <Route path="/FormUpdate" element={<FormUpdate />} />
               <Route path="/InsuranceReport" element={<InsuranceReport />} />
               <Route path="/OtherReport" element={<OtherReport />} />

@@ -95,6 +95,7 @@ const OtherUpdate = () => {
               status: record.status || "Pending",
               is_approved: record.is_approved || false,
               approved_by_name: record.approved_by_name || "",
+              created_by_name: record.created_by_name || "",
               originalRecord: record,
             })
 
@@ -381,6 +382,7 @@ const getStatusColor = (status) => {
                     <TableHeader>Payment Method</TableHeader>
                     <TableHeader>Refund</TableHeader>
                     <TableHeader>Status</TableHeader>
+                    <TableHeader>Created By</TableHeader>
                     <TableHeader>Action</TableHeader>
                   </tr>
                 </thead>
@@ -408,6 +410,7 @@ const getStatusColor = (status) => {
                             {record.status || "Pending"}
                           </StatusBadge>                          
                           </TableCell>
+                          <TableCell>{record.created_by_name || "-"}</TableCell>
                           <ActionCell>
                           <ButtonGroup>
 
@@ -449,7 +452,7 @@ const getStatusColor = (status) => {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
+                      <TableCell colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
                         No records found matching the current filters
                       </TableCell>
                     </TableRow>
@@ -465,6 +468,7 @@ const getStatusColor = (status) => {
                       <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
                       <TableCell></TableCell>
                       <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                      <TableCell></TableCell>
                       <TableCell></TableCell>
                       <TableCell></TableCell>
                     </tr>

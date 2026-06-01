@@ -157,7 +157,8 @@ const OtherReport = () => {
       "Status",
       "Approved By",
       "Final Approved By",
-      "Refund Approved By"
+      "Refund Approved By",
+      "Created By"
     ]
 
     const { totalAmount, totalRefund } = calculateTotals()
@@ -180,7 +181,8 @@ const OtherReport = () => {
         record.status || "",
         record.approved_by_name || "",
         record.final_approved_by_name || "",
-        record.refund_approved_by_name || ""
+        record.refund_approved_by_name || "",
+        record.created_by_name || ""
       ].map(field => `"${field}"`).join(",")
     )
 
@@ -189,7 +191,7 @@ const OtherReport = () => {
       `"${totalAmount.toFixed(2)}"`,
       "", "",
       `"${totalRefund.toFixed(2)}"`,
-      "", "", "", ""
+      "", "", "", "", ""
     ].join(",")
 
     const csvContent = [headers.join(","), ...dataRows, "", grandTotalRow].join("\n")
@@ -576,6 +578,7 @@ const getStatusColor = (status) => {
                   <TableHeader>Approved By</TableHeader>
                   <TableHeader>Final Approved By</TableHeader>
                   <TableHeader>Refund Approved By</TableHeader>
+                  <TableHeader>Created By</TableHeader>
                 </tr>
               </thead>
               <tbody>
@@ -614,11 +617,12 @@ const getStatusColor = (status) => {
                       <TableCell>{record.approved_by_name || "-"}</TableCell>
                       <TableCell>{record.final_approved_by_name || "-"}</TableCell>
                       <TableCell>{record.refund_approved_by_name || "-"}</TableCell>
+                      <TableCell>{record.created_by_name || "-"}</TableCell>
                     </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="17" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
                     No records found matching the current filters
                   </TableCell>
                 </TableRow>
@@ -636,7 +640,7 @@ const getStatusColor = (status) => {
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                     <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                    <TableCell colSpan="4"></TableCell>
+                    <TableCell colSpan="5"></TableCell>
                   </tr>
                 </tfoot>
               )}

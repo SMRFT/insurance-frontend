@@ -18,6 +18,7 @@ import {
   ButtonGroup,
   FilterContainer,
   FilterWrapper,
+  FormControl,
   ButtonWrapper,
   SearchWrapper,
   SearchInput,
@@ -52,57 +53,57 @@ const OverallApproval = () => {
   const [selectedRecords, setSelectedRecords] = useState(new Set())
   const [fromDate, setFromDate] = useState(new Date())
   const [toDate, setToDate] = useState(new Date())
+  const [selectedCompany, setSelectedCompany] = useState("")
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
-  // Fetch data when filters change
   useEffect(() => {
     fetchRecords()
-  }, [fromDate, toDate, ])
-
+  }, [fromDate, toDate])
 
   useEffect(() => {
     groupRecordsByDate()
-  }, [records, searchTerm, selectedRecords])
+  }, [records, searchTerm, selectedRecords, selectedCompany])
 
-const fetchRecords = async () => {
-  setLoading(true)
-  try {
-
-    const url = `${Insurancebaseurl}other_records/overall_approval/`
+  const fetchRecords = async () => {
+    setLoading(true)
+    try {
+      const url = `${Insurancebaseurl}other_records/overall_approval/`
       const response = await apiRequest(url, "GET", null, {}, { params: { from_date: fromDate.toLocaleDateString("en-CA"), to_date: toDate.toLocaleDateString("en-CA") } })
 
-    if (response.success && Array.isArray(response.data)) {
-      setRecords(response.data)
-      setSelectedRecords(new Set())
-    } else {
-      setRecords([])
-      if (response.error) {
-        console.error("Fetch error:", response.error)
+      if (response.success && Array.isArray(response.data)) {
+        setRecords(response.data)
+        setSelectedRecords(new Set())
+      } else {
+        setRecords([])
+        if (response.error) {
+          console.error("Fetch error:", response.error)
+        }
       }
+    } catch (error) {
+      setRecords([])
+      console.error("Error fetching records:", error)
+      toast.error("Failed to fetch records")
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    setRecords([])
-    console.error("Error fetching records:", error)
-    toast.error("Failed to fetch records")
-  } finally {
-    setLoading(false)
   }
-}
+
   const groupRecordsByDate = () => {
     const grouped = {}
 
     records.forEach((record) => {
       const recordDate = record.date || "Unknown"
 
-      // Apply search filter
       const matchesSearch = !searchTerm ||
         record.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.patient_uhid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.mobile_number?.includes(searchTerm) ||
         record.treatment?.toLowerCase().includes(searchTerm.toLowerCase())
 
-      if (matchesSearch) {
+      const matchesCompany = !selectedCompany || record.company_name === selectedCompany
+
+      if (matchesSearch && matchesCompany) {
         if (!grouped[recordDate]) {
           grouped[recordDate] = []
         }
@@ -110,7 +111,6 @@ const fetchRecords = async () => {
       }
     })
 
-    // Sort dates in descending order
     const sortedGrouped = {}
     Object.keys(grouped)
       .sort((a, b) => new Date(b) - new Date(a))
@@ -164,9 +164,7 @@ const fetchRecords = async () => {
     setApproving(true)
     try {
       const recordIds = Array.from(selectedRecords)
-      const payload = {
-        record_ids: recordIds
-      }
+      const payload = { record_ids: recordIds }
 
       const response = await apiRequest(
         `${Insurancebaseurl}other_records/final_approval/`,
@@ -176,8 +174,6 @@ const fetchRecords = async () => {
 
       if (response.success || response.status === 200) {
         toast.success(`${selectedRecords.size} record(s) final approved successfully`)
-
-        // Refresh records
         setSelectedRecords(new Set())
         fetchRecords()
       } else {
@@ -191,14 +187,9 @@ const fetchRecords = async () => {
     }
   }
 
-    const handleFromDateChange = (date) => {
-    setFromDate(date)
-  }
-
-  const handleToDateChange = (date) => {
-    setToDate(date)
-  }
-
+  const handleFromDateChange = (date) => setFromDate(date)
+  const handleToDateChange = (date) => setToDate(date)
+  const handleCompanyFilterChange = (e) => setSelectedCompany(e.target.value)
 
   const calculateTotals = () => {
     let totalAmount = 0
@@ -214,6 +205,7 @@ const fetchRecords = async () => {
     return { totalAmount, totalRefund }
   }
 
+  const filteredCount = Object.values(groupedRecords).reduce((sum, arr) => sum + arr.length, 0)
   const { totalAmount, totalRefund } = calculateTotals()
 
   return (
@@ -234,29 +226,22 @@ const fetchRecords = async () => {
 
           <DatePickerWrapper>
             <Label>From Date:</Label>
-            <StyledDatePicker 
+            <StyledDatePicker
               selected={fromDate}
               onChange={handleFromDateChange}
               dateFormat="yyyy-MM-dd"
               placeholderText="Select from date"
               popperProps={{
                 strategy: "fixed",
-                modifiers: [
-                  {
-                    name: "offset",
-                    options: {
-                      offset: [0, 10],
-                    },
-                  },
-                ],
+                modifiers: [{ name: "offset", options: { offset: [0, 10] } }],
               }}
               popperClassName="date-picker-popper"
             />
           </DatePickerWrapper>
-          
+
           <DatePickerWrapper>
             <Label>To Date:</Label>
-            <StyledDatePicker 
+            <StyledDatePicker
               selected={toDate}
               onChange={handleToDateChange}
               dateFormat="yyyy-MM-dd"
@@ -264,19 +249,26 @@ const fetchRecords = async () => {
               minDate={fromDate}
               popperProps={{
                 strategy: "fixed",
-                modifiers: [
-                  {
-                    name: "offset",
-                    options: {
-                      offset: [0, 10],
-                    },
-                  },
-                ],
+                modifiers: [{ name: "offset", options: { offset: [0, 10] } }],
               }}
               popperClassName="date-picker-popper"
             />
           </DatePickerWrapper>
 
+          <FilterWrapper>
+            <Label htmlFor="companyName">Filter by Company:</Label>
+            <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+              <option value="">Select Company</option>
+              <option value="General Insurance">General Insurance</option>
+              <option value="ECHS">ECHS</option>
+              <option value="ESI">ESI</option>
+              <option value="ESIC">ESIC</option>
+              <option value="Railway CTSE">Railway CTSE</option>
+              <option value="TKT">TKT</option>
+              <option value="FCI">FCI</option>
+              <option value="Airport">Airport</option>
+            </FormControl>
+          </FilterWrapper>
 
           <FilterWrapper>
             <Button
@@ -287,13 +279,13 @@ const fetchRecords = async () => {
                 cursor: selectedRecords.size === 0 ? 'not-allowed' : 'pointer'
               }}
             >
-              {approving ? 'Final Approving...' : `Final Approve Selected (${selectedRecords.size})`}
-              </Button>
+              {approving ? 'Final Approving...' : `Final Approve Selected`}
+            </Button>
           </FilterWrapper>
         </FilterContainer>
 
         <InfoText>
-          Showing {records.length} result(s)
+          Showing {filteredCount} result(s)
         </InfoText>
 
         {loading ? (
@@ -332,70 +324,79 @@ const fetchRecords = async () => {
                     />
                   </div>
 
-                <ResponsiveTableWrapper>
-                  <ScrollableTableContainer>
-                    <Table>
-                      <thead>
-                        <tr>
-                          <TableHeader style={{ width: '40px' }}>
-                            <input
-                              type="checkbox"
-                              checked={allDateRecordsSelected && dateRecords.length > 0}
-                              onChange={() => handleSelectAllForDate(dateRecords)}
-                              style={{ cursor: 'pointer' }}
-                            />
-                          </TableHeader>
-                          <TableHeader>Patient Name</TableHeader>
-                          <TableHeader>UHID</TableHeader>
-                          <TableHeader>Mobile</TableHeader>
-                          <TableHeader>Doctor</TableHeader>
-                          <TableHeader>Company</TableHeader>
-                          <TableHeader>Treatment</TableHeader>
-                          <TableHeader>Amount</TableHeader>
-                          <TableHeader>Payment Method</TableHeader>
-                          <TableHeader>Refund</TableHeader>
-                          <TableHeader>Approved By</TableHeader>
-                          <TableHeader>Final Approved By</TableHeader>
-                          <TableHeader>Final Approved Date</TableHeader>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dateRecords.map((record, index) => {
-                          const recordId = record.id || record._id?.toString?.() || record._id
+                  <ResponsiveTableWrapper>
+                    <ScrollableTableContainer>
+                      <Table>
+                        <thead>
+                          <tr>
+                            <TableHeader style={{ width: '40px' }}>
+                              <input
+                                type="checkbox"
+                                checked={allDateRecordsSelected && dateRecords.length > 0}
+                                onChange={() => handleSelectAllForDate(dateRecords)}
+                                style={{ cursor: 'pointer' }}
+                              />
+                            </TableHeader>
+                            <TableHeader>Patient Name</TableHeader>
+                            <TableHeader>UHID</TableHeader>
+                            <TableHeader>Mobile</TableHeader>
+                            <TableHeader style={{ minWidth: '160px' }}>Doctor</TableHeader>
+                            <TableHeader>Company</TableHeader>
+                            <TableHeader>Treatment</TableHeader>
+                            <TableHeader>Amount</TableHeader>
+                            <TableHeader>Payment Method</TableHeader>
+                            <TableHeader>Refund</TableHeader>
+                            <TableHeader>Created By</TableHeader>
+                            <TableHeader>Approved By</TableHeader>
+                            <TableHeader>Final Approved By</TableHeader>
+                            <TableHeader>Final Approved Date</TableHeader>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dateRecords.map((record, index) => {
+                            const recordId = record.id || record._id?.toString?.() || record._id
 
-                          return (
-                            <TableRow key={`${recordId}-${index}`}>
-                              <TableCell style={{ textAlign: 'center' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedRecords.has(recordId)}
-                                  onChange={() => handleSelectRecord(recordId)}
-                                  style={{ cursor: 'pointer' }}
-                                />
-                              </TableCell>
-                              <TableCell>{record.patient_name}</TableCell>
-                              <TableCell>{record.patient_uhid}</TableCell>
-                              <TableCell>{record.mobile_number}</TableCell>
-                              <TableCell>{record.doctor_name || '-'}</TableCell>
-                              <TableCell>{record.company_name}</TableCell>
-                              <TableCell>{record.treatment}</TableCell>
-                              <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                              <TableCell>{record.payment_method || '-'}</TableCell>
-                              <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                              <TableCell>{record.approved_by_name || '-'}</TableCell>
-                              <TableCell style={{
-                                fontWeight: record.final_approved_by_name ? 'bold' : 'normal',
-                                color: record.final_approved_by_name ? '#4caf50' : '#999'
-                              }}>
-                                {record.final_approved_by_name || 'Pending'}
-                              </TableCell>
-                              <TableCell>
-                                {record.final_approved_date ? new Date(record.final_approved_date).toLocaleDateString() : '-'}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </tbody>
+                            return (
+                              <TableRow key={`${recordId}-${index}`}>
+                                <TableCell style={{ textAlign: 'center' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedRecords.has(recordId)}
+                                    onChange={() => handleSelectRecord(recordId)}
+                                    style={{ cursor: 'pointer' }}
+                                  />
+                                </TableCell>
+                                <TableCell>{record.patient_name}</TableCell>
+                                <TableCell>{record.patient_uhid}</TableCell>
+                                <TableCell>{record.mobile_number}</TableCell>
+                                <TableCell style={{
+                                  wordWrap: 'break-word',
+                                  whiteSpace: 'normal',
+                                  maxWidth: '200px',
+                                  minWidth: '160px',
+                                }}>
+                                  {record.doctor_name || '-'}
+                                </TableCell>
+                                <TableCell>{record.company_name}</TableCell>
+                                <TableCell>{record.treatment}</TableCell>
+                                <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                                <TableCell>{record.payment_method || '-'}</TableCell>
+                                <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                                <TableCell>{record.created_by_name || '-'}</TableCell>
+                                <TableCell>{record.approved_by_name || '-'}</TableCell>
+                                <TableCell style={{
+                                  fontWeight: record.final_approved_by_name ? 'bold' : 'normal',
+                                  color: record.final_approved_by_name ? '#4caf50' : '#999'
+                                }}>
+                                  {record.final_approved_by_name || 'Pending'}
+                                </TableCell>
+                                <TableCell>
+                                  {record.final_approved_date ? new Date(record.final_approved_date).toLocaleDateString() : '-'}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </tbody>
                       </Table>
                     </ScrollableTableContainer>
                   </ResponsiveTableWrapper>
@@ -416,7 +417,8 @@ const fetchRecords = async () => {
           </>
         ) : (
           <div style={{ textAlign: "center", padding: "40px" }}>
-            No Gate Pass Issued Pending records Found for the selected date range
+            No records found for the selected date range
+            {selectedCompany ? ` and company "${selectedCompany}"` : ''}
           </div>
         )}
       </Container>

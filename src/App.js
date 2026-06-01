@@ -12,6 +12,9 @@ import OtherReport from "./Components/OtherReport";
 import OtherGatePass from "./Components/OtherGatePass";
 import OverallApproval from "./Components/OverallApproval";
 import RefundApproval from "./Components/RefundApproval";
+import EnquiryForm from "./Components/EnquiryForm";
+import EnquiryList from "./Components/EnquiryList";
+import EnquiryDetailPage from "./Components/EnquiryReport";
 
 function AppContent() {
   const location = useLocation();
@@ -102,6 +105,7 @@ function AppContent() {
               <Route path="/FormUpdate" element={<FormUpdate />} />
               <Route path="/InsuranceReport" element={<InsuranceReport />} />
               <Route path="/OtherReport" element={<OtherReport />} />
+              <Route path="/EnquiryForm" element={<EnquiryForm />} />
             </>
           )}
 
@@ -117,6 +121,7 @@ function AppContent() {
               <Route path="/InsuranceReport" element={<InsuranceReport />} />
               <Route path="/OtherReport" element={<OtherReport />} />
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
+              <Route path="/EnquiryForm" element={<EnquiryForm />} />
             </>
           )}
 
@@ -142,6 +147,17 @@ function AppContent() {
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
               <Route path="/OverallApproval" element={<OverallApproval />} />
               <Route path="/RefundApproval" element={<RefundApproval />} />
+              <Route path="/EnquiryList" element={<EnquiryList />} />
+              <Route path="/EnquiryForm" element={<EnquiryForm />} />
+              <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
+            </>
+          )}
+
+         {/* Insurance Marketting */}
+          {role === "Insurance Marketting" && (
+            <>
+              <Route path="/" element={<EnquiryDetailPage />} />
+              <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
             </>
           )}
 

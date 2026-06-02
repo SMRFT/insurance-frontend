@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import toast, { Toaster } from "react-hot-toast"
 import {
@@ -25,208 +23,352 @@ import {
 import apiRequest from "./ApiRequest"
 
 const primaryColor = "#6F8B83"
+const accentColor  = "#9aaea9"
 
-// ─── Follow Up Modal (GET to load, PUT to update) ─────────────────────────────
+// ─── FollowUpModal ────────────────────────────────────────────────────────────
+// Shows ALL follow-ups for one enquiry.
+// User can add a new one or click "Edit" on any existing one.
+// ─────────────────────────────────────────────────────────────────────────────
 function FollowUpModal({ enquiry, onClose, onSaved }) {
-  const [followUpDate, setFollowUpDate] = useState("")
-  const [followUpNotes, setFollowUpNotes] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [followUps,   setFollowUps]   = useState([])
+  const [loading,     setLoading]     = useState(true)
 
-  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
+  // editingId: null → no row being edited; number → that followup_id is open for edit
+  // editingId: "new" → the Add-new form is open
+  const [editingId,   setEditingId]   = useState(null)
+  const [formDate,    setFormDate]    = useState("")
+  const [formNotes,   setFormNotes]   = useState("")
+  const [saving,      setSaving]      = useState(false)
 
-  // ── Load existing follow-up data on open ──
-  useEffect(() => {
-    const fetchFollowUp = async () => {
-      setLoading(true)
-      try {
-        const result = await apiRequest(
-          `${Insurancebaseurl}enquiry/update/${enquiry.enquiry_id}/`,
-          "GET",
-          null,
-          true
-        )
-        if (result.success && result.data) {
-          setFollowUpDate(result.data.follow_up_date || "")
-          setFollowUpNotes(result.data.follow_up_notes || "")
-        }
-      } catch (error) {
-        toast.error(`Failed to load follow-up: ${error.message}`)
-      } finally {
-        setLoading(false)
-      }
+  const base = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
+
+  // ── Load follow-ups ──────────────────────────────────────────────────────
+const fetchFollowUps = async () => {
+  setLoading(true)
+
+  try {
+    const response = await apiRequest(
+      `${base}enquiry/${enquiry.enquiry_id}/follow_ups/`,
+      "GET",
+      null,
+      true
+    )
+
+    console.log("FOLLOWUP RESPONSE", response)
+
+    let followupData = []
+
+    if (Array.isArray(response)) {
+      followupData = response
+    }
+    else if (Array.isArray(response?.data)) {
+      followupData = response.data
+    }
+    else if (Array.isArray(response?.data?.data)) {
+      followupData = response.data.data
+    }
+    else if (Array.isArray(response?.data?.follow_ups)) {
+      followupData = response.data.follow_ups
     }
 
-    fetchFollowUp()
-  }, [enquiry.enquiry_id])
+    setFollowUps(followupData)
+  } catch (error) {
+    console.error(error)
+    toast.error("Failed to load follow-ups")
+    setFollowUps([])
+  } finally {
+    setLoading(false)
+  }
+}
 
-  // ── Save via PUT ──
+  useEffect(() => { fetchFollowUps() }, [enquiry.enquiry_id])
+
+  // ── Open edit form for an existing follow-up ─────────────────────────────
+  const startEdit = (fu) => {
+    setEditingId(fu.followup_id)
+    setFormDate(fu.followup_date  || "")
+    setFormNotes(fu.followup_Remarks || "")
+  }
+
+  // ── Open add-new form ────────────────────────────────────────────────────
+  const startAdd = () => {
+    setEditingId("new")
+    setFormDate("")
+    setFormNotes("")
+  }
+
+  // ── Cancel editing ───────────────────────────────────────────────────────
+  const cancelEdit = () => {
+    setEditingId(null)
+    setFormDate("")
+    setFormNotes("")
+  }
+
+  // ── Save (add or update) ─────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!followUpDate || !followUpNotes.trim()) {
+    if (!formDate || !formNotes.trim()) {
       toast.error("Please fill in both Follow Up Date and Notes")
       return
     }
-
     setSaving(true)
     try {
-      const result = await apiRequest(
-        `${Insurancebaseurl}enquiry/update/${enquiry.enquiry_id}/`,
-        "PUT",
-        JSON.stringify({
-          follow_up_date: followUpDate,
-          follow_up_notes: followUpNotes.trim(),
-        }),
-        true,
-        { "Content-Type": "application/json" }
-      )
+      const isNew   = editingId === "new"
+      const url     = isNew
+        ? `${base}enquiry/${enquiry.enquiry_id}/follow_ups/`
+        : `${base}enquiry/${enquiry.enquiry_id}/follow_ups/${editingId}/`
+      const method  = isNew ? "POST" : "PUT"
+      const payload = JSON.stringify({ followup_date: formDate, followup_Remarks: formNotes.trim() })
 
-      if (result.success) {
-        toast.success("✅ Follow up saved successfully!")
+      const res = await apiRequest(url, method, payload, true, { "Content-Type": "application/json" })
+      if (res.success) {
+        toast.success(isNew ? "✅ Follow up added!" : "✅ Follow up updated!")
+        cancelEdit()
+        await fetchFollowUps()
         onSaved()
-        onClose()
       } else {
-        toast.error(`❌ Failed: ${result.error || JSON.stringify(result.errors)}`)
+        toast.error(`❌ Failed: ${res.error || JSON.stringify(res.errors)}`)
       }
-    } catch (error) {
-      toast.error(`💥 Error: ${error.message}`)
+    } catch (err) {
+      toast.error(`💥 Error: ${err.message}`)
     } finally {
       setSaving(false)
     }
   }
 
+  // ── Delete ───────────────────────────────────────────────────────────────
+  const handleDelete = async (followup_id) => {
+    if (!window.confirm("Delete this follow-up?")) return
+    try {
+      const res = await apiRequest(
+        `${base}enquiry/${enquiry.enquiry_id}/follow_ups/${followup_id}/`,
+        "DELETE", null, true
+      )
+      if (res.success) {
+        toast.success("Follow up deleted")
+        await fetchFollowUps()
+        onSaved()
+      } else {
+        toast.error("Delete failed")
+      }
+    } catch (err) {
+      toast.error(`💥 Error: ${err.message}`)
+    }
+  }
+
+  // ─── Inline edit/add form ─────────────────────────────────────────────────
+  const renderForm = (label) => (
+    <div style={ms.formBox}>
+      <div style={{ fontWeight: "600", fontSize: "13px", color: primaryColor, marginBottom: "10px" }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={ms.field}>
+          <label style={ms.label}>Date <span style={{ color: "#ef4444" }}>*</span></label>
+          <input
+            type="date"
+            value={formDate}
+            onChange={(e) => setFormDate(e.target.value)}
+            style={ms.input}
+          />
+        </div>
+        <div style={ms.field}>
+          <label style={ms.label}>Notes / Remarks <span style={{ color: "#ef4444" }}>*</span></label>
+          <textarea
+            value={formNotes}
+            onChange={(e) => setFormNotes(e.target.value)}
+            placeholder="Enter follow up notes..."
+            rows={3}
+            style={ms.textarea}
+          />
+        </div>
+        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+          <button style={ms.cancelBtn} onClick={cancelEdit}>Cancel</button>
+          <button
+            style={{ ...ms.saveBtn, opacity: saving ? 0.7 : 1 }}
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : (editingId === "new" ? "Add Follow Up" : "Update")}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <div style={modalStyles.overlay} onClick={onClose}>
-      <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
+    <div style={ms.overlay} onClick={onClose}>
+      <div style={ms.modal} onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={modalStyles.header}>
+        <div style={ms.header}>
           <div>
-            <h2 style={modalStyles.title}>Follow Up</h2>
-            <p style={modalStyles.subtitle}>
+            <h2 style={ms.title}>Follow Ups</h2>
+            <p style={ms.subtitle}>
               {enquiry.patientName} — {enquiry.opNumber || enquiry.ipNumber || "—"}
             </p>
           </div>
-          <button style={modalStyles.closeBtn} onClick={onClose}>✕</button>
+          <button style={ms.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         {/* Body */}
-        <div style={modalStyles.body}>
+        <div style={ms.body}>
           {loading ? (
             <p style={{ textAlign: "center", color: "#6b7280", padding: "20px 0" }}>
-              Loading follow-up details...
+              Loading follow-ups...
             </p>
           ) : (
             <>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>
-                  Follow Up Date <span style={{ color: "#ef4444" }}>*</span>
-                </label>
-                <input
-                  type="date"
-                  value={followUpDate}
-                  onChange={(e) => setFollowUpDate(e.target.value)}
-                  style={modalStyles.input}
-                />
-              </div>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>
-                  Follow Up Notes / Remarks <span style={{ color: "#ef4444" }}>*</span>
-                </label>
-                <textarea
-                  value={followUpNotes}
-                  onChange={(e) => setFollowUpNotes(e.target.value)}
-                  placeholder="Enter follow up notes..."
-                  rows={5}
-                  style={modalStyles.textarea}
-                />
-              </div>
+              {/* Existing follow-ups list */}
+              {followUps.length === 0 && editingId !== "new" && (
+                <p style={{ textAlign: "center", color: "#9ca3af", fontStyle: "italic", marginBottom: "16px" }}>
+                  No follow-ups yet.
+                </p>
+              )}
+
+              {followUps.length > 0 ? (
+                followUps.map((fu, index) => (
+                  <div
+                    key={fu.followup_id}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                      padding: "12px",
+                      marginBottom: "10px",
+                      background: "#fafafa",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <strong>Follow Up #{index + 1}</strong>
+
+                      <span
+                        style={{
+                          background: "#dcfce7",
+                          color: "#15803d",
+                          padding: "3px 10px",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                        }}
+                      >
+                        {fu.followup_date || "-"}
+                      </span>
+                    </div>
+
+                    <div style={{ color: "#374151" }}>
+                      {fu.followup_Remarks || "-"}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
+
+                      <button
+                        style={ms.deleteBtn}
+                        onClick={() => handleDelete(fu.followup_id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : null  
+              }
+
+              {/* Add-new form (shown at bottom when "new") */}
+              {editingId === "new" && renderForm("New Follow Up")}
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div style={modalStyles.footer}>
-          <button style={modalStyles.cancelBtn} onClick={onClose}>Cancel</button>
-          <button
-            style={{ ...modalStyles.saveBtn, opacity: saving || loading ? 0.7 : 1 }}
-            onClick={handleSave}
-            disabled={saving || loading}
-          >
-            {saving ? "Saving..." : "Save Follow Up"}
-          </button>
+        <div style={ms.footer}>
+          <button style={ms.cancelBtn} onClick={onClose}>Close</button>
+          {editingId === null && !loading && (
+            <button style={ms.saveBtn} onClick={startAdd}>
+              + Add Follow Up
+            </button>
+          )}
         </div>
-
       </div>
     </div>
   )
 }
 
-const modalStyles = {
+// ─── Modal styles ─────────────────────────────────────────────────────────────
+const ms = {
   overlay: {
-    position: "fixed", inset: 0,
-    background: "rgba(0,0,0,0.45)",
-    zIndex: 1000,
-    display: "flex", alignItems: "center", justifyContent: "center",
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+    zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
   },
   modal: {
-    background: "#fff",
-    borderRadius: "12px",
-    width: "100%",
-    maxWidth: "480px",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-    overflow: "hidden",
+    background: "#fff", borderRadius: "12px", width: "100%", maxWidth: "540px",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden",
+    display: "flex", flexDirection: "column", maxHeight: "85vh",
   },
   header: {
     display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-    padding: "20px 24px 16px",
-    borderBottom: `3px solid ${primaryColor}`,
-    background: "#f8faf9",
+    padding: "20px 24px 16px", borderBottom: `3px solid ${primaryColor}`,
+    background: "#f8faf9", flexShrink: 0,
   },
-  title: { margin: 0, fontSize: "18px", fontWeight: "700", color: "#111827" },
+  title:    { margin: 0, fontSize: "18px", fontWeight: "700", color: "#111827" },
   subtitle: { margin: "4px 0 0", fontSize: "13px", color: "#6b7280" },
-  closeBtn: {
-    background: "none", border: "none", fontSize: "18px",
-    cursor: "pointer", color: "#6b7280", padding: "0 4px",
+  closeBtn: { background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#6b7280", padding: "0 4px" },
+  body:     { padding: "16px 24px", overflowY: "auto", flex: 1 },
+  footer:   { display: "flex", justifyContent: "flex-end", gap: "10px", padding: "14px 24px", borderTop: "1px solid #e5e7eb", background: "#f8faf9", flexShrink: 0 },
+
+  fuRowHeader: {
+    display: "flex", alignItems: "center", gap: "10px",
+    padding: "8px 0", borderBottom: "1px solid #f3f4f6",
   },
-  body: { padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" },
-  field: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "13px", fontWeight: "600", color: "#374151" },
-  input: {
-    padding: "9px 12px", border: "1px solid #d1d5db",
-    borderRadius: "6px", fontSize: "14px", outline: "none",
-    fontFamily: "inherit",
+  fuIndex: {
+    width: "22px", height: "22px", borderRadius: "50%",
+    background: primaryColor, color: "#fff",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: "11px", fontWeight: "700", flexShrink: 0,
   },
-  textarea: {
-    padding: "9px 12px", border: "1px solid #d1d5db",
-    borderRadius: "6px", fontSize: "14px", outline: "none",
-    fontFamily: "inherit", resize: "vertical",
+  fuDate: {
+    padding: "2px 8px", borderRadius: "12px",
+    background: "#f0fdf4", color: "#16a34a",
+    fontSize: "12px", fontWeight: "600",
   },
-  footer: {
-    display: "flex", justifyContent: "flex-end", gap: "10px",
-    padding: "16px 24px", borderTop: "1px solid #e5e7eb", background: "#f8faf9",
+  fuNotes: {
+    padding: "8px 0 14px 32px",
+    fontSize: "13px", color: "#4b5563", whiteSpace: "pre-wrap",
+    borderBottom: "1px solid #f3f4f6", marginBottom: "4px",
   },
-  cancelBtn: {
-    padding: "9px 20px", background: "#f3f4f6", color: "#374151",
-    border: "1px solid #d1d5db", borderRadius: "6px",
-    fontSize: "14px", cursor: "pointer", fontWeight: "500",
+  formBox: {
+    background: "#f0f7f5", border: `1px solid #d1e8e4`,
+    borderRadius: "8px", padding: "14px", marginBottom: "12px",
   },
-  saveBtn: {
-    padding: "9px 20px", background: primaryColor, color: "#fff",
-    border: "none", borderRadius: "6px",
-    fontSize: "14px", cursor: "pointer", fontWeight: "600",
-  },
+  field:    { display: "flex", flexDirection: "column", gap: "4px" },
+  label:    { fontSize: "12px", fontWeight: "600", color: "#374151" },
+  input:    { padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px", outline: "none", fontFamily: "inherit" },
+  textarea: { padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px", outline: "none", fontFamily: "inherit", resize: "vertical" },
+  cancelBtn: { padding: "8px 18px", background: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px", cursor: "pointer", fontWeight: "500" },
+  saveBtn:   { padding: "8px 18px", background: primaryColor, color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", cursor: "pointer", fontWeight: "600" },
+  editBtn:   { padding: "4px 10px", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontWeight: "500" },
+  deleteBtn: { padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", fontSize: "12px", cursor: "pointer" },
 }
 
 // ─── EnquiryList ──────────────────────────────────────────────────────────────
 function EnquiryList() {
-  const [enquiries, setEnquiries] = useState([])
+  const [enquiries,         setEnquiries]         = useState([])
   const [filteredEnquiries, setFilteredEnquiries] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [loading,           setLoading]           = useState(false)
+  const [searchTerm,        setSearchTerm]        = useState("")
   const [selectedInsurance, setSelectedInsurance] = useState("")
-  const [fromDate, setFromDate] = useState(new Date())
-  const [toDate, setToDate] = useState(new Date())
-  const [followUpTarget, setFollowUpTarget] = useState(null)
+  const [fromDate,          setFromDate]          = useState(new Date())
+  const [toDate,            setToDate]            = useState(new Date())
+  const [followUpTarget,    setFollowUpTarget]    = useState(null)
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
@@ -239,11 +381,21 @@ function EnquiryList() {
       const response = await apiRequest(`${Insurancebaseurl}enquiry_list/`, "GET", null, {}, {
         params: {
           from_date: fromDate.toLocaleDateString("en-CA"),
-          to_date: toDate.toLocaleDateString("en-CA"),
+          to_date:   toDate.toLocaleDateString("en-CA"),
         },
       })
-      if (response.success) {
-        setEnquiries(response.data)
+    // Handle both shapes: plain array  OR  { success, data: [...] }
+    const raw = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data?.data)
+            ? response.data.data
+            : Array.isArray(response?.data)
+            ? response.data
+            : null;
+
+      if (raw !== null) {
+        // Normalise: ensure follow_ups is always an array on every record
+        setEnquiries(raw.map((e) => ({ ...e, follow_ups: Array.isArray(e.follow_ups) ? e.follow_ups : [] })))
       } else {
         setEnquiries([])
         toast.error("Failed to load enquiries")
@@ -257,14 +409,14 @@ function EnquiryList() {
   }
 
   const filterEnquiries = () => {
-    let filtered = [...enquiries]
+    let filtered = Array.isArray(enquiries) ? [...enquiries] : []
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(
         (e) =>
           e.patientName?.toLowerCase().includes(term) ||
-          e.opNumber?.toLowerCase().includes(term) ||
-          e.ipNumber?.toLowerCase().includes(term) ||
+          e.opNumber?.toLowerCase().includes(term)    ||
+          e.ipNumber?.toLowerCase().includes(term)    ||
           e.phoneNumber?.includes(term)
       )
     }
@@ -277,10 +429,16 @@ function EnquiryList() {
   }
 
   const exportToCSV = () => {
-    const headers = ["S.No","Date","OP Number","IP Number","Patient Name","Phone Number","Insurance Name","Insurance Provider","Reason For Approach"]
+    const headers = ["S.No","Date","OP Number","IP Number","Patient Name","Phone Number",
+                     "Insurance Name","Insurance Provider","Reason For Approach","Follow Ups Count"]
     const dataRows = filteredEnquiries.map((e, i) =>
-      [i+1, e.date||"", e.opNumber||"", e.ipNumber||"", e.patientName||"", e.phoneNumber||"", e.insuranceName||"", e.specificInsuranceCompany||"", e.reasonForApproach||""]
-        .map((f) => `"${f}"`).join(",")
+      [
+        i + 1, e.date || "", e.opNumber || "", e.ipNumber || "",
+        e.patientName || "", e.phoneNumber || "",
+        e.insuranceName || "", e.specificInsuranceCompany || "",
+        e.reasonForApproach || "",
+        e.follow_ups?.length || 0,
+      ].map((f) => `"${f}"`).join(",")
     )
     const blob = new Blob([[headers.join(","), ...dataRows].join("\n")], { type: "text/csv;charset=utf-8;" })
     const a = document.createElement("a")
@@ -289,54 +447,10 @@ function EnquiryList() {
     a.click()
   }
 
-  const handlePrintReport = () => {
-    const printWindow = window.open("", "_blank")
-    printWindow.document.write(`
-      <!DOCTYPE html><html><head><title>Enquiry List Report</title>
-      <style>
-        @media print { @page { size: A4 landscape; margin: 15mm; } body { -webkit-print-color-adjust: exact; } }
-        body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
-        .report-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid ${primaryColor}; padding-bottom: 15px; }
-        .report-header h1 { color: ${primaryColor}; margin: 0 0 10px 0; font-size: 24px; }
-        .report-header p { margin: 5px 0; color: #666; font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: ${primaryColor}; color: white; }
-        tbody tr:nth-child(even) { background: #f9f9f9; }
-        .print-buttons { text-align: center; margin: 20px 0; }
-        .print-button { background: ${primaryColor}; color: white; border: none; padding: 12px 30px; font-size: 16px; cursor: pointer; border-radius: 5px; margin: 0 10px; }
-        @media print { .print-buttons { display: none; } }
-      </style></head><body>
-      <div class="report-header">
-        <h1>Enquiry List Report</h1>
-        <p><strong>Period:</strong> ${fromDate.toLocaleDateString("en-CA")} to ${toDate.toLocaleDateString("en-CA")}</p>
-        <p><strong>Total Records:</strong> ${filteredEnquiries.length}</p>
-        ${selectedInsurance ? `<p><strong>Insurance:</strong> ${selectedInsurance}</p>` : ""}
-      </div>
-      <table><thead><tr>
-        <th>S.No</th><th>Date</th><th>OP Number</th><th>IP Number</th>
-        <th>Patient Name</th><th>Phone Number</th><th>Insurance Name</th>
-        <th>Insurance Provider</th><th>Reason For Approach</th>
-      </tr></thead><tbody>
-        ${filteredEnquiries.map((e, i) => `<tr>
-          <td>${i+1}</td><td>${e.date||""}</td><td>${e.opNumber||""}</td><td>${e.ipNumber||""}</td>
-          <td>${e.patientName||""}</td><td>${e.phoneNumber||""}</td><td>${e.insuranceName||""}</td>
-          <td>${e.specificInsuranceCompany||""}</td><td>${e.reasonForApproach||""}</td>
-        </tr>`).join("")}
-      </tbody></table>
-      <div class="print-buttons">
-        <button class="print-button" onclick="window.print()">🖨️ Print</button>
-        <button class="print-button" onclick="window.close()">✕ Close</button>
-      </div></body></html>
-    `)
-    printWindow.document.close()
-  }
-
   return (
     <ReportContainer>
       <Toaster position="top-right" />
 
-      {/* Follow Up Modal only */}
       {followUpTarget && (
         <FollowUpModal
           enquiry={followUpTarget}
@@ -402,9 +516,6 @@ function EnquiryList() {
           <FilterWrapper>
             <Button onClick={exportToCSV} disabled={filteredEnquiries.length === 0}>Export CSV</Button>
           </FilterWrapper>
-          <FilterWrapper>
-            <Button onClick={handlePrintReport} disabled={filteredEnquiries.length === 0}>Print Report</Button>
-          </FilterWrapper>
         </FilterContainer>
 
         <ResultsInfo>Showing {filteredEnquiries.length} result(s)</ResultsInfo>
@@ -423,58 +534,89 @@ function EnquiryList() {
                   <TableHeader>Insurance Name</TableHeader>
                   <TableHeader>Insurance Provider</TableHeader>
                   <TableHeader>Reason For Approach</TableHeader>
+                  <TableHeader>Follow Ups</TableHeader>
                   <TableHeader style={{ textAlign: "center" }}>Actions</TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan="10" style={{ textAlign: "center", padding: "40px" }}>
+                    <TableCell colSpan="11" style={{ textAlign: "center", padding: "40px" }}>
                       Loading enquiries...
                     </TableCell>
                   </TableRow>
                 ) : filteredEnquiries.length > 0 ? (
-                  filteredEnquiries.map((enquiry, index) => (
-                    <TableRow key={enquiry.enquiry_id || index}>
-                      <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
-                      <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{enquiry.date || "—"}</TableCell>
-                      <TableCell className="frozen-col frozen-col-2" style={{ fontWeight: "600" }}>{enquiry.patientName || "—"}</TableCell>
-                      <TableCell>{enquiry.phoneNumber || "—"}</TableCell>
-                      <TableCell>{enquiry.opNumber || "—"}</TableCell>
-                      <TableCell>{enquiry.ipNumber || "—"}</TableCell>
-                      <TableCell>{enquiry.insuranceName || "—"}</TableCell>
-                      <TableCell>{enquiry.specificInsuranceCompany || "—"}</TableCell>
-                      <TableCell
-                        style={{ maxWidth: "220px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                        title={enquiry.reasonForApproach}
-                      >
-                        {enquiry.reasonForApproach || "—"}
-                      </TableCell>
-                      <TableCell style={{ textAlign: "center" }}>
-                        <button
-                          onClick={() => setFollowUpTarget(enquiry)}
-                          style={{
-                            padding: "5px 14px",
-                            background: "#f0fdf4",
-                            color: "#16a34a",
-                            border: "1px solid #bbf7d0",
-                            borderRadius: "6px",
-                            fontSize: "13px",
-                            cursor: "pointer",
-                            fontWeight: "500",
-                            whiteSpace: "nowrap",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "#16a34a"; e.currentTarget.style.color = "#fff" }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "#f0fdf4"; e.currentTarget.style.color = "#16a34a" }}
+                  filteredEnquiries.map((enquiry, index) => {
+                    const followUpCount = enquiry.follow_ups?.length || 0
+                    const lastFollowUp  = followUpCount > 0
+                      ? enquiry.follow_ups[enquiry.follow_ups.length - 1]
+                      : null
+
+                    return (
+                      <TableRow key={enquiry.enquiry_id || index}>
+                        <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
+                        <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{enquiry.date || "—"}</TableCell>
+                        <TableCell className="frozen-col frozen-col-2" style={{ fontWeight: "600" }}>{enquiry.patientName || "—"}</TableCell>
+                        <TableCell>{enquiry.phoneNumber || "—"}</TableCell>
+                        <TableCell>{enquiry.opNumber || "—"}</TableCell>
+                        <TableCell>{enquiry.ipNumber || "—"}</TableCell>
+                        <TableCell>{enquiry.insuranceName || "—"}</TableCell>
+                        <TableCell>{enquiry.specificInsuranceCompany || "—"}</TableCell>
+                        <TableCell
+                          style={{ maxWidth: "220px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                          title={enquiry.reasonForApproach}
                         >
-                          + Follow Up
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          {enquiry.reasonForApproach || "—"}
+                        </TableCell>
+
+                        {/* Follow Up count + latest date */}
+                        <TableCell style={{ whiteSpace: "nowrap" }}>
+                          {followUpCount > 0 ? (
+                            <span style={{
+                              padding: "2px 8px", borderRadius: "12px",
+                              background: "#f0fdf4", color: "#16a34a",
+                              fontSize: "12px", fontWeight: "600",
+                            }}>
+                              {followUpCount} {followUpCount === 1 ? "follow up" : "follow ups"}
+                            </span>
+                          ) : (
+                            <span style={{ color: "#d1d5db" }}>—</span>
+                          )}
+                          {lastFollowUp && (
+                            <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
+                              Last: {lastFollowUp.followup_date}
+                            </div>
+                          )}
+                        </TableCell>
+
+                        {/* Action button — always shows the modal */}
+                        <TableCell style={{ textAlign: "center" }}>
+                          {followUpCount > 0 ? (
+                            <button
+                              onClick={() => setFollowUpTarget(enquiry)}
+                              style={btnStyle.edit}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = "#d97706"; e.currentTarget.style.color = "#fff" }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = btnStyle.edit.background; e.currentTarget.style.color = btnStyle.edit.color }}
+                            >
+                              ✏️ Follow Ups ({followUpCount})
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setFollowUpTarget(enquiry)}
+                              style={btnStyle.add}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = "#16a34a"; e.currentTarget.style.color = "#fff" }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = btnStyle.add.background; e.currentTarget.style.color = btnStyle.add.color }}
+                            >
+                              + Follow Up
+                            </button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan="10" style={{ textAlign: "center", padding: "40px" }}>
+                    <TableCell colSpan="11" style={{ textAlign: "center", padding: "40px" }}>
                       No enquiries found matching the current filters
                     </TableCell>
                   </TableRow>
@@ -499,6 +641,19 @@ function EnquiryList() {
       </Container>
     </ReportContainer>
   )
+}
+
+const btnStyle = {
+  edit: {
+    padding: "5px 12px", background: "#fef3c7", color: "#d97706",
+    border: "1px solid #fde68a", borderRadius: "6px",
+    fontSize: "12px", cursor: "pointer", fontWeight: "500", whiteSpace: "nowrap",
+  },
+  add: {
+    padding: "5px 12px", background: "#f0fdf4", color: "#16a34a",
+    border: "1px solid #bbf7d0", borderRadius: "6px",
+    fontSize: "12px", cursor: "pointer", fontWeight: "500", whiteSpace: "nowrap",
+  },
 }
 
 export default EnquiryList

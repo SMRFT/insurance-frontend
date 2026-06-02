@@ -147,8 +147,6 @@ function AppContent() {
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
               <Route path="/OverallApproval" element={<OverallApproval />} />
               <Route path="/RefundApproval" element={<RefundApproval />} />
-              <Route path="/EnquiryList" element={<EnquiryList />} />
-              <Route path="/EnquiryForm" element={<EnquiryForm />} />
               <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
             </>
           )}
@@ -156,7 +154,8 @@ function AppContent() {
          {/* Insurance Marketting */}
           {role === "Insurance Marketting" && (
             <>
-              <Route path="/" element={<EnquiryDetailPage />} />
+              <Route path="/" element={<EnquiryList />} />
+              <Route path="/EnquiryList" element={<EnquiryList />} />
               <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
             </>
           )}

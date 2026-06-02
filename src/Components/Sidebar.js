@@ -24,7 +24,8 @@ import {
   BadgeCheck,
   Receipt,
   Banknote,
-  MessageSquare
+  MessageSquare,
+  FileSearch
 } from "lucide-react";
 
 // Animations
@@ -228,7 +229,6 @@ const NavGroup = styled.div`
   animation-delay: ${props => props.index * 0.1}s;
 `;
 
-/* Group header — no icon, just text + chevron */
 const GroupHeader = styled.div`
   display: flex;
   align-items: center;
@@ -295,7 +295,6 @@ const SidebarLink = styled(Link)`
   @media (max-width: 576px) { font-size: 12px; padding: 8px; gap: 8px; &:hover { transform: translateX(2px); } }
 `;
 
-/* Coloured icon pill */
 const IconPill = styled.div`
   width: 28px;
   height: 28px;
@@ -367,6 +366,10 @@ const ICON_COLORS = {
   // Approvals
   overall:        'rgba(100,220,120,0.35)',
   refund:         'rgba(255,200,80,0.35)',
+  // Enquiry
+  enquiryForm:    'rgba(255,160,220,0.35)',
+  enquiryList:    'rgba(160,180,255,0.35)',
+  enquiryDetail:  'rgba(255,220,120,0.35)',
 };
 
 function Sidebar({ userRole }) {
@@ -382,6 +385,7 @@ function Sidebar({ userRole }) {
     reports: false,
     collection: false,
     "Final Approval": false,
+    enquiry: false,
   });
 
   useEffect(() => {
@@ -428,7 +432,6 @@ function Sidebar({ userRole }) {
             items: [
               { path: "/",          label: "Insurance Form", icon: <FilePlus size={15} />,    color: ICON_COLORS.insuranceForm },
               { path: "/OtherForm", label: "Other Form",     icon: <PlusSquare size={15} />,  color: ICON_COLORS.otherForm },
-              { path: "/EnquiryForm", label: "Enquiry Form",   icon: <MessageSquare size={15} />, color: ICON_COLORS.enquiry },
             ]
           },
           {
@@ -444,6 +447,12 @@ function Sidebar({ userRole }) {
               { path: "/OtherReport",     label: "Other Report",     icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
             ]
           },
+          {
+            id: "enquiry", label: "Enquiry",
+            items: [
+              { path: "/EnquiryForm", label: "Enquiry Form", icon: <MessageSquare size={15} />, color: ICON_COLORS.enquiryForm },
+            ]
+          },
         ];
 
       case "Insurance Admin":
@@ -454,7 +463,6 @@ function Sidebar({ userRole }) {
               { path: "/FormUpdate",   label: "Form Update",    icon: <FileEdit size={15} />,     color: ICON_COLORS.formUpdate },
               { path: "/OtherUpdate",  label: "Other Update",   icon: <RefreshCw size={15} />,    color: ICON_COLORS.otherUpdate },
               { path: "/OtherGatePass",label: "Issue Gate Pass",icon: <ClipboardList size={15} />,color: ICON_COLORS.gatePass },
-              { path: "/EnquiryForm",   label: "Enquiry Form",   icon: <MessageSquare size={15} />, color: ICON_COLORS.enquiry },
             ]
           },
           {
@@ -463,6 +471,12 @@ function Sidebar({ userRole }) {
               { path: "/InsuranceReport",   label: "Insurance Report",   icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
               { path: "/OtherReport",       label: "Other Report",       icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
               { path: "/RadiotherapyReport",label: "Radiotherapy Report",icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+            ]
+          },
+          {
+            id: "enquiry", label: "Enquiry",
+            items: [
+              { path: "/EnquiryForm", label: "Enquiry Form", icon: <MessageSquare size={15} />, color: ICON_COLORS.enquiryForm },
             ]
           },
         ];
@@ -485,8 +499,6 @@ function Sidebar({ userRole }) {
             items: [
               { path: "/FormUpdate",  label: "Form Update",  icon: <FileEdit size={15} />,  color: ICON_COLORS.formUpdate },
               { path: "/OtherUpdate", label: "Other Update", icon: <RefreshCw size={15} />, color: ICON_COLORS.otherUpdate },
-              { path: "/EnquiryForm",   label: "Enquiry Form",   icon: <MessageSquare size={15} />, color: ICON_COLORS.enquiry },
-              { path: "/EnquiryList",   label: "Enquiry List",   icon: <List size={15} />, color: ICON_COLORS.enquiry },
             ]
           },
           {
@@ -502,6 +514,23 @@ function Sidebar({ userRole }) {
               { path: "/InsuranceReport",   label: "Insurance Report",   icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
               { path: "/OtherReport",       label: "Other Report",       icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
               { path: "/RadiotherapyReport",label: "Radiotherapy Report",icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+            ]
+          },
+          {
+            id: "enquiry", label: "Enquiry",
+            items: [
+              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />,    color: ICON_COLORS.enquiryDetail },
+            ]
+          },
+        ];
+
+      case "Insurance Marketting":
+        return [
+          {
+            id: "enquiry", label: "Enquiry",
+            items: [
+              { path: "/EnquiryList",       label: "Enquiry List",   icon: <List size={15} />,          color: ICON_COLORS.enquiryList },
+              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />,    color: ICON_COLORS.enquiryDetail },
             ]
           },
         ];

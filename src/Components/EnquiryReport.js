@@ -49,14 +49,13 @@ function EnquiryDetailPage() {
           to_date:   toDate.toLocaleDateString("en-CA"),
         },
       })
-      // Handle both shapes: plain array  OR  { success, data: [...] }
       const raw = Array.isArray(response)
         ? response
         : Array.isArray(response?.data?.data)
           ? response.data.data
           : Array.isArray(response?.data)
             ? response.data
-            : null;
+            : null
 
       if (raw !== null) {
         setRecords(raw.map((e) => ({
@@ -103,7 +102,7 @@ function EnquiryDetailPage() {
     })
   }
 
-  const expandAll  = () => setExpandedRows(new Set(filteredRecords.map((e) => e.enquiry_id)))
+  const expandAll   = () => setExpandedRows(new Set(filteredRecords.map((e) => e.enquiry_id)))
   const collapseAll = () => setExpandedRows(new Set())
 
   const totalFollowUps = filteredRecords.reduce(
@@ -115,7 +114,8 @@ function EnquiryDetailPage() {
     rows.push([
       "S.No", "Date", "Patient Name", "Phone", "OP Number", "IP Number",
       "Insurance", "Insurance Provider", "Reason For Approach",
-      "Follow Up #", "Follow Up Date", "Follow Up Notes",
+      "Enquiry Raised By",
+      "Follow Up #", "Follow Up Date", "Follow Up Notes", "Follow Up Added By",
     ].join(","))
 
     filteredRecords.forEach((e, i) => {
@@ -123,10 +123,11 @@ function EnquiryDetailPage() {
         i + 1, e.date || "", e.patientName || "", e.phoneNumber || "",
         e.opNumber || "", e.ipNumber || "", e.insuranceName || "",
         e.specificInsuranceCompany || "", e.reasonForApproach || "",
+        e.created_by_name || "",
       ].map((f) => `"${f}"`)
 
       if (!e.follow_ups?.length) {
-        rows.push([...base, '""', '""', '""'].join(","))
+        rows.push([...base, '""', '""', '""', '""'].join(","))
       } else {
         e.follow_ups.forEach((fu, fi) => {
           rows.push([
@@ -134,6 +135,7 @@ function EnquiryDetailPage() {
             `"${fi + 1}"`,
             `"${fu.followup_date || ""}"`,
             `"${fu.followup_Remarks || ""}"`,
+            `"${fu.created_by_name || ""}"`,
           ].join(","))
         })
       }
@@ -202,6 +204,7 @@ function EnquiryDetailPage() {
               popperClassName="date-picker-popper"
             />
           </FilterWrapper>
+
           <FilterWrapper>
             <Button onClick={exportToCSV} disabled={filteredRecords.length === 0}>Export CSV</Button>
           </FilterWrapper>
@@ -221,7 +224,7 @@ function EnquiryDetailPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {filteredRecords.map((enquiry, index) => {
-              const isExpanded   = expandedRows.has(enquiry.enquiry_id)
+              const isExpanded    = expandedRows.has(enquiry.enquiry_id)
               const followUpCount = enquiry.follow_ups?.length || 0
 
               return (
@@ -271,13 +274,23 @@ function EnquiryDetailPage() {
                     </div>
                   </div>
 
-                  {/* Reason (always visible) */}
-                  {enquiry.reasonForApproach && (
-                    <div style={cardStyles.reason}>
-                      <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "6px" }}>Reason:</span>
-                      {enquiry.reasonForApproach}
-                    </div>
-                  )}
+                  {/* Reason + Raised By (always visible) */}
+                  <div style={cardStyles.reason}>
+                    {enquiry.reasonForApproach && (
+                      <span>
+                        <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "6px" }}>Reason:</span>
+                        {enquiry.reasonForApproach}
+                      </span>
+                    )}
+                    {enquiry.created_by_name && (
+                      <span style={{ marginLeft: enquiry.reasonForApproach ? "16px" : 0 }}>
+                        <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "4px" }}>Raised by:</span>
+                        <span style={cardStyles.badge("#f0f7f5", primaryColor)}>
+                          👤 {enquiry.created_by_name}
+                        </span>
+                      </span>
+                    )}
+                  </div>
 
                   {/* Follow Up History (expanded) */}
                   {isExpanded && (
@@ -294,6 +307,7 @@ function EnquiryDetailPage() {
                                   <TableHeader style={{ width: "50px" }}>#</TableHeader>
                                   <TableHeader style={{ width: "150px" }}>Follow Up Date</TableHeader>
                                   <TableHeader>Notes / Remarks</TableHeader>
+                                  <TableHeader style={{ width: "160px" }}>Added By</TableHeader>
                                 </tr>
                               </thead>
                               <tbody>
@@ -302,6 +316,11 @@ function EnquiryDetailPage() {
                                     <TableCell style={{ textAlign: "center" }}>{fi + 1}</TableCell>
                                     <TableCell style={{ whiteSpace: "nowrap" }}>{fu.followup_date || "—"}</TableCell>
                                     <TableCell>{fu.followup_Remarks || "—"}</TableCell>
+                                    <TableCell>
+                                      {fu.created_by_name
+                                        ? <span style={cardStyles.badge("#f0f7f5", primaryColor)}>👤 {fu.created_by_name}</span>
+                                        : "—"}
+                                    </TableCell>
                                   </TableRow>
                                 ))}
                               </tbody>
@@ -344,7 +363,7 @@ const cardStyles = {
     gap: "12px", userSelect: "none",
   },
   index: {
-    width: "28px", height: "28px", background: primaryColor, color: "#fff",
+    width: "28px", height: "28px", background: "#6F8B83", color: "#fff",
     borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
     fontSize: "12px", fontWeight: "700", flexShrink: 0,
   },
@@ -362,13 +381,14 @@ const cardStyles = {
     background: bg, color: color,
   }),
   reason: {
+    display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px",
     padding: "6px 18px 10px 60px", fontSize: "13px", color: "#4b5563",
     borderTop: "1px solid #f3f4f6", background: "#fafafa",
   },
-  followUpsSection: { borderTop: `2px solid ${primaryColor}` },
+  followUpsSection: { borderTop: `2px solid #6F8B83` },
   followUpsHeader: {
     padding: "8px 18px", fontSize: "12px", fontWeight: "700",
-    color: primaryColor, background: "#f0f7f5",
+    color: "#6F8B83", background: "#f0f7f5",
     letterSpacing: "0.5px", textTransform: "uppercase",
   },
   noFollowUps: {

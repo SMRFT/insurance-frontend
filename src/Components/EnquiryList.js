@@ -534,6 +534,7 @@ function EnquiryList() {
                   <TableHeader>Insurance Name</TableHeader>
                   <TableHeader>Insurance Provider</TableHeader>
                   <TableHeader>Reason For Approach</TableHeader>
+                  <TableHeader>Created By</TableHeader>
                   <TableHeader>Follow Ups</TableHeader>
                   <TableHeader style={{ textAlign: "center" }}>Actions</TableHeader>
                 </tr>
@@ -568,6 +569,8 @@ function EnquiryList() {
                         >
                           {enquiry.reasonForApproach || "—"}
                         </TableCell>
+
+                        <TableCell>{enquiry.created_by_name || "—"}</TableCell>
 
                         {/* Follow Up count + latest date */}
                         <TableCell style={{ whiteSpace: "nowrap" }}>

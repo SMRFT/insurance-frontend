@@ -24,6 +24,7 @@ function EnquiryForm() {
   const location = useLocation()
   const formDataFromUpdate = location.state || {}
   const [insuranceCompanies, setInsuranceCompanies] = useState([])
+  const [treatments, setTreatments] = useState([])
   const [formData, setFormData] = useState({
     date: "",
     ipNumber: "",
@@ -32,6 +33,7 @@ function EnquiryForm() {
     phoneNumber: "",
     insuranceName: "",
     specificInsuranceCompany: "",
+    treatment: "",
     reasonForApproach: "",
   })
 
@@ -55,6 +57,25 @@ function EnquiryForm() {
       }
     }
     fetchInsuranceCompanies()
+  }, [])
+
+  // Fetch treatment list
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        const result = await apiRequest(`${Insurancebaseurl}get_treatment_list/`)
+        if (result.success) {
+          setTreatments(result.data)
+        } else {
+          console.error("Error fetching treatments:", result.error)
+          toast.error("Failed to load treatment list")
+        }
+      } catch (error) {
+        console.error("Network error:", error)
+        toast.error("Network error while loading treatments")
+      }
+    }
+    fetchTreatments()
   }, [])
 
   // Pre-fill form when editing
@@ -152,6 +173,7 @@ function EnquiryForm() {
             phoneNumber: "",
             insuranceName: "",
             specificInsuranceCompany: "",
+            treatment: "",
             reasonForApproach: "",
           })
           toast.success("📝 Form reset for new entry")
@@ -340,6 +362,25 @@ function EnquiryForm() {
                   </Select>
                 </Col>
               )}
+            </Row>
+
+            {/* Treatment row */}
+            <Row style={{ marginTop: "20px" }}>
+              <Col xs={12} sm={12} md={6} lg={6}>
+                <Label>Treatment</Label>
+                <Select
+                  name="treatment"
+                  value={formData.treatment}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Treatment</option>
+                  {treatments.map((t, index) => (
+                    <option key={index} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
+                </Select>
+              </Col>
             </Row>
           </FormSection>
 

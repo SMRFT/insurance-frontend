@@ -477,6 +477,7 @@ function Sidebar({ userRole }) {
             id: "enquiry", label: "Enquiry",
             items: [
               { path: "/EnquiryForm", label: "Enquiry Form", icon: <MessageSquare size={15} />, color: ICON_COLORS.enquiryForm },
+              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />, color: ICON_COLORS.enquiryDetail },
             ]
           },
         ];

@@ -366,6 +366,8 @@ function EnquiryList() {
   const [loading,           setLoading]           = useState(false)
   const [searchTerm,        setSearchTerm]        = useState("")
   const [selectedInsurance, setSelectedInsurance] = useState("")
+  const [selectedTreatment, setSelectedTreatment] = useState("")
+  const [treatments,        setTreatments]        = useState([])
   const [fromDate,          setFromDate]          = useState(new Date())
   const [toDate,            setToDate]            = useState(new Date())
   const [followUpTarget,    setFollowUpTarget]    = useState(null)
@@ -373,7 +375,19 @@ function EnquiryList() {
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
   useEffect(() => { fetchEnquiries() }, [fromDate, toDate])
-  useEffect(() => { filterEnquiries() }, [enquiries, searchTerm, selectedInsurance])
+  useEffect(() => { filterEnquiries() }, [enquiries, searchTerm, selectedInsurance, selectedTreatment])
+
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        const result = await apiRequest(`${Insurancebaseurl}get_treatment_list/`)
+        if (result.success) setTreatments(result.data)
+      } catch (error) {
+        console.error("Failed to load treatments:", error)
+      }
+    }
+    fetchTreatments()
+  }, [])
 
   const fetchEnquiries = async () => {
     setLoading(true)
@@ -425,17 +439,21 @@ function EnquiryList() {
         (e) => e.insuranceName === selectedInsurance || e.specificInsuranceCompany === selectedInsurance
       )
     }
+    if (selectedTreatment) {
+      filtered = filtered.filter((e) => e.treatment === selectedTreatment)
+    }
     setFilteredEnquiries(filtered)
   }
 
   const exportToCSV = () => {
     const headers = ["S.No","Date","OP Number","IP Number","Patient Name","Phone Number",
-                     "Insurance Name","Insurance Provider","Reason For Approach","Follow Ups Count"]
+                     "Insurance Name","Insurance Provider","Treatment","Reason For Approach","Follow Ups Count"]
     const dataRows = filteredEnquiries.map((e, i) =>
       [
         i + 1, e.date || "", e.opNumber || "", e.ipNumber || "",
         e.patientName || "", e.phoneNumber || "",
         e.insuranceName || "", e.specificInsuranceCompany || "",
+        e.treatment || "",
         e.reasonForApproach || "",
         e.follow_ups?.length || 0,
       ].map((f) => `"${f}"`).join(",")
@@ -489,6 +507,16 @@ function EnquiryList() {
           </FilterWrapper>
 
           <FilterWrapper>
+            <Label htmlFor="treatmentFilter">Filter by Treatment:</Label>
+            <FormControl id="treatmentFilter" value={selectedTreatment} onChange={(e) => setSelectedTreatment(e.target.value)}>
+              <option value="">All Treatments</option>
+              {treatments.map((t, i) => (
+                <option key={i} value={t.name}>{t.name}</option>
+              ))}
+            </FormControl>
+          </FilterWrapper>
+
+          <FilterWrapper>
             <Label>From Date:</Label>
             <StyledDatePicker
               selected={fromDate}
@@ -533,6 +561,7 @@ function EnquiryList() {
                   <TableHeader>IP Number</TableHeader>
                   <TableHeader>Insurance Name</TableHeader>
                   <TableHeader>Insurance Provider</TableHeader>
+                  <TableHeader>Treatment</TableHeader>
                   <TableHeader>Reason For Approach</TableHeader>
                   <TableHeader>Created By</TableHeader>
                   <TableHeader>Follow Ups</TableHeader>
@@ -542,7 +571,7 @@ function EnquiryList() {
               <tbody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan="11" style={{ textAlign: "center", padding: "40px" }}>
+                    <TableCell colSpan="12" style={{ textAlign: "center", padding: "40px" }}>
                       Loading enquiries...
                     </TableCell>
                   </TableRow>
@@ -563,6 +592,7 @@ function EnquiryList() {
                         <TableCell>{enquiry.ipNumber || "—"}</TableCell>
                         <TableCell>{enquiry.insuranceName || "—"}</TableCell>
                         <TableCell>{enquiry.specificInsuranceCompany || "—"}</TableCell>
+                        <TableCell>{enquiry.treatment || "—"}</TableCell>
                         <TableCell
                           style={{ maxWidth: "220px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                           title={enquiry.reasonForApproach}
@@ -619,7 +649,7 @@ function EnquiryList() {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan="11" style={{ textAlign: "center", padding: "40px" }}>
+                    <TableCell colSpan="12" style={{ textAlign: "center", padding: "40px" }}>
                       No enquiries found matching the current filters
                     </TableCell>
                   </TableRow>

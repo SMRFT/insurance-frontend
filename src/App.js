@@ -122,6 +122,7 @@ function AppContent() {
               <Route path="/OtherReport" element={<OtherReport />} />
               <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
               <Route path="/EnquiryForm" element={<EnquiryForm />} />
+              <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
             </>
           )}
 

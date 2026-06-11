@@ -32,13 +32,27 @@ function EnquiryDetailPage() {
   const [loading,         setLoading]         = useState(false)
   const [searchTerm,      setSearchTerm]      = useState("")
   const [selectedInsurance, setSelectedInsurance] = useState("")
+  const [selectedTreatment, setSelectedTreatment] = useState("")
+  const [treatments,        setTreatments]        = useState([])
   const [fromDate, setFromDate] = useState(new Date())
   const [toDate,   setToDate]   = useState(new Date())
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
   useEffect(() => { fetchRecords() }, [fromDate, toDate])
-  useEffect(() => { filterRecords() }, [records, searchTerm, selectedInsurance])
+  useEffect(() => { filterRecords() }, [records, searchTerm, selectedInsurance, selectedTreatment])
+
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        const result = await apiRequest(`${Insurancebaseurl}get_treatment_list/`)
+        if (result.success) setTreatments(result.data)
+      } catch (error) {
+        console.error("Failed to load treatments:", error)
+      }
+    }
+    fetchTreatments()
+  }, [])
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -91,6 +105,9 @@ function EnquiryDetailPage() {
         (e) => e.insuranceName === selectedInsurance || e.specificInsuranceCompany === selectedInsurance
       )
     }
+    if (selectedTreatment) {
+      filtered = filtered.filter((e) => e.treatment === selectedTreatment)
+    }
     setFilteredRecords(filtered)
   }
 
@@ -113,7 +130,7 @@ function EnquiryDetailPage() {
     const rows = []
     rows.push([
       "S.No", "Date", "Patient Name", "Phone", "OP Number", "IP Number",
-      "Insurance", "Insurance Provider", "Reason For Approach",
+      "Insurance", "Insurance Provider", "Treatment", "Reason For Approach",
       "Enquiry Raised By",
       "Follow Up #", "Follow Up Date", "Follow Up Notes", "Follow Up Added By",
     ].join(","))
@@ -122,7 +139,7 @@ function EnquiryDetailPage() {
       const base = [
         i + 1, e.date || "", e.patientName || "", e.phoneNumber || "",
         e.opNumber || "", e.ipNumber || "", e.insuranceName || "",
-        e.specificInsuranceCompany || "", e.reasonForApproach || "",
+        e.specificInsuranceCompany || "", e.treatment || "", e.reasonForApproach || "",
         e.created_by_name || "",
       ].map((f) => `"${f}"`)
 
@@ -177,6 +194,16 @@ function EnquiryDetailPage() {
               <option value="TKT">TKT</option>
               <option value="FCI">FCI</option>
               <option value="Airport">Airport</option>
+            </FormControl>
+          </FilterWrapper>
+
+          <FilterWrapper>
+            <Label htmlFor="treatmentFilter">Filter by Treatment:</Label>
+            <FormControl id="treatmentFilter" value={selectedTreatment} onChange={(e) => setSelectedTreatment(e.target.value)}>
+              <option value="">All Treatments</option>
+              {treatments.map((t, i) => (
+                <option key={i} value={t.name}>{t.name}</option>
+              ))}
             </FormControl>
           </FilterWrapper>
 
@@ -252,6 +279,16 @@ function EnquiryDetailPage() {
                           {enquiry.specificInsuranceCompany && (
                             <div style={{ fontSize: "12px", color: "#6b7280" }}>{enquiry.specificInsuranceCompany}</div>
                           )}
+                          {enquiry.treatment && (
+                            <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                              🩺 {enquiry.treatment}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {!enquiry.insuranceName && enquiry.treatment && (
+                        <div style={{ textAlign: "right", fontSize: "12px", color: "#6b7280" }}>
+                          🩺 {enquiry.treatment}
                         </div>
                       )}
                       <span style={{

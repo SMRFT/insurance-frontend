@@ -161,6 +161,42 @@ function AppContent() {
             </>
           )}
 
+          {/* Insurance Testing - Access to all routes */}
+          {role === "Insurance Testing" && (
+            <>
+              {/* Default */}
+              <Route path="/" element={<OverallApproval />} />
+
+              {/* Insurance */}
+              <Route path="/InsuranceForm" element={<InsuranceForm />} />
+              <Route path="/FormUpdate" element={<FormUpdate />} />
+              <Route path="/InsuranceReport" element={<InsuranceReport />} />
+
+              {/* Other */}
+              <Route path="/OtherForm" element={<OtherForm />} />
+              <Route path="/OtherUpdate" element={<OtherUpdate />} />
+              <Route path="/OtherReport" element={<OtherReport />} />
+              <Route path="/OtherGatePass" element={<OtherGatePass />} />
+
+              {/* Approval */}
+              <Route path="/OverallApproval" element={<OverallApproval />} />
+              <Route path="/RefundApproval" element={<RefundApproval />} />
+
+              {/* Radiotherapy */}
+              <Route
+                path="/RadiotherapyReport"
+                element={<RadiotherapyReport />}
+              />
+
+              {/* Enquiry */}
+              <Route path="/EnquiryForm" element={<EnquiryForm />} />
+              <Route path="/EnquiryList" element={<EnquiryList />} />
+              <Route
+                path="/EnquiryDetailPage"
+                element={<EnquiryDetailPage />}
+              />
+            </>
+          )}
 
           {/* Fallback for unauthorized access */}
           <Route path="*" element={

@@ -536,6 +536,122 @@ function Sidebar({ userRole }) {
           },
         ];
 
+        case "Insurance Testing":
+        return [
+          {
+            id: "insurance",
+            label: "Insurance Forms",
+            items: [
+              {
+                path: "/InsuranceForm",
+                label: "Insurance Form",
+                icon: <FilePlus size={15} />,
+                color: ICON_COLORS.insuranceForm
+              },
+              {
+                path: "/OtherForm",
+                label: "Other Form",
+                icon: <PlusSquare size={15} />,
+                color: ICON_COLORS.otherForm
+              },
+            ]
+          },
+
+          {
+            id: "update",
+            label: "Update Forms",
+            items: [
+              {
+                path: "/FormUpdate",
+                label: "Form Update",
+                icon: <FileEdit size={15} />,
+                color: ICON_COLORS.formUpdate
+              },
+              {
+                path: "/OtherUpdate",
+                label: "Other Update",
+                icon: <RefreshCw size={15} />,
+                color: ICON_COLORS.otherUpdate
+              },
+              {
+                path: "/OtherGatePass",
+                label: "Issue Gate Pass",
+                icon: <ClipboardList size={15} />,
+                color: ICON_COLORS.gatePass
+              },
+            ]
+          },
+
+          {
+            id: "Final Approval",
+            label: "Approve Forms",
+            items: [
+              {
+                path: "/OverallApproval",
+                label: "Overall Approval",
+                icon: <BadgeCheck size={15} />,
+                color: ICON_COLORS.overall
+              },
+              {
+                path: "/RefundApproval",
+                label: "Refund Approval",
+                icon: <Banknote size={15} />,
+                color: ICON_COLORS.refund
+              },
+            ]
+          },
+
+          {
+            id: "reports",
+            label: "Reports",
+            items: [
+              {
+                path: "/InsuranceReport",
+                label: "Insurance Report",
+                icon: <FileBarChart size={15} />,
+                color: ICON_COLORS.insuranceReport
+              },
+              {
+                path: "/OtherReport",
+                label: "Other Report",
+                icon: <BarChart2 size={15} />,
+                color: ICON_COLORS.otherReport
+              },
+              {
+                path: "/RadiotherapyReport",
+                label: "Radiotherapy Report",
+                icon: <Stethoscope size={15} />,
+                color: ICON_COLORS.radiotherapy
+              },
+            ]
+          },
+
+          {
+            id: "enquiry",
+            label: "Enquiry",
+            items: [
+              {
+                path: "/EnquiryForm",
+                label: "Enquiry Form",
+                icon: <MessageSquare size={15} />,
+                color: ICON_COLORS.enquiryForm
+              },
+              {
+                path: "/EnquiryList",
+                label: "Enquiry List",
+                icon: <List size={15} />,
+                color: ICON_COLORS.enquiryList
+              },
+              {
+                path: "/EnquiryDetailPage",
+                label: "Enquiry Detail",
+                icon: <FileSearch size={15} />,
+                color: ICON_COLORS.enquiryDetail
+              },
+            ]
+          }
+        ];
+
       default:
         return [];
     }

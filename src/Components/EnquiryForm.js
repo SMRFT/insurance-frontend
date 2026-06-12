@@ -363,8 +363,12 @@ function EnquiryForm() {
                 </Col>
               )}
             </Row>
+          </FormSection>
 
-            {/* Treatment row */}
+          {/* Reason For Approach Section */}
+          <FormSection>
+            <SectionTitle>Reason For Approach</SectionTitle>
+                        {/* Treatment row */}
             <Row style={{ marginTop: "20px" }}>
               <Col xs={12} sm={12} md={6} lg={6}>
                 <Label>Treatment</Label>
@@ -382,11 +386,6 @@ function EnquiryForm() {
                 </Select>
               </Col>
             </Row>
-          </FormSection>
-
-          {/* Reason For Approach Section */}
-          <FormSection>
-            <SectionTitle>Reason For Approach</SectionTitle>
             <Row>
               <Col xs={12}>
                 <Label>Reason For Approach</Label>

@@ -15,10 +15,10 @@ import {
   Container,
   SearchInput,
   SearchWrapper,
-  ResultsInfo,
   ScrollableTableContainer,
   ResponsiveTableWrapper,
   StyledDatePicker,
+  PageScrollArea,           // ← NEW
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
 
@@ -26,16 +26,16 @@ const primaryColor = "#6F8B83"
 const accentColor  = "#9aaea9"
 
 function EnquiryDetailPage() {
-  const [records,         setRecords]         = useState([])
-  const [filteredRecords, setFilteredRecords] = useState([])
-  const [expandedRows,    setExpandedRows]    = useState(new Set())
-  const [loading,         setLoading]         = useState(false)
-  const [searchTerm,      setSearchTerm]      = useState("")
+  const [records,           setRecords]           = useState([])
+  const [filteredRecords,   setFilteredRecords]   = useState([])
+  const [expandedRows,      setExpandedRows]      = useState(new Set())
+  const [loading,           setLoading]           = useState(false)
+  const [searchTerm,        setSearchTerm]        = useState("")
   const [selectedInsurance, setSelectedInsurance] = useState("")
   const [selectedTreatment, setSelectedTreatment] = useState("")
   const [treatments,        setTreatments]        = useState([])
-  const [fromDate, setFromDate] = useState(new Date())
-  const [toDate,   setToDate]   = useState(new Date())
+  const [fromDate,          setFromDate]          = useState(new Date())
+  const [toDate,            setToDate]            = useState(new Date())
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
@@ -171,6 +171,7 @@ function EnquiryDetailPage() {
       <Container>
         <Title>Enquiry Detail — Follow Up History</Title>
 
+        {/* ── Filters (flex-shrink:0 in SharedStyledComponents) ── */}
         <FilterContainer>
           <SearchWrapper>
             <Label>Search</Label>
@@ -237,141 +238,146 @@ function EnquiryDetailPage() {
           </FilterWrapper>
         </FilterContainer>
 
-        {/* Summary bar */}
+        {/* ── Summary bar (flex-shrink:0) ── */}
         <div style={summaryBar}>
           <span>Showing <strong>{filteredRecords.length}</strong> enquiry(s)</span>
           <span style={{ margin: "0 12px", color: "#d1d5db" }}>|</span>
           <span><strong>{totalFollowUps}</strong> total follow up(s)</span>
         </div>
 
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>Loading records...</div>
-        ) : filteredRecords.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>No records found</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {filteredRecords.map((enquiry, index) => {
-              const isExpanded    = expandedRows.has(enquiry.enquiry_id)
-              const followUpCount = enquiry.follow_ups?.length || 0
+        {/* ── PAGE SCROLL AREA: takes all remaining height, scrolls internally ── */}
+        <PageScrollArea>
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>
+              Loading records...
+            </div>
+          ) : filteredRecords.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>
+              No records found
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {filteredRecords.map((enquiry, index) => {
+                const isExpanded    = expandedRows.has(enquiry.enquiry_id)
+                const followUpCount = enquiry.follow_ups?.length || 0
 
-              return (
-                <div key={enquiry.enquiry_id || index} style={cardStyles.card}>
+                return (
+                  <div key={enquiry.enquiry_id || index} style={cardStyles.card}>
 
-                  {/* Enquiry header row — click to toggle */}
-                  <div style={cardStyles.header} onClick={() => toggleRow(enquiry.enquiry_id)}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: 0 }}>
-                      <span style={cardStyles.index}>{index + 1}</span>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={cardStyles.name}>{enquiry.patientName || "—"}</div>
-                        <div style={cardStyles.meta}>
-                          {enquiry.date || "—"}
-                          {enquiry.opNumber && <span style={cardStyles.badge("#eff6ff","#2563eb")}>{enquiry.opNumber}</span>}
-                          {enquiry.ipNumber && <span style={cardStyles.badge("#f0fdf4","#16a34a")}>{enquiry.ipNumber}</span>}
-                          {enquiry.phoneNumber && <span>📞 {enquiry.phoneNumber}</span>}
+                    {/* Enquiry header row — click to toggle */}
+                    <div style={cardStyles.header} onClick={() => toggleRow(enquiry.enquiry_id)}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: 0 }}>
+                        <span style={cardStyles.index}>{index + 1}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={cardStyles.name}>{enquiry.patientName || "—"}</div>
+                          <div style={cardStyles.meta}>
+                            {enquiry.date || "—"}
+                            {enquiry.opNumber && <span style={cardStyles.badge("#eff6ff","#2563eb")}>{enquiry.opNumber}</span>}
+                            {enquiry.ipNumber && <span style={cardStyles.badge("#f0fdf4","#16a34a")}>{enquiry.ipNumber}</span>}
+                            {enquiry.phoneNumber && <span>📞 {enquiry.phoneNumber}</span>}
+                          </div>
                         </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+                        {enquiry.insuranceName && (
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: "13px", fontWeight: "600", color: "#374151" }}>{enquiry.insuranceName}</div>
+                            {enquiry.specificInsuranceCompany && (
+                              <div style={{ fontSize: "12px", color: "#6b7280" }}>{enquiry.specificInsuranceCompany}</div>
+                            )}
+                            {enquiry.treatment && (
+                              <div style={{ fontSize: "12px", color: "#6b7280" }}>🩺 {enquiry.treatment}</div>
+                            )}
+                          </div>
+                        )}
+                        {!enquiry.insuranceName && enquiry.treatment && (
+                          <div style={{ textAlign: "right", fontSize: "12px", color: "#6b7280" }}>
+                            🩺 {enquiry.treatment}
+                          </div>
+                        )}
+                        <span style={{
+                          ...cardStyles.badge(
+                            followUpCount > 0 ? "#f0fdf4" : "#f9fafb",
+                            followUpCount > 0 ? "#16a34a" : "#9ca3af"
+                          ),
+                          minWidth: "80px", textAlign: "center",
+                        }}>
+                          {followUpCount} follow up{followUpCount !== 1 ? "s" : ""}
+                        </span>
+                        <span style={{
+                          fontSize: "18px", color: primaryColor,
+                          transition: "transform 0.2s",
+                          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                          display: "inline-block",
+                        }}>
+                          ›
+                        </span>
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
-                      {enquiry.insuranceName && (
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "13px", fontWeight: "600", color: "#374151" }}>{enquiry.insuranceName}</div>
-                          {enquiry.specificInsuranceCompany && (
-                            <div style={{ fontSize: "12px", color: "#6b7280" }}>{enquiry.specificInsuranceCompany}</div>
-                          )}
-                          {enquiry.treatment && (
-                            <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                              🩺 {enquiry.treatment}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {!enquiry.insuranceName && enquiry.treatment && (
-                        <div style={{ textAlign: "right", fontSize: "12px", color: "#6b7280" }}>
-                          🩺 {enquiry.treatment}
-                        </div>
-                      )}
-                      <span style={{
-                        ...cardStyles.badge(
-                          followUpCount > 0 ? "#f0fdf4" : "#f9fafb",
-                          followUpCount > 0 ? "#16a34a" : "#9ca3af"
-                        ),
-                        minWidth: "80px", textAlign: "center",
-                      }}>
-                        {followUpCount} follow up{followUpCount !== 1 ? "s" : ""}
-                      </span>
-                      <span style={{
-                        fontSize: "18px", color: primaryColor,
-                        transition: "transform 0.2s",
-                        transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                        display: "inline-block",
-                      }}>
-                        ›
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Reason + Raised By (always visible) */}
-                  <div style={cardStyles.reason}>
-                    {enquiry.reasonForApproach && (
-                      <span>
-                        <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "6px" }}>Reason:</span>
-                        {enquiry.reasonForApproach}
-                      </span>
-                    )}
-                    {enquiry.created_by_name && (
-                      <span style={{ marginLeft: enquiry.reasonForApproach ? "16px" : 0 }}>
-                        <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "4px" }}>Raised by:</span>
-                        <span style={cardStyles.badge("#f0f7f5", primaryColor)}>
-                          👤 {enquiry.created_by_name}
+                    {/* Reason + Raised By (always visible) */}
+                    <div style={cardStyles.reason}>
+                      {enquiry.reasonForApproach && (
+                        <span>
+                          <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "6px" }}>Reason:</span>
+                          {enquiry.reasonForApproach}
                         </span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Follow Up History (expanded) */}
-                  {isExpanded && (
-                    <div style={cardStyles.followUpsSection}>
-                      <div style={cardStyles.followUpsHeader}>Follow Up History</div>
-                      {followUpCount === 0 ? (
-                        <div style={cardStyles.noFollowUps}>No follow ups recorded yet.</div>
-                      ) : (
-                        <ResponsiveTableWrapper>
-                          <ScrollableTableContainer>
-                            <Table>
-                              <thead>
-                                <tr>
-                                  <TableHeader style={{ width: "50px" }}>#</TableHeader>
-                                  <TableHeader style={{ width: "150px" }}>Follow Up Date</TableHeader>
-                                  <TableHeader>Notes / Remarks</TableHeader>
-                                  <TableHeader style={{ width: "160px" }}>Added By</TableHeader>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {enquiry.follow_ups.map((fu, fi) => (
-                                  <TableRow key={fu.followup_id ?? fi}>
-                                    <TableCell style={{ textAlign: "center" }}>{fi + 1}</TableCell>
-                                    <TableCell style={{ whiteSpace: "nowrap" }}>{fu.followup_date || "—"}</TableCell>
-                                    <TableCell>{fu.followup_Remarks || "—"}</TableCell>
-                                    <TableCell>
-                                      {fu.created_by_name
-                                        ? <span style={cardStyles.badge("#f0f7f5", primaryColor)}>👤 {fu.created_by_name}</span>
-                                        : "—"}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </tbody>
-                            </Table>
-                          </ScrollableTableContainer>
-                        </ResponsiveTableWrapper>
+                      )}
+                      {enquiry.created_by_name && (
+                        <span style={{ marginLeft: enquiry.reasonForApproach ? "16px" : 0 }}>
+                          <span style={{ color: "#9ca3af", fontSize: "12px", marginRight: "4px" }}>Raised by:</span>
+                          <span style={cardStyles.badge("#f0f7f5", primaryColor)}>
+                            👤 {enquiry.created_by_name}
+                          </span>
+                        </span>
                       )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
+
+                    {/* Follow Up History (expanded) */}
+                    {isExpanded && (
+                      <div style={cardStyles.followUpsSection}>
+                        <div style={cardStyles.followUpsHeader}>Follow Up History</div>
+                        {followUpCount === 0 ? (
+                          <div style={cardStyles.noFollowUps}>No follow ups recorded yet.</div>
+                        ) : (
+                          <ResponsiveTableWrapper>
+                            <ScrollableTableContainer>
+                              <Table>
+                                <thead>
+                                  <tr>
+                                    <TableHeader style={{ width: "50px" }}>#</TableHeader>
+                                    <TableHeader style={{ width: "150px" }}>Follow Up Date</TableHeader>
+                                    <TableHeader>Notes / Remarks</TableHeader>
+                                    <TableHeader style={{ width: "160px" }}>Added By</TableHeader>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {enquiry.follow_ups.map((fu, fi) => (
+                                    <TableRow key={fu.followup_id ?? fi}>
+                                      <TableCell style={{ textAlign: "center" }}>{fi + 1}</TableCell>
+                                      <TableCell style={{ whiteSpace: "nowrap" }}>{fu.followup_date || "—"}</TableCell>
+                                      <TableCell>{fu.followup_Remarks || "—"}</TableCell>
+                                      <TableCell>
+                                        {fu.created_by_name
+                                          ? <span style={cardStyles.badge("#f0f7f5", primaryColor)}>👤 {fu.created_by_name}</span>
+                                          : "—"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </tbody>
+                              </Table>
+                            </ScrollableTableContainer>
+                          </ResponsiveTableWrapper>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </PageScrollArea>
 
         <style jsx global>{`
           .date-picker-popper, .react-datepicker-popper, .react-datepicker { z-index: 9999 !important; }
@@ -386,6 +392,7 @@ const summaryBar = {
   padding: "10px 16px", background: "#f0f7f5",
   borderRadius: "8px", border: `1px solid #d1e8e4`,
   marginBottom: "16px", fontSize: "14px", color: "#374151",
+  flexShrink: 0,
 }
 
 const cardStyles = {

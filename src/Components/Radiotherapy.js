@@ -12,11 +12,14 @@ import {
   Label,
   Input,
   Button,
+  FormControl,
   FilterContainer,
+  FilterWrapper,
   ScrollableTableContainer,
   ReportContainer,
+  StyledDatePicker,
 } from "./SharedStyledComponents"
-import apiRequest from "./ApiRequest"; // adjust path as needed
+import apiRequest from "./ApiRequest"
 
 const primaryColor = "#6F8B83"
 const backgroundColor = "#F9F9F9"
@@ -27,19 +30,13 @@ const warningColor = "#f59e0b"
 const SaveButton = styled(Button)`
   background-color: #10b981;
   margin-left: 8px;
-  
-  &:hover {
-    background-color: #059669;
-  }
+  &:hover { background-color: #059669; }
 `
 
 const CancelButton = styled(Button)`
   background-color: #ef4444;
   margin-left: 8px;
-  
-  &:hover {
-    background-color: #dc2626;
-  }
+  &:hover { background-color: #dc2626; }
 `
 
 const PendingAmount = styled.div`
@@ -49,13 +46,12 @@ const PendingAmount = styled.div`
 
 const EditHistoryContainer = styled.div`
   position: fixed;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
   z-index: 1000;
   max-width: 600px;
   width: 90%;
@@ -91,11 +87,8 @@ const EditHistoryDetails = styled.div`
 
 const Overlay = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
   z-index: 999;
 `
 
@@ -109,16 +102,14 @@ const Badge = styled.span`
   margin-left: 8px;
 `
 
-// New styled components for the edit modal
 const EditModal = styled.div`
   position: fixed;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 25px;
   border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
   z-index: 1000;
   max-width: 500px;
   width: 90%;
@@ -171,77 +162,74 @@ const DateDisplay = styled.div`
 `
 
 const RadiotherapyReport = () => {
-  const [insuranceData, setInsuranceData] = useState([])
-  const [filteredData, setFilteredData] = useState([])
+  const [insuranceData, setInsuranceData]     = useState([])
+  const [filteredData, setFilteredData]       = useState([])
   const [selectedCompany, setSelectedCompany] = useState("")
-  const [editingRow, setEditingRow] = useState(null)
-  const [editValues, setEditValues] = useState({
-    billAmount: "",
-    claimedAmount: "",
-    pendingAmount: "",
-    paymentAmount: "",
-    paymentType: "Partial Payment",
+  const [fromDate, setFromDate]               = useState(new Date())
+  const [toDate, setToDate]                   = useState(new Date())
+  const [editingRow, setEditingRow]           = useState(null)
+  const [editValues, setEditValues]           = useState({
+    billAmount: "", claimedAmount: "", pendingAmount: "",
+    paymentAmount: "", paymentType: "Partial Payment",
   })
-  const [showEditHistory, setShowEditHistory] = useState(false)
+  const [showEditHistory, setShowEditHistory]     = useState(false)
   const [currentEditHistory, setCurrentEditHistory] = useState([])
+  const [showEditModal, setShowEditModal]         = useState(false)
+  const [currentItem, setCurrentItem]             = useState(null)
+  const [paymentDate, setPaymentDate]             = useState(new Date().toISOString().split("T")[0])
+  const [newPendingAmount, setNewPendingAmount]   = useState(0)
 
-  // New state for the edit modal
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [currentItem, setCurrentItem] = useState(null)
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0])
-  const [newPendingAmount, setNewPendingAmount] = useState(0)
+  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
-  const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
-
-  useEffect(() => {
-    fetchData()
-  }, [])
+  // Refetch whenever date range changes
+  useEffect(() => { fetchData() }, [fromDate, toDate])
 
   useEffect(() => {
-    // Calculate new pending amount when payment amount changes
     if (currentItem && editValues.paymentAmount) {
       const currentPending = Number.parseFloat(editValues.pendingAmount) || 0
-      const payment = Number.parseFloat(editValues.paymentAmount) || 0
+      const payment        = Number.parseFloat(editValues.paymentAmount) || 0
       setNewPendingAmount(currentPending - payment)
     }
   }, [editValues.paymentAmount, editValues.pendingAmount, currentItem])
 
-const fetchData = async () => {
-  const url = `${Insurancebaseurl}insurance/`;
-  const response = await apiRequest(url, "GET");
-  if (response.success) {
-    // Filter only radiotherapy patients
-    const radiotherapyData = (response.data || []).filter((item) => item.treatmentType === "Radiotherapy");
-    setInsuranceData(radiotherapyData);
-    setFilteredData(radiotherapyData);
-  } else {
-    setInsuranceData([]);
-    setFilteredData([]);
-    // Optionally: show error to user
-    console.error("Error fetching data:", response.error || response.data);
-  }
-}
+  const fetchData = async () => {
+    const params = new URLSearchParams()
+    params.append("from_date", fromDate.toLocaleDateString("en-CA"))
+    params.append("to_date",   toDate.toLocaleDateString("en-CA"))
+    if (selectedCompany) params.append("companyName", selectedCompany)
 
+    const url      = `${Insurancebaseurl}insurance/?${params.toString()}`
+    const response = await apiRequest(url, "GET")
 
-  const filterData = (company) => {
-    if (company) {
-      const filtered = insuranceData.filter((item) => item.companyName === company)
-      setFilteredData(filtered)
+    if (response.success) {
+      const radiotherapyData = (response.data || []).filter(
+        (item) => item.treatmentType === "Radiotherapy"
+      )
+      setInsuranceData(radiotherapyData)
+      applyCompanyFilter(radiotherapyData, selectedCompany)
     } else {
-      setFilteredData(insuranceData)
+      setInsuranceData([])
+      setFilteredData([])
+      console.error("Error fetching data:", response.error || response.data)
     }
   }
 
-  const handleCompanyFilterChange = (event) => {
-    const selected = event.target.value
-    setSelectedCompany(selected)
-    filterData(selected)
+  const applyCompanyFilter = (data, company) => {
+    setFilteredData(company ? data.filter((item) => item.companyName === company) : data)
   }
+
+  const handleCompanyFilterChange = (e) => {
+    const val = e.target.value
+    setSelectedCompany(val)
+    applyCompanyFilter(insuranceData, val)
+  }
+
+  const handleFromDateChange = (date) => setFromDate(date)
+  const handleToDateChange   = (date) => setToDate(date)
 
   const handleViewFile = (fileId) => {
     if (!fileId) return
-    const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`
-    window.open(fileUrl, "_blank")
+    window.open(`${Insurancebaseurl}insurance/serve_file/${fileId}`, "_blank")
   }
 
   const handleEdit = (item) => {
@@ -250,127 +238,79 @@ const fetchData = async () => {
       Number.parseFloat(item.billAmount) || 0,
       Number.parseFloat(item.claimedAmount) || 0,
     )
-
     setEditValues({
-      billAmount: item.billAmount || "",
+      billAmount:    item.billAmount || "",
       claimedAmount: item.claimedAmount || "",
       pendingAmount: item.pendingAmount || calculatedPending.toString(),
       paymentAmount: "",
-      paymentType: "Partial Payment",
+      paymentType:   "Partial Payment",
     })
-
-    // Show the edit modal instead of inline editing
     setShowEditModal(true)
     setPaymentDate(new Date().toISOString().split("T")[0])
     setNewPendingAmount(Number.parseFloat(item.pendingAmount) || calculatedPending)
   }
 
-  // Determine the best identifier to use for updates
   const getUpdateIdentifier = (item) => {
-    // Prefer OP/IP number as identifier
-    if (item.opNumber) {
-      console.log("Using opNumber for update:", item.opNumber)
-      return {
-        identifier: item.opNumber,
-        type: "opNumber"
-      }
-    } else if (item.ipNumber) {
-      console.log("Using ipNumber for update:", item.ipNumber)
-      return {
-        identifier: item.ipNumber,
-        type: "ipNumber"
-      }
-    } 
-    // Only fall back to billNumber if no OP/IP number is available
-    else if (item.billNumber) {
-      console.log("Falling back to billNumber for update:", item.billNumber)
-      return {
-        identifier: item.billNumber,
-        type: "billNumber"
-      }
-    }
-    
-    // If no identifier found
-    return {
-      identifier: null,
-      type: null
-    }
+    if (item.opNumber)   return { identifier: item.opNumber,   type: "opNumber" }
+    if (item.ipNumber)   return { identifier: item.ipNumber,   type: "ipNumber" }
+    if (item.billNumber) return { identifier: item.billNumber, type: "billNumber" }
+    return { identifier: null, type: null }
   }
 
   const handleSaveModal = async () => {
     if (!currentItem) return
-
-    // Get the current pending amount
-    const pendingAmount = Number.parseFloat(editValues.pendingAmount) || 0
-    const paymentAmount = Number.parseFloat(editValues.paymentAmount) || 0
-
-    // Calculate new pending amount
+    const pendingAmount      = Number.parseFloat(editValues.pendingAmount) || 0
+    const paymentAmount      = Number.parseFloat(editValues.paymentAmount) || 0
     const newPendingAmountValue = pendingAmount - paymentAmount
 
-    // Create edit history entry
     const editHistoryEntry = {
-      date: new Date().toISOString(),
-      paymentDate: paymentDate,
-      previousBillAmount: currentItem.billAmount,
-      newBillAmount: editValues.billAmount,
+      date: new Date().toISOString(), paymentDate,
+      previousBillAmount:    currentItem.billAmount,
+      newBillAmount:         editValues.billAmount,
       previousClaimedAmount: currentItem.claimedAmount,
-      newClaimedAmount: editValues.claimedAmount,
-      previousPendingAmount:
-        currentItem.pendingAmount ||
-        calculatePendingAmount(
-          Number.parseFloat(currentItem.billAmount) || 0,
-          Number.parseFloat(currentItem.claimedAmount) || 0,
-        ).toString(),
+      newClaimedAmount:      editValues.claimedAmount,
+      previousPendingAmount: currentItem.pendingAmount || calculatePendingAmount(
+        Number.parseFloat(currentItem.billAmount) || 0,
+        Number.parseFloat(currentItem.claimedAmount) || 0,
+      ).toString(),
       newPendingAmount: newPendingAmountValue.toString(),
-      paymentAmount: paymentAmount.toString(),
-      paymentType: editValues.paymentType,
+      paymentAmount:    paymentAmount.toString(),
+      paymentType:      editValues.paymentType,
     }
 
-    // Prepare data for update
     const updatedItem = {
       ...currentItem,
-      billAmount: editValues.billAmount,
+      billAmount:    editValues.billAmount,
       claimedAmount: editValues.claimedAmount,
       pendingAmount: newPendingAmountValue.toString(),
-      editHistory: [...(currentItem.editHistory || []), editHistoryEntry],
+      editHistory:   [...(currentItem.editHistory || []), editHistoryEntry],
     }
 
     try {
-      // Get the best identifier for update
       const { identifier, type } = getUpdateIdentifier(currentItem)
-      
-      if (!identifier) {
-        alert("Error: No valid identifier found for update")
-        return
-      }
+      if (!identifier) { alert("Error: No valid identifier found for update"); return }
 
-      // Send update to server
       const formData = new FormData()
       Object.keys(updatedItem).forEach((key) => {
-        if (key !== "editHistory") {
-          formData.append(key, updatedItem[key])
-        }
+        if (key !== "editHistory") formData.append(key, updatedItem[key])
       })
-
-      // Add edit history as JSON string
       formData.append("editHistory", JSON.stringify(updatedItem.editHistory))
 
-      const updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(identifier)}/`
-      console.log(`Sending PUT request to update record with ${type}:`, identifier)
-      
-      const response = await apiRequest(updateEndpoint, "PUT", formData, { "Content-Type": undefined }); // undefined lets browser set the right boundary
+      const response = await apiRequest(
+        `${Insurancebaseurl}insurance/update/${encodeURIComponent(identifier)}/`,
+        "PUT", formData, { "Content-Type": undefined }
+      )
 
       if (response.status === 200) {
-        // Update local state
-        const updatedData = insuranceData.map((record) =>
-          record.billNumber === currentItem.billNumber ? updatedItem : record,
+        const updatedData = insuranceData.map((r) =>
+          r.billNumber === currentItem.billNumber ? updatedItem : r
         )
         setInsuranceData(updatedData)
-        filterData(selectedCompany)
+        applyCompanyFilter(updatedData, selectedCompany)
         setShowEditModal(false)
         setCurrentItem(null)
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json()
         alert(`Failed to update record: ${errorData.error || errorData.details || "Unknown error"}`)
       }
     } catch (error) {
@@ -380,72 +320,56 @@ const fetchData = async () => {
   }
 
   const handleSave = async (item) => {
-    // Use the manually entered pending amount instead of calculating it
     const pendingAmount = Number.parseFloat(editValues.pendingAmount) || 0
     const paymentAmount = Number.parseFloat(editValues.paymentAmount) || 0
 
-    // Create edit history entry
     const editHistoryEntry = {
       date: new Date().toISOString(),
-      previousBillAmount: item.billAmount,
-      newBillAmount: editValues.billAmount,
+      previousBillAmount:    item.billAmount,
+      newBillAmount:         editValues.billAmount,
       previousClaimedAmount: item.claimedAmount,
-      newClaimedAmount: editValues.claimedAmount,
-      previousPendingAmount:
-        item.pendingAmount ||
-        calculatePendingAmount(
-          Number.parseFloat(item.billAmount) || 0,
-          Number.parseFloat(item.claimedAmount) || 0,
-        ).toString(),
+      newClaimedAmount:      editValues.claimedAmount,
+      previousPendingAmount: item.pendingAmount || calculatePendingAmount(
+        Number.parseFloat(item.billAmount) || 0,
+        Number.parseFloat(item.claimedAmount) || 0,
+      ).toString(),
       newPendingAmount: pendingAmount.toString(),
-      paymentAmount: paymentAmount.toString(),
-      paymentType: editValues.paymentType,
+      paymentAmount:    paymentAmount.toString(),
+      paymentType:      editValues.paymentType,
     }
 
-    // Prepare data for update
     const updatedItem = {
       ...item,
-      billAmount: editValues.billAmount,
+      billAmount:    editValues.billAmount,
       claimedAmount: editValues.claimedAmount,
       pendingAmount: pendingAmount.toString(),
-      editHistory: [...(item.editHistory || []), editHistoryEntry],
+      editHistory:   [...(item.editHistory || []), editHistoryEntry],
     }
 
     try {
-      // Get the best identifier for update
       const { identifier, type } = getUpdateIdentifier(item)
-      
-      if (!identifier) {
-        alert("Error: No valid identifier found for update")
-        return
-      }
+      if (!identifier) { alert("Error: No valid identifier found for update"); return }
 
-      // Send update to server
       const formData = new FormData()
       Object.keys(updatedItem).forEach((key) => {
-        if (key !== "editHistory") {
-          formData.append(key, updatedItem[key])
-        }
+        if (key !== "editHistory") formData.append(key, updatedItem[key])
       })
-
-      // Add edit history as JSON string
       formData.append("editHistory", JSON.stringify(updatedItem.editHistory))
 
-      const updateEndpoint = `${Insurancebaseurl}insurance/update/${encodeURIComponent(identifier)}/`
-      console.log(`Sending PUT request to update record with ${type}:`, identifier)
-      
-  const response = await apiRequest(updateEndpoint, "PUT", formData, { "Content-Type": undefined });
+      const response = await apiRequest(
+        `${Insurancebaseurl}insurance/update/${encodeURIComponent(identifier)}/`,
+        "PUT", formData, { "Content-Type": undefined }
+      )
 
-      if (response.status === 200){
-        // Update local state
-        const updatedData = insuranceData.map((record) =>
-          record.billNumber === item.billNumber ? updatedItem : record,
+      if (response.status === 200) {
+        const updatedData = insuranceData.map((r) =>
+          r.billNumber === item.billNumber ? updatedItem : r
         )
         setInsuranceData(updatedData)
-        filterData(selectedCompany)
+        applyCompanyFilter(updatedData, selectedCompany)
         setEditingRow(null)
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json()
         alert(`Failed to update record: ${errorData.error || errorData.details || "Unknown error"}`)
       }
     } catch (error) {
@@ -454,329 +378,273 @@ const fetchData = async () => {
     }
   }
 
-  const handleCancel = () => {
-    setEditingRow(null)
-  }
-
-  const handleCancelModal = () => {
-    setShowEditModal(false)
-    setCurrentItem(null)
-  }
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setEditValues({
-      ...editValues,
-      [name]: value,
-    })
-  }
-
-  const handleDateChange = (e) => {
-    setPaymentDate(e.target.value)
-  }
-
-  const calculatePendingAmount = (billAmount, claimedAmount) => {
-    return billAmount - claimedAmount
-  }
-
-  const viewEditHistory = (item) => {
-    setCurrentEditHistory(item.editHistory || [])
-    setShowEditHistory(true)
-  }
-
-  const closeEditHistory = () => {
-    setShowEditHistory(false)
-  }
+  const handleCancel       = ()      => setEditingRow(null)
+  const handleCancelModal  = ()      => { setShowEditModal(false); setCurrentItem(null) }
+  const handleInputChange  = (e)     => setEditValues({ ...editValues, [e.target.name]: e.target.value })
+  const handleDateChange   = (e)     => setPaymentDate(e.target.value)
+  const calculatePendingAmount = (bill, claimed) => bill - claimed
+  const viewEditHistory    = (item)  => { setCurrentEditHistory(item.editHistory || []); setShowEditHistory(true) }
+  const closeEditHistory   = ()      => setShowEditHistory(false)
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A"
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy")
-    } catch (error) {
-      return dateString
-    }
+    try { return format(new Date(dateString), "dd/MM/yyyy") }
+    catch { return dateString }
   }
 
   return (
     <ReportContainer>
-    <Container>
-      <Title>Radiotherapy Patients Report</Title>
-      <FilterContainer>
-        <div>
-          <Label htmlFor="companyName">Filter by Company: </Label>
-          <Select id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-            <option value="">All Companies</option>
-            <option value="General Insurance">General Insurance</option>
-            <option value="ECHS">ECHS</option>
-            <option value="ESI">ESI</option>
-            <option value="ESIC">ESIC</option>
-            <option value="Railway CTSE">Railway CTSE</option>
-            <option value="CTSE">CTSE</option>
-            <option value="TNCMCHIS">TNCMCHIS</option>
-            <option value="TKT">TKT</option>
-            <option value="FCI">FCI</option>
-          </Select>
-        </div>
-        <Button style={{marginBottom:"20px"}} onClick={fetchData}>Refresh Data</Button>
-      </FilterContainer>
+      <Container>
+        <Title>Radiotherapy Patients Report</Title>
 
-      <ScrollableTableContainer>
-        <Table>
-          <thead>
-            <tr>
-              <TableHeader>Patient UHID</TableHeader>
-              <TableHeader>Patient Name</TableHeader>
-              <TableHeader>Bill Number</TableHeader>
-              <TableHeader>Bill Date</TableHeader>
-              <TableHeader>Company Name</TableHeader>
-              <TableHeader>Radiotherapy Cycles</TableHeader>
-              <TableHeader>Bill Amount</TableHeader>
-              <TableHeader>Claimed Amount</TableHeader>
-              <TableHeader>Pending Amount</TableHeader>
-              <TableHeader>Actions</TableHeader>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((item) => (
-              <TableRow key={item.billNumber}>
-                <TableCell>{item.patient_uhid || "N/A"}</TableCell>
-                <TableCell>{item.patient_name || "N/A"}</TableCell>
-                <TableCell>{item.billNumber || "N/A"}</TableCell>
-                <TableCell>{formatDate(item.billDate)}</TableCell>
-                <TableCell>{item.companyName || "N/A"}</TableCell>
-                <TableCell>{item.radiotherapyCycles || "N/A"}</TableCell>
+          {/* Company filter */}
+        <FilterContainer>
+          <FilterWrapper>
+            <Label htmlFor="companyName">Filter by Company:</Label>
+            <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+              <option value="">Select Company</option>
+              <option value="General Insurance">General Insurance</option>
+              <option value="ECHS">ECHS</option>
+              <option value="ESI">ESI</option>
+              <option value="ESIC">ESIC</option>
+              <option value="Railway CTSE">Railway CTSE</option>
+              <option value="TNCM">TNCM</option>
+              <option value="TKT">TKT</option>
+              <option value="FCA">FCA</option>
+              <option value="Airport">Airport</option>
+            </FormControl>
+          </FilterWrapper>
 
-                {editingRow === item.billNumber ? (
-                  <>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        name="billAmount"
-                        value={editValues.billAmount}
-                        onChange={handleInputChange}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        name="claimedAmount"
-                        value={editValues.claimedAmount}
-                        onChange={handleInputChange}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        name="pendingAmount"
-                        value={editValues.pendingAmount}
-                        onChange={handleInputChange}
-                      />
-                      <div style={{ marginTop: "10px" }}>
-                        <Label>Payment Type:</Label>
-                        <Select
-                          name="paymentType"
-                          value={editValues.paymentType}
-                          onChange={handleInputChange}
-                          style={{ width: "100%", marginBottom: "10px" }}
-                        >
-                          <option value="Partial Payment">Partial Payment</option>
-                          <option value="Full Payment">Full Payment</option>
-                          <option value="Adjustment">Adjustment</option>
-                          <option value="Refund">Refund</option>
-                        </Select>
+          <FilterWrapper>
+            <Label>From Date:</Label>
+            <StyledDatePicker
+              selected={fromDate}
+              onChange={handleFromDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select from date"
+              popperProps={{ strategy: "fixed", modifiers: [{ name: "offset", options: { offset: [0, 10] } }] }}
+              popperClassName="date-picker-popper"
+            />
+          </FilterWrapper>
 
-                        <Label>Payment Amount:</Label>
-                        <Input
-                          type="number"
-                          name="paymentAmount"
-                          value={editValues.paymentAmount}
-                          onChange={handleInputChange}
-                          placeholder="Enter amount paid"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <SaveButton onClick={() => handleSave(item)}>Save</SaveButton>
-                      <CancelButton onClick={handleCancel}>Cancel</CancelButton>
-                    </TableCell>
-                  </>
-                ) : (
-                  <>
-                    <TableCell>{item.billAmount || "0"}</TableCell>
-                    <TableCell>{item.claimedAmount || "0"}</TableCell>
-                    <TableCell>
-                      <PendingAmount
-                        value={
-                          Number.parseFloat(item.pendingAmount) ||
-                          calculatePendingAmount(
-                            Number.parseFloat(item.billAmount) || 0,
-                            Number.parseFloat(item.claimedAmount) || 0,
-                          )
-                        }
-                      >
-                        {(
-                          Number.parseFloat(item.pendingAmount) 
-                        ).toFixed(2)}
-                      </PendingAmount>
-                    </TableCell>
-                    <TableCell>
-                      <Button onClick={() => handleEdit(item)} style={{marginBottom:"10px"}}>Edit</Button>
-                      {item.editHistory && item.editHistory.length > 0 && (
-                        <Button onClick={() => viewEditHistory(item)}>
-                          History
-                          <Badge>{item.editHistory.length}</Badge>
-                        </Button>
-                      )}
-                    </TableCell>
-                  </>
-                )}
-              </TableRow>
-            ))}
-            {filteredData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={10} style={{ textAlign: "center" }}>
-                  No radiotherapy patients found
-                </TableCell>
-              </TableRow>
-            )}
-          </tbody>
-        </Table>
-      </ScrollableTableContainer>
+          <FilterWrapper>
+            <Label>To Date:</Label>
+            <StyledDatePicker
+              selected={toDate}
+              onChange={handleToDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select to date"
+              minDate={fromDate}
+              popperProps={{ strategy: "fixed", modifiers: [{ name: "offset", options: { offset: [0, 10] } }] }}
+              popperClassName="date-picker-popper"
+            />
+          </FilterWrapper>
 
-      {/* Edit Modal */}
-      {showEditModal && currentItem && (
-        <>
-          <Overlay onClick={handleCancelModal} />
-          <EditModal>
-            <ModalTitle>Edit Payment</ModalTitle>
-            <DateDisplay>
-              Payment Date: <Input type="date" value={paymentDate} onChange={handleDateChange} />
-            </DateDisplay>
+          {/* Refresh */}
+          <FilterWrapper>
+            <Label>&nbsp;</Label>
+            <Button onClick={fetchData}>Refresh Data</Button>
+          </FilterWrapper>
+        </FilterContainer>
 
-            <ModalRow>
-              <ModalLabel>Patient:</ModalLabel>
-              <ModalValue>{currentItem.patient_name || "N/A"}</ModalValue>
-            </ModalRow>
+        <ScrollableTableContainer>
+          <Table>
+            <thead>
+              <tr>
+                <TableHeader>Patient UHID</TableHeader>
+                <TableHeader>Patient Name</TableHeader>
+                <TableHeader>Bill Number</TableHeader>
+                <TableHeader>Bill Date</TableHeader>
+                <TableHeader>Company Name</TableHeader>
+                <TableHeader>Radiotherapy Cycles</TableHeader>
+                <TableHeader>Bill Amount</TableHeader>
+                <TableHeader>Claimed Amount</TableHeader>
+                <TableHeader>Pending Amount</TableHeader>
+                <TableHeader>Actions</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.map((item) => (
+                <TableRow key={item.billNumber}>
+                  <TableCell>{item.patient_uhid || "N/A"}</TableCell>
+                  <TableCell>{item.patient_name || "N/A"}</TableCell>
+                  <TableCell>{item.billNumber || "N/A"}</TableCell>
+                  <TableCell>{formatDate(item.billDate)}</TableCell>
+                  <TableCell>{item.companyName || "N/A"}</TableCell>
+                  <TableCell>{item.radiotherapyCycles || "N/A"}</TableCell>
 
-            <ModalRow>
-              <ModalLabel>Bill Number:</ModalLabel>
-              <ModalValue>{currentItem.billNumber || "N/A"}</ModalValue>
-            </ModalRow>
+                  {editingRow === item.billNumber ? (
+                    <>
+                      <TableCell>
+                        <Input type="number" name="billAmount" value={editValues.billAmount} onChange={handleInputChange} />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" name="claimedAmount" value={editValues.claimedAmount} onChange={handleInputChange} />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" name="pendingAmount" value={editValues.pendingAmount} onChange={handleInputChange} />
+                        <div style={{ marginTop: "10px" }}>
+                          <Label>Payment Type:</Label>
+                          <Select name="paymentType" value={editValues.paymentType} onChange={handleInputChange} style={{ width: "100%", marginBottom: "10px" }}>
+                            <option value="Partial Payment">Partial Payment</option>
+                            <option value="Full Payment">Full Payment</option>
+                            <option value="Adjustment">Adjustment</option>
+                            <option value="Refund">Refund</option>
+                          </Select>
+                          <Label>Payment Amount:</Label>
+                          <Input type="number" name="paymentAmount" value={editValues.paymentAmount} onChange={handleInputChange} placeholder="Enter amount paid" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <SaveButton onClick={() => handleSave(item)}>Save</SaveButton>
+                        <CancelButton onClick={handleCancel}>Cancel</CancelButton>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>{item.billAmount || "0"}</TableCell>
+                      <TableCell>{item.claimedAmount || "0"}</TableCell>
+                      <TableCell>
+                        <PendingAmount value={Number.parseFloat(item.pendingAmount) || calculatePendingAmount(
+                          Number.parseFloat(item.billAmount) || 0,
+                          Number.parseFloat(item.claimedAmount) || 0,
+                        )}>
+                          {(Number.parseFloat(item.pendingAmount)).toFixed(2)}
+                        </PendingAmount>
+                      </TableCell>
+                      <TableCell>
+                        <Button onClick={() => handleEdit(item)} style={{ marginBottom: "10px" }}>Edit</Button>
+                        {item.editHistory && item.editHistory.length > 0 && (
+                          <Button onClick={() => viewEditHistory(item)}>
+                            History <Badge>{item.editHistory.length}</Badge>
+                          </Button>
+                        )}
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              ))}
+              {filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={10} style={{ textAlign: "center" }}>
+                    No radiotherapy patients found
+                  </TableCell>
+                </TableRow>
+              )}
+            </tbody>
+          </Table>
+        </ScrollableTableContainer>
 
-            <ModalRow>
-              <ModalLabel>Current Pending Amount:</ModalLabel>
-              <ModalValue
-                positive={Number(editValues.pendingAmount) > 0}
-                negative={Number(editValues.pendingAmount) < 0}
-              >
-                {Number(editValues.pendingAmount).toFixed(2)}
-              </ModalValue>
-            </ModalRow>
-
-            <ModalRow>
-              <ModalLabel>Payment Type:</ModalLabel>
-              <Select
-                name="paymentType"
-                value={editValues.paymentType}
-                onChange={handleInputChange}
-                style={{ width: "60%" }}
-              >
-                <option value="Partial Payment">Partial Payment</option>
-                <option value="Full Payment">Full Payment</option>
-                <option value="Adjustment">Adjustment</option>
-                <option value="Refund">Refund</option>
-              </Select>
-            </ModalRow>
-
-            <ModalRow>
-              <ModalLabel>Payment Amount:</ModalLabel>
-              <Input
-                type="number"
-                name="paymentAmount"
-                value={editValues.paymentAmount}
-                onChange={handleInputChange}
-                placeholder="Enter amount"
-                style={{ width: "60%" }}
-              />
-            </ModalRow>
-
-            {editValues.paymentAmount && (
+        {/* Edit Modal */}
+        {showEditModal && currentItem && (
+          <>
+            <Overlay onClick={handleCancelModal} />
+            <EditModal>
+              <ModalTitle>Edit Payment</ModalTitle>
+              <DateDisplay>
+                Payment Date: <Input type="date" value={paymentDate} onChange={handleDateChange} />
+              </DateDisplay>
               <ModalRow>
-                <ModalLabel>New Pending Amount:</ModalLabel>
-                <ModalValue positive={newPendingAmount > 0} negative={newPendingAmount < 0}>
-                  {newPendingAmount.toFixed(2)}
+                <ModalLabel>Patient:</ModalLabel>
+                <ModalValue>{currentItem.patient_name || "N/A"}</ModalValue>
+              </ModalRow>
+              <ModalRow>
+                <ModalLabel>Bill Number:</ModalLabel>
+                <ModalValue>{currentItem.billNumber || "N/A"}</ModalValue>
+              </ModalRow>
+              <ModalRow>
+                <ModalLabel>Current Pending Amount:</ModalLabel>
+                <ModalValue positive={Number(editValues.pendingAmount) > 0} negative={Number(editValues.pendingAmount) < 0}>
+                  {Number(editValues.pendingAmount).toFixed(2)}
                 </ModalValue>
               </ModalRow>
-            )}
+              <ModalRow>
+                <ModalLabel>Payment Type:</ModalLabel>
+                <Select name="paymentType" value={editValues.paymentType} onChange={handleInputChange} style={{ width: "60%" }}>
+                  <option value="Partial Payment">Partial Payment</option>
+                  <option value="Full Payment">Full Payment</option>
+                  <option value="Adjustment">Adjustment</option>
+                  <option value="Refund">Refund</option>
+                </Select>
+              </ModalRow>
+              <ModalRow>
+                <ModalLabel>Payment Amount:</ModalLabel>
+                <Input type="number" name="paymentAmount" value={editValues.paymentAmount} onChange={handleInputChange} placeholder="Enter amount" style={{ width: "60%" }} />
+              </ModalRow>
+              {editValues.paymentAmount && (
+                <ModalRow>
+                  <ModalLabel>New Pending Amount:</ModalLabel>
+                  <ModalValue positive={newPendingAmount > 0} negative={newPendingAmount < 0}>
+                    {newPendingAmount.toFixed(2)}
+                  </ModalValue>
+                </ModalRow>
+              )}
+              <ModalButtonContainer>
+                <CancelButton onClick={handleCancelModal}>Cancel</CancelButton>
+                <SaveButton onClick={handleSaveModal}>Save</SaveButton>
+              </ModalButtonContainer>
+            </EditModal>
+          </>
+        )}
 
-            <ModalButtonContainer>
-              <CancelButton onClick={handleCancelModal}>Cancel</CancelButton>
-              <SaveButton onClick={handleSaveModal}>Save</SaveButton>
-            </ModalButtonContainer>
-          </EditModal>
-        </>
-      )}
+        {/* Edit History Modal */}
+        {showEditHistory && (
+          <>
+            <Overlay onClick={closeEditHistory} />
+            <EditHistoryContainer>
+              <EditHistoryTitle>Edit History</EditHistoryTitle>
+              {currentEditHistory.length > 0 ? (
+                currentEditHistory.map((edit, index) => (
+                  <EditHistoryItem key={index}>
+                    <EditHistoryDate>
+                      {formatDate(edit.date)} {format(new Date(edit.date), "HH:mm:ss")}
+                    </EditHistoryDate>
+                    {edit.paymentDate && (
+                      <EditHistoryDetails>
+                        <span>Payment Date:</span>
+                        <span>{formatDate(edit.paymentDate)}</span>
+                      </EditHistoryDetails>
+                    )}
+                    <EditHistoryDetails>
+                      <span>Bill Amount:</span>
+                      <span>{edit.previousBillAmount || "0"} → {edit.newBillAmount}</span>
+                    </EditHistoryDetails>
+                    <EditHistoryDetails>
+                      <span>Claimed Amount:</span>
+                      <span>{edit.previousClaimedAmount || "0"} → {edit.newClaimedAmount}</span>
+                    </EditHistoryDetails>
+                    <EditHistoryDetails>
+                      <span>Pending Amount:</span>
+                      <span>{edit.previousPendingAmount || "0"} → {edit.newPendingAmount}</span>
+                    </EditHistoryDetails>
+                    {edit.paymentType && (
+                      <EditHistoryDetails>
+                        <span>Payment Type:</span>
+                        <span>{edit.paymentType}</span>
+                      </EditHistoryDetails>
+                    )}
+                    {edit.paymentAmount && (
+                      <EditHistoryDetails>
+                        <span>Payment Amount:</span>
+                        <span>{edit.paymentAmount}</span>
+                      </EditHistoryDetails>
+                    )}
+                  </EditHistoryItem>
+                ))
+              ) : (
+                <p>No edit history available</p>
+              )}
+              <Button onClick={closeEditHistory} style={{ marginTop: "15px" }}>Close</Button>
+            </EditHistoryContainer>
+          </>
+        )}
 
-      {/* Edit History Modal */}
-      {showEditHistory && (
-        <>
-          <Overlay onClick={closeEditHistory} />
-          <EditHistoryContainer>
-            <EditHistoryTitle>Edit History</EditHistoryTitle>
-            {currentEditHistory.length > 0 ? (
-              currentEditHistory.map((edit, index) => (
-                <EditHistoryItem key={index}>
-                  <EditHistoryDate>
-                    {formatDate(edit.date)} {format(new Date(edit.date), "HH:mm:ss")}
-                  </EditHistoryDate>
-                  {edit.paymentDate && (
-                    <EditHistoryDetails>
-                      <span>Payment Date:</span>
-                      <span>{formatDate(edit.paymentDate)}</span>
-                    </EditHistoryDetails>
-                  )}
-                  <EditHistoryDetails>
-                    <span>Bill Amount:</span>
-                    <span>
-                      {edit.previousBillAmount || "0"} → {edit.newBillAmount}
-                    </span>
-                  </EditHistoryDetails>
-                  <EditHistoryDetails>
-                    <span>Claimed Amount:</span>
-                    <span>
-                      {edit.previousClaimedAmount || "0"} → {edit.newClaimedAmount}
-                    </span>
-                  </EditHistoryDetails>
-                  <EditHistoryDetails>
-                    <span>Pending Amount:</span>
-                    <span>
-                      {edit.previousPendingAmount || "0"} → {edit.newPendingAmount}
-                    </span>
-                  </EditHistoryDetails>
-                  {edit.paymentType && (
-                    <EditHistoryDetails>
-                      <span>Payment Type:</span>
-                      <span>{edit.paymentType}</span>
-                    </EditHistoryDetails>
-                  )}
-                  {edit.paymentAmount && (
-                    <EditHistoryDetails>
-                      <span>Payment Amount:</span>
-                      <span>{edit.paymentAmount}</span>
-                    </EditHistoryDetails>
-                  )}
-                </EditHistoryItem>
-              ))
-            ) : (
-              <p>No edit history available</p>
-            )}
-            <Button onClick={closeEditHistory} style={{ marginTop: "15px" }}>
-              Close
-            </Button>
-          </EditHistoryContainer>
-        </>
-      )}
-    </Container>
+        <style jsx global>{`
+          .date-picker-popper      { z-index: 9999 !important; }
+          .react-datepicker-popper { z-index: 9999 !important; }
+          .react-datepicker        { z-index: 9999 !important; }
+        `}</style>
+      </Container>
     </ReportContainer>
   )
 }

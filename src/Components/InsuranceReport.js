@@ -10,9 +10,7 @@ import {
   TableCell,
   FormControl,
   Label,
-  ButtonWrapper,
   Button,
-  ResponsiveTableWrapper,
   SearchWrapper,
   SearchInput,
   ResultsInfo,
@@ -38,107 +36,63 @@ const InsuranceReport = () => {
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
-  // Fetch data when filters change
   useEffect(() => {
     fetchData()
   }, [selectedCompany, fromDate, toDate, searchField, searchValue])
 
-const fetchData = async () => {
-  try {
-    const params = new URLSearchParams();
+  const fetchData = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (selectedCompany) params.append("companyName", selectedCompany)
+      if (fromDate)        params.append("from_date", fromDate.toLocaleDateString("en-CA"))
+      if (toDate)          params.append("to_date", toDate.toLocaleDateString("en-CA"))
 
-    if (selectedCompany) {
-      params.append("companyName", selectedCompany);
+      const url = `${Insurancebaseurl}insurance/?${params.toString()}`
+      const result = await apiRequest(url, "GET")
+
+      if (result.success) {
+        setInsuranceData(result.data)
+        setFilteredData(applyLocalFilters(result.data))
+      } else {
+        console.error("API error fetching data:", result.error)
+        setInsuranceData([])
+        setFilteredData([])
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error)
+      setInsuranceData([])
+      setFilteredData([])
     }
-
-    if (fromDate) {
-      params.append("from_date", fromDate.toLocaleDateString("en-CA"));
-    }
-
-    if (toDate) {
-      params.append("to_date", toDate.toLocaleDateString("en-CA"));
-    }
-
-    // searchField/searchValue will be handled locally
-    const url = `${Insurancebaseurl}insurance/?${params.toString()}`;
-    console.log("Fetching data from:", url);
-
-    const result = await apiRequest(url, "GET");
-
-    if (result.success) {
-      setInsuranceData(result.data);
-
-      // Apply local filtering
-      const filtered = applyLocalFilters(result.data);
-      setFilteredData(filtered);
-    } else {
-      console.error("API error fetching data:", result.error);
-      setInsuranceData([]);
-      setFilteredData([]);
-    }
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    setInsuranceData([]);
-    setFilteredData([]);
-  }
-};
-
-// New function to handle local filtering including N/A values
-const applyLocalFilters = (data) => {
-  if (!searchField || !searchValue) {
-    return data
   }
 
-  return data.filter((item) => {
-    const fieldValue = item[searchField]
-    
-    // Handle N/A search - check if the field is null, undefined, empty string, or already "N/A"
-    if (searchValue.toLowerCase() === "n/a") {
-      return !fieldValue || fieldValue === "" || fieldValue === "N/A"
-    }
-    
-    // Handle date search
-    if (searchField === "dateOfDischarge" && fieldValue) {
-      return fieldValue.includes(searchValue)
-    }
-    
-    // Handle regular text search (case-insensitive)
-    if (fieldValue) {
-      return fieldValue.toString().toLowerCase().includes(searchValue.toLowerCase())
-    }
-    
-    return false
-  })
-}
-
-  const handleCompanyFilterChange = (event) => {
-    setSelectedCompany(event.target.value)
+  const applyLocalFilters = (data) => {
+    if (!searchField || !searchValue) return data
+    return data.filter((item) => {
+      const fieldValue = item[searchField]
+      if (searchValue.toLowerCase() === "n/a") {
+        return !fieldValue || fieldValue === "" || fieldValue === "N/A"
+      }
+      if (searchField === "dateOfDischarge" && fieldValue) {
+        return fieldValue.includes(searchValue)
+      }
+      if (fieldValue) {
+        return fieldValue.toString().toLowerCase().includes(searchValue.toLowerCase())
+      }
+      return false
+    })
   }
 
-  const handleFromDateChange = (date) => {
-    setFromDate(date)
-  }
+  const handleCompanyFilterChange  = (e) => setSelectedCompany(e.target.value)
+  const handleFromDateChange        = (date) => setFromDate(date)
+  const handleToDateChange          = (date) => setToDate(date)
+  const handleSearchFieldChange     = (e) => { setSearchField(e.target.value); setSearchValue("") }
+  const handleSearchValueChange     = (e) => setSearchValue(e.target.value)
 
-  const handleToDateChange = (date) => {
-    setToDate(date)
+  const handleViewFile = (fileId) => {
+    window.open(`${Insurancebaseurl}insurance/serve_file/${fileId}`, "_blank")
   }
-
-  const handleSearchFieldChange = (event) => {
-    setSearchField(event.target.value)
-    setSearchValue("") // Clear search value when field changes
-  }
-
-  const handleSearchValueChange = (event) => {
-    setSearchValue(event.target.value)
-  }
-
-const handleViewFile = (fileId) => {
-  const fileUrl = `${Insurancebaseurl}insurance/serve_file/${fileId}`;
-  window.open(fileUrl, "_blank");
-};
 
   const exportToExcel = () => {
-    // Prepare data for export (excluding file columns), with S.No as first column
     const exportData = filteredData.map((item, index) => ({
       "S.No": index + 1,
       "Patient UHID": item.patient_uhid || "N/A",
@@ -161,128 +115,100 @@ const handleViewFile = (fileId) => {
       "Not Claim Reason": item.notClaimReason || "N/A",
     }))
 
-    // Create workbook and worksheet
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.json_to_sheet(exportData)
-
-    // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, "Insurance Report")
-
-    // Generate filename with current date
-    const today = new Date().toLocaleDateString("en-CA")
-    const filename = `Insurance_Report_${today}.xlsx`
-
-    // Save file
-    XLSX.writeFile(wb, filename)
+    XLSX.writeFile(wb, `Insurance_Report_${new Date().toLocaleDateString("en-CA")}.xlsx`)
   }
-  
 
   return (
     <ReportContainer>
-    <Container>
-      <Title>Insurance Report</Title>
+      <Container>
+        <Title>Insurance Report</Title>
 
-      <FilterContainer>
-        <FilterWrapper>
-          <Label htmlFor="companyName">Filter by Company:</Label>
-          <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-            <option value="">Select Company</option>
-            <option value="General Insurance">General Insurance</option>
-            <option value="ECHS">ECHS</option>
-            <option value="ESI">ESI</option>
-            <option value="ESIC">ESIC</option>
-            <option value="Railway CTSE">Railway CTSE</option>
-            <option value="TNCM">TNCM</option>
-            <option value="TKT">TKT</option>
-            <option value="FCA">FCA</option>
-            <option value="Airport">Airport</option>
-          </FormControl>
-        </FilterWrapper>
+        <FilterContainer>
+          <FilterWrapper>
+            <Label htmlFor="companyName">Filter by Company:</Label>
+            <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+              <option value="">Select Company</option>
+              <option value="General Insurance">General Insurance</option>
+              <option value="ECHS">ECHS</option>
+              <option value="ESI">ESI</option>
+              <option value="ESIC">ESIC</option>
+              <option value="Railway CTSE">Railway CTSE</option>
+              <option value="TNCM">TNCM</option>
+              <option value="TKT">TKT</option>
+              <option value="FCA">FCA</option>
+              <option value="Airport">Airport</option>
+            </FormControl>
+          </FilterWrapper>
 
-        <FilterWrapper>
-          <Label>From Date:</Label>
-          <StyledDatePicker
-            selected={fromDate}
-            onChange={handleFromDateChange}
-            dateFormat="yyyy-MM-dd"
-            placeholderText="Select from date"
-            popperProps={{
-              strategy: "fixed",
-              modifiers: [
-                {
-                  name: "offset",
-                  options: {
-                    offset: [0, 10],
-                  },
-                },
-              ],
-            }}
-            popperClassName="date-picker-popper"
-          />
-        </FilterWrapper>
-
-        <FilterWrapper>
-          <Label>To Date:</Label>
-          <StyledDatePicker
-            selected={toDate}
-            onChange={handleToDateChange}
-            dateFormat="yyyy-MM-dd"
-            placeholderText="Select to date"
-            minDate={fromDate}
-            popperProps={{
-              strategy: "fixed",
-              modifiers: [
-                {
-                  name: "offset",
-                  options: {
-                    offset: [0, 10],
-                  },
-                },
-              ],
-            }}
-            popperClassName="date-picker-popper"
-          />
-        </FilterWrapper>
-
-        <FilterWrapper>
-          <Label>Search by:</Label>
-          <FormControl value={searchField} onChange={handleSearchFieldChange}>
-            <option value="">Select Search Field</option>
-            <option value="billNumber">Bill Number</option>
-            <option value="ipNumber">IP Number</option>
-            <option value="opNumber">OP Number</option>
-            <option value="patient_name">Patient Name</option>
-            <option value="dateOfDischarge">Discharge Date</option>
-          </FormControl>
-        </FilterWrapper>
-
-        {searchField && (
-          <SearchWrapper>
-            <Label>Search Value:</Label>
-            <SearchInput
-              type={searchField === "dateOfDischarge" ? "date" : "text"}
-              value={searchValue}
-              onChange={handleSearchValueChange}
-              placeholder={`Enter ${searchField.replace(/([A-Z])/g, " $1").toLowerCase()}`}
+          <FilterWrapper>
+            <Label>From Date:</Label>
+            <StyledDatePicker
+              selected={fromDate}
+              onChange={handleFromDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select from date"
+              popperProps={{ strategy: "fixed", modifiers: [{ name: "offset", options: { offset: [0, 10] } }] }}
+              popperClassName="date-picker-popper"
             />
-          </SearchWrapper>
-        )}
+          </FilterWrapper>
 
-        <FilterWrapper>
+          <FilterWrapper>
+            <Label>To Date:</Label>
+            <StyledDatePicker
+              selected={toDate}
+              onChange={handleToDateChange}
+              dateFormat="yyyy-MM-dd"
+              placeholderText="Select to date"
+              minDate={fromDate}
+              popperProps={{ strategy: "fixed", modifiers: [{ name: "offset", options: { offset: [0, 10] } }] }}
+              popperClassName="date-picker-popper"
+            />
+          </FilterWrapper>
+
+          <FilterWrapper>
+            <Label>Search by:</Label>
+            <FormControl value={searchField} onChange={handleSearchFieldChange}>
+              <option value="">Select Search Field</option>
+              <option value="billNumber">Bill Number</option>
+              <option value="ipNumber">IP Number</option>
+              <option value="opNumber">OP Number</option>
+              <option value="patient_name">Patient Name</option>
+              <option value="dateOfDischarge">Discharge Date</option>
+            </FormControl>
+          </FilterWrapper>
+
+          {searchField && (
+            <SearchWrapper>
+              <Label>Search Value:</Label>
+              <SearchInput
+                type={searchField === "dateOfDischarge" ? "date" : "text"}
+                value={searchValue}
+                onChange={handleSearchValueChange}
+                placeholder={`Enter ${searchField.replace(/([A-Z])/g, " $1").toLowerCase()}`}
+              />
+            </SearchWrapper>
+          )}
+
+          <FilterWrapper>
             <Button onClick={exportToExcel}>Export to Excel</Button>
-        </FilterWrapper>
-      </FilterContainer>
+          </FilterWrapper>
+        </FilterContainer>
 
-      <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>
+        <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>
 
-      <ResponsiveTableWrapper>
+        {/* Single scroll container — no double-wrapper */}
         <ScrollableTableContainer>
-          <Table>
+          <Table className="frozen-columns-table">
             <thead>
               <tr>
-                <TableHeader>S.No</TableHeader>
-                <TableHeader>Patient UHID</TableHeader>
-                <TableHeader>Patient Name</TableHeader>
+                {/* ── Frozen cols ── */}
+                <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
+                <TableHeader className="frozen-col frozen-col-1">Patient UHID</TableHeader>
+                <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                {/* ── Scrollable cols ── */}
                 <TableHeader>Date</TableHeader>
                 <TableHeader>IP / OP Number</TableHeader>
                 <TableHeader>Company Name</TableHeader>
@@ -309,9 +235,11 @@ const handleViewFile = (fileId) => {
               {filteredData.length > 0 ? (
                 filteredData.map((item, index) => (
                   <TableRow key={index}>
-                    <TableCell style={{ textAlign: "center" }}>{index + 1}</TableCell>
-                    <TableCell>{item.patient_uhid || "N/A"}</TableCell>
-                    <TableCell>{item.patient_name || "N/A"}</TableCell>
+                    {/* ── Frozen cols ── */}
+                    <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
+                    <TableCell className="frozen-col frozen-col-1">{item.patient_uhid || "N/A"}</TableCell>
+                    <TableCell className="frozen-col frozen-col-2">{item.patient_name || "N/A"}</TableCell>
+                    {/* ── Scrollable cols ── */}
                     <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
                     <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
                     <TableCell>{item.companyName || "N/A"}</TableCell>
@@ -350,51 +278,51 @@ const handleViewFile = (fileId) => {
             </tbody>
           </Table>
         </ScrollableTableContainer>
-      </ResponsiveTableWrapper>
 
-      <style jsx global>{`
-        .date-picker-popper {
-          z-index: 9999 !important;
-        }
-        
-        .react-datepicker-popper {
-          z-index: 9999 !important;
-        }
-        
-        .react-datepicker {
-          z-index: 9999 !important;
-        }
-        
-        /* Custom scrollbar styling */
-        @media (max-width: 768px) {
-          ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        <style jsx global>{`
+          /* ── Frozen column positions ─────────────────────────────── */
+          .frozen-columns-table { position: relative; }
+
+          .frozen-col {
+            position: sticky !important;
+            background-color: white;
+            z-index: 10;
           }
-          
-          ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+
+          /* Col 0 — S.No */
+          .frozen-col-0 { left: 0px;   min-width: 60px;  text-align: center; }
+
+          /* Col 1 — Patient UHID */
+          .frozen-col-1 { left: 60px;  min-width: 130px; }
+
+          /* Col 2 — Patient Name (last frozen — shadow divider) */
+          .frozen-col-2 {
+            left: 190px;
+            min-width: 140px;
+            border-right: 2px solid #ddd;
           }
-          
-          ::-webkit-scrollbar-thumb {
-            background: ${accentColor};
-            border-radius: 4px;
+          .frozen-col-2::after {
+            content: '';
+            position: absolute;
+            top: 0; right: -10px; bottom: 0;
+            width: 10px;
+            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+            pointer-events: none;
           }
-          
-          ::-webkit-scrollbar-thumb:hover {
-            background: ${primaryColor};
-          }
-        }
-        
-        /* Ensure body has proper margin for mobile */
-        @media (max-width: 480px) {
-          body {
-            margin: 0;
-            padding: 5px;
-          }
-        }
-      `}</style>
-    </Container>
+
+          /* ── Sticky header ───────────────────────────────────────── */
+          thead tr th       { position: sticky !important; top: 0; z-index: 11; }
+          thead .frozen-col { background-color: #6F8B83; position: sticky !important; top: 0; z-index: 20 !important; }
+
+          /* ── Hover keeps frozen cols highlighted ─────────────────── */
+          tbody tr:hover .frozen-col { background-color: rgba(111, 139, 131, 0.2); }
+
+          /* ── DatePicker z-index ──────────────────────────────────── */
+          .date-picker-popper      { z-index: 9999 !important; }
+          .react-datepicker-popper { z-index: 9999 !important; }
+          .react-datepicker        { z-index: 9999 !important; }
+        `}</style>
+      </Container>
     </ReportContainer>
   )
 }

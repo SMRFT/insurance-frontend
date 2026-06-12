@@ -100,7 +100,6 @@ export const SectionTitle = styled.h3`
   }
 `
 
-// Fully responsive CenteredContainer - adapts to screen width
 export const CenteredContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -261,7 +260,6 @@ export const ButtonWrapper = styled.div`
   }
 `
 
-// Fully responsive FormWrapper - takes full width on all screens
 export const FormWrapper = styled.div`
   display: flex;
   justify-content: center;
@@ -316,6 +314,7 @@ export const Title = styled.h2`
   font-family: 'Roboto', sans-serif;
   font-weight: 600;
   position: relative;
+  flex-shrink: 0;
   
   &:after {
     content: '';
@@ -414,45 +413,26 @@ export const Button = styled.button`
   }
 `
 
-// Fully responsive ReportContainer - adapts to all screen sizes
+// ─── CHANGED: fills viewport height, no page scroll ───────────────────────
 export const ReportContainer = styled.div`
-  background-color: #FFFFFF;
-  padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  width: 100%;
-  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding: 20px;
   box-sizing: border-box;
-  
-  @media (max-width: 1400px) {
-    padding: 35px;
-  }
-  
-  @media (max-width: 1200px) {
-    padding: 30px;
-  }
-  
-  @media (max-width: 1024px) {
-    padding: 25px;
-  }
-  
+  background-color: #FFFFFF;
+
   @media (max-width: 768px) {
-    padding: 20px;
-    border-radius: 10px;
-  }
-  
-  @media (max-width: 576px) {
     padding: 15px;
-    border-radius: 8px;
   }
-  
+
   @media (max-width: 480px) {
-    padding: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  }
-  
-  @media (max-width: 360px) {
     padding: 10px;
+  }
+
+  @media (max-width: 360px) {
+    padding: 8px;
   }
 `
 
@@ -510,7 +490,7 @@ export const FormControl = styled.select`
 
 export const StyledDatePicker = styled(DatePicker)`
   padding: 10px 14px;
-  border: 1px soid #ccc;
+  border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 14px;
   background-color: white;
@@ -534,8 +514,8 @@ export const StyledDatePicker = styled(DatePicker)`
   }
 `
 
+// ─── Used inside cards for inner table scroll only (no flex:1 here) ────────
 export const ScrollableTableContainer = styled.div`
-  max-height: 500px;
   overflow-y: auto;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -544,47 +524,71 @@ export const ScrollableTableContainer = styled.div`
   background-color: #fff;
   width: 100%;
   box-sizing: border-box;
-  
+  max-height: 300px;
+
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 10px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: ${accentColor};
     border-radius: 10px;
   }
-  
+
   &::-webkit-scrollbar-thumb:hover {
     background: ${primaryColor};
   }
-  
-  @media (max-width: 1024px) {
-    max-height: 450px;
-  }
-  
-  @media (max-width: 768px) {
-    max-height: 400px;
-    border-radius: 8px;
-  }
-  
+
   @media (max-width: 480px) {
-    max-height: 350px;
     border-radius: 6px;
-    
+    max-height: 220px;
+
     &::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
   }
-  
-  @media (max-width: 360px) {
-    max-height: 300px;
+`
+
+// ─── Page-level scroll area — wraps card lists or any growing content ───────
+export const PageScrollArea = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${accentColor};
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: ${primaryColor};
+  }
+
+  @media (max-width: 480px) {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
   }
 `
 
@@ -695,16 +699,19 @@ export const TableCell = styled.td`
   }
 `
 
-// Fully responsive Container - adapts to all screens
+// ─── CHANGED: flex column, fills ReportContainer, table gets leftover space ─
 export const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   background: linear-gradient(to bottom right, ${backgroundColor}, ${primaryColor});
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   width: 100%;
-  margin: 0 auto;
-  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
   box-sizing: border-box;
+  overflow: hidden;
 
   @media (max-width: 1024px) {
     padding: 18px;
@@ -789,6 +796,7 @@ export const ResultsInfo = styled.div`
   color: ${textColor};
   font-weight: 500;
   font-size: 15px;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     font-size: 14px;
@@ -813,6 +821,7 @@ export const SearchContainer = styled.div`
   flex-wrap: wrap;
   width: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     gap: 12px;
@@ -835,6 +844,7 @@ export const FilterContainer = styled.div`
   align-items: end;
   width: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     gap: 12px;
@@ -849,7 +859,6 @@ export const FilterContainer = styled.div`
   }
 `
 
-// Fully responsive filter container that scrolls horizontally on small screens
 export const ResponsiveFilterContainer = styled.div`
   display: grid;
   grid-auto-flow: column;
@@ -861,6 +870,7 @@ export const ResponsiveFilterContainer = styled.div`
   padding-bottom: 5px;
   box-sizing: border-box;
   scrollbar-width: thin;
+  flex-shrink: 0;
   
   &::-webkit-scrollbar {
     height: 6px;
@@ -895,30 +905,21 @@ export const ResponsiveFilterContainer = styled.div`
 `
 
 export const ResponsiveTableWrapper = styled.div`
-  max-height: 500px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
   border: 1px solid #ddd;
   border-radius: 8px;
   width: 100%;
   box-sizing: border-box;
-  
-  @media (max-width: 1024px) {
-    max-height: 450px;
-  }
-  
+
   @media (max-width: 768px) {
-    max-height: 400px;
     border-radius: 4px;
   }
 
   @media (max-width: 480px) {
-    max-height: 350px;
     border-radius: 4px;
-  }
-
-  @media (max-width: 360px) {
-    max-height: 300px;
   }
 `
 
@@ -1049,6 +1050,7 @@ export const InfoText = styled.div`
   font-size: 0.95rem;
   width: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     font-size: 0.85rem;

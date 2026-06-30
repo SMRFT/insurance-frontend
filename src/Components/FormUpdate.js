@@ -208,14 +208,10 @@ const FormUpdate = () => {
         </ScrollableTableContainer>
 
         <style jsx global>{`
-          /* ── Frozen column positions ───────────────────────────────────── */
-          .frozen-columns-table { position: relative; }
+          /* border-collapse:separate is REQUIRED for position:sticky to paint solid backgrounds */
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
 
-          .frozen-col {
-            position: sticky !important;
-            background-color: white;
-            z-index: 10;
-          }
+          .frozen-col { position: sticky !important; z-index: 10; background-color: #ffffff; outline: 1px solid #b0c4be; }
 
           /* Col 0 — Patient UHID */
           .frozen-col-0 { left: 0px;   min-width: 120px; }
@@ -224,26 +220,18 @@ const FormUpdate = () => {
           .frozen-col-1 { left: 120px; min-width: 140px; }
 
           /* Col 2 — Bill Number (last frozen — shadow divider) */
-          .frozen-col-2 {
-            left: 260px;
-            min-width: 120px;
-            border-right: 2px solid #ddd;
-          }
-          .frozen-col-2::after {
-            content: '';
-            position: absolute;
-            top: 0; right: -10px; bottom: 0;
-            width: 10px;
-            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-            pointer-events: none;
-          }
+          .frozen-col-2 { left: 260px; min-width: 120px; box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15); }
 
           /* ── Sticky header: all th stay on top ─────────────────────────── */
-          thead tr th          { position: sticky !important; top: 0; z-index: 11; }
-          thead .frozen-col    { background-color: #6F8B83;   position: sticky !important; top: 0; z-index: 20 !important; }
+          thead tr th       { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; }
+          thead .frozen-col { background-color: #6F8B83 !important; color: #fff; position: sticky !important; top: 0; z-index: 20 !important; outline: 1px solid #9aaea9; }
+
+          /* ── Alternating row backgrounds keep frozen cols opaque ───────── */
+          tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+          tbody tr:nth-child(odd)  .frozen-col { background-color: #ffffff; }
 
           /* ── Hover keeps frozen cols highlighted ────────────────────────── */
-          tbody tr:hover .frozen-col { background-color: rgba(111, 139, 131, 0.2); }
+          tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
 
           /* ── DatePicker z-index ─────────────────────────────────────────── */
           .date-picker-popper      { z-index: 9999 !important; }

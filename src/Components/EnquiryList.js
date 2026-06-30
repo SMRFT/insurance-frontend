@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import toast, { Toaster } from "react-hot-toast"
 import {
   ReportContainer,
@@ -19,6 +19,8 @@ import {
   ScrollableTableContainer,
   ResponsiveTableWrapper,
   StyledDatePicker,
+  Spinner,
+  LoadingSpinnerContainer,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
 
@@ -148,155 +150,119 @@ const fetchFollowUps = async () => {
         await fetchFollowUps()
         onSaved()
       } else {
-        toast.error("Delete failed")
+        toast.error("Failed to delete follow-up")
       }
     } catch (err) {
-      toast.error(`💥 Error: ${err.message}`)
+      toast.error(`Error: ${err.message}`)
     }
   }
 
-  // ─── Inline edit/add form ─────────────────────────────────────────────────
-  const renderForm = (label) => (
-    <div style={ms.formBox}>
-      <div style={{ fontWeight: "600", fontSize: "13px", color: primaryColor, marginBottom: "10px" }}>
-        {label}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div style={ms.field}>
-          <label style={ms.label}>Date <span style={{ color: "#ef4444" }}>*</span></label>
-          <input
-            type="date"
-            value={formDate}
-            onChange={(e) => setFormDate(e.target.value)}
-            style={ms.input}
-          />
-        </div>
-        <div style={ms.field}>
-          <label style={ms.label}>Notes / Remarks <span style={{ color: "#ef4444" }}>*</span></label>
-          <textarea
-            value={formNotes}
-            onChange={(e) => setFormNotes(e.target.value)}
-            placeholder="Enter follow up notes..."
-            rows={3}
-            style={ms.textarea}
-          />
-        </div>
-        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-          <button style={ms.cancelBtn} onClick={cancelEdit}>Cancel</button>
-          <button
-            style={{ ...ms.saveBtn, opacity: saving ? 0.7 : 1 }}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? "Saving..." : (editingId === "new" ? "Add Follow Up" : "Update")}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
-    <div style={ms.overlay} onClick={onClose}>
-      <div style={ms.modal} onClick={(e) => e.stopPropagation()}>
-
-        {/* Header */}
+    <div style={ms.overlay}>
+      <div style={ms.modal}>
         <div style={ms.header}>
           <div>
-            <h2 style={ms.title}>Follow Ups</h2>
-            <p style={ms.subtitle}>
-              {enquiry.patientName} — {enquiry.opNumber || enquiry.ipNumber || "—"}
-            </p>
+            <h3 style={ms.title}>Follow-Up History</h3>
+            <p style={ms.subtitle}>Patient: {enquiry.patientName} | OP: {enquiry.opNumber || "—"}</p>
           </div>
-          <button style={ms.closeBtn} onClick={onClose}>✕</button>
+          <button onClick={onClose} style={ms.closeBtn}>✕</button>
         </div>
 
-        {/* Body */}
         <div style={ms.body}>
-          {loading ? (
-            <p style={{ textAlign: "center", color: "#6b7280", padding: "20px 0" }}>
-              Loading follow-ups...
-            </p>
-          ) : (
-            <>
-              {/* Existing follow-ups list */}
-              {followUps.length === 0 && editingId !== "new" && (
-                <p style={{ textAlign: "center", color: "#9ca3af", fontStyle: "italic", marginBottom: "16px" }}>
-                  No follow-ups yet.
-                </p>
-              )}
-
-              {followUps.length > 0 ? (
-                followUps.map((fu, index) => (
-                  <div
-                    key={fu.followup_id}
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                      padding: "12px",
-                      marginBottom: "10px",
-                      background: "#fafafa",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <strong>Follow Up #{index + 1}</strong>
-
-                      <span
-                        style={{
-                          background: "#dcfce7",
-                          color: "#15803d",
-                          padding: "3px 10px",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        {fu.followup_date || "-"}
-                      </span>
-                    </div>
-
-                    <div style={{ color: "#374151" }}>
-                      {fu.followup_Remarks || "-"}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        display: "flex",
-                        gap: "8px",
-                      }}
-                    >
-
-                      <button
-                        style={ms.deleteBtn}
-                        onClick={() => handleDelete(fu.followup_id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : null  
-              }
-
-              {/* Add-new form (shown at bottom when "new") */}
-              {editingId === "new" && renderForm("New Follow Up")}
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div style={ms.footer}>
-          <button style={ms.cancelBtn} onClick={onClose}>Close</button>
-          {editingId === null && !loading && (
-            <button style={ms.saveBtn} onClick={startAdd}>
-              + Add Follow Up
+          {/* Add New Button */}
+          {editingId === null && (
+            <button
+              onClick={startAdd}
+              style={{
+                width: "100%", padding: "10px", background: primaryColor,
+                color: "#fff", border: "none", borderRadius: "6px",
+                fontWeight: "600", fontSize: "13px", cursor: "pointer",
+                marginBottom: "16px",
+              }}
+            >
+              + Add New Follow-Up
             </button>
           )}
+
+          {/* Form (Add or Edit) */}
+          {editingId !== null && (
+            <div style={ms.formBox}>
+              <h4 style={{ margin: "0 0 10px 0", fontSize: "14px", color: primaryColor }}>
+                {editingId === "new" ? "Add Follow-Up" : "Edit Follow-Up"}
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={ms.field}>
+                  <label style={ms.label}>Follow Up Date</label>
+                  <input
+                    type="date"
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    style={ms.input}
+                  />
+                </div>
+                <div style={ms.field}>
+                  <label style={ms.label}>Notes</label>
+                  <textarea
+                    rows="3"
+                    value={formNotes}
+                    onChange={(e) => setFormNotes(e.target.value)}
+                    placeholder="Enter follow-up details..."
+                    style={ms.textarea}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "4px" }}>
+                  <button onClick={cancelEdit} disabled={saving} style={ms.cancelBtn}>Cancel</button>
+                  <button onClick={handleSave} disabled={saving} style={ms.saveBtn}>
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* List of existing */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "20px 0", color: "#6b7280", fontSize: "13px" }}>
+              Loading follow-ups...
+            </div>
+          ) : followUps.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "30px 0", color: "#9ca3af", fontSize: "13px" }}>
+              No follow-ups recorded yet.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {followUps.map((fu, index) => (
+                <div key={fu.followup_id || index}>
+                  <div style={ms.fuRowHeader}>
+                    <span style={ms.fuIndex}>{followUps.length - index}</span>
+                    <span style={ms.fuDate}>{fu.followup_date}</span>
+                    <span style={{ fontSize: "11px", color: "#9ca3af", marginLeft: "auto" }}>
+                      by {fu.created_by_name || fu.created_by || "—"}
+                    </span>
+                  </div>
+                  <div style={ms.fuNotes}>{fu.followup_Remarks}</div>
+                  {/* Actions for this followup */}
+                  <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", paddingBottom: "8px" }}>
+                    <button onClick={() => startEdit(fu)} style={ms.editBtn}>Edit</button>
+                    <button onClick={() => handleDelete(fu.followup_id)} style={ms.deleteBtn}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={ms.footer}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "8px 16px", background: "#374151", color: "#fff",
+              border: "none", borderRadius: "6px", fontSize: "13px",
+              cursor: "pointer", fontWeight: "600"
+            }}
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -362,7 +328,6 @@ const ms = {
 // ─── EnquiryList ──────────────────────────────────────────────────────────────
 function EnquiryList() {
   const [enquiries,         setEnquiries]         = useState([])
-  const [filteredEnquiries, setFilteredEnquiries] = useState([])
   const [loading,           setLoading]           = useState(false)
   const [searchTerm,        setSearchTerm]        = useState("")
   const [selectedInsurance, setSelectedInsurance] = useState("")
@@ -375,7 +340,6 @@ function EnquiryList() {
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
   useEffect(() => { fetchEnquiries() }, [fromDate, toDate])
-  useEffect(() => { filterEnquiries() }, [enquiries, searchTerm, selectedInsurance, selectedTreatment])
 
   useEffect(() => {
     const fetchTreatments = async () => {
@@ -422,7 +386,7 @@ function EnquiryList() {
     }
   }
 
-  const filterEnquiries = () => {
+  const filteredEnquiries = useMemo(() => {
     let filtered = Array.isArray(enquiries) ? [...enquiries] : []
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
@@ -442,8 +406,8 @@ function EnquiryList() {
     if (selectedTreatment) {
       filtered = filtered.filter((e) => e.treatment === selectedTreatment)
     }
-    setFilteredEnquiries(filtered)
-  }
+    return filtered
+  }, [enquiries, searchTerm, selectedInsurance, selectedTreatment])
 
   const exportToCSV = () => {
     const headers = ["S.No","Date","OP Number","IP Number","Patient Name","Phone Number",
@@ -548,127 +512,129 @@ function EnquiryList() {
 
         <ResultsInfo>Showing {filteredEnquiries.length} result(s)</ResultsInfo>
 
-        <ResponsiveTableWrapper>
-          <ScrollableTableContainer>
-            <Table className="frozen-columns-table">
-              <thead>
-                <tr>
-                  <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
-                  <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
-                  <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
-                  <TableHeader>Phone Number</TableHeader>
-                  <TableHeader>OP Number</TableHeader>
-                  <TableHeader>IP Number</TableHeader>
-                  <TableHeader>Insurance Name</TableHeader>
-                  <TableHeader>Insurance Provider</TableHeader>
-                  <TableHeader>Treatment</TableHeader>
-                  <TableHeader>Reason For Approach</TableHeader>
-                  <TableHeader>Created By</TableHeader>
-                  <TableHeader>Follow Ups</TableHeader>
-                  <TableHeader style={{ textAlign: "center" }}>Actions</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan="12" style={{ textAlign: "center", padding: "40px" }}>
-                      Loading enquiries...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredEnquiries.length > 0 ? (
-                  filteredEnquiries.map((enquiry, index) => {
-                    const followUpCount = enquiry.follow_ups?.length || 0
-                    const lastFollowUp  = followUpCount > 0
-                      ? enquiry.follow_ups[enquiry.follow_ups.length - 1]
-                      : null
+        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+          <Table className="frozen-columns-table">
+            <thead>
+              <tr>
+                <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
+                <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
+                <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                <TableHeader>Phone Number</TableHeader>
+                <TableHeader>OP Number</TableHeader>
+                <TableHeader>IP Number</TableHeader>
+                <TableHeader>Insurance Name</TableHeader>
+                <TableHeader>Insurance Provider</TableHeader>
+                <TableHeader>Treatment</TableHeader>
+                <TableHeader>Reason For Approach</TableHeader>
+                <TableHeader>Created By</TableHeader>
+                <TableHeader>Follow Ups</TableHeader>
+                <TableHeader style={{ textAlign: "center" }}>Actions</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
+                    <LoadingSpinnerContainer>
+                      <Spinner />
+                      <span>Loading enquiries...</span>
+                    </LoadingSpinnerContainer>
+                  </TableCell>
+                </TableRow>
+              ) : filteredEnquiries.length > 0 ? (
+                filteredEnquiries.map((enquiry, index) => {
+                  const followUpCount = enquiry.follow_ups?.length || 0
+                  const lastFollowUp  = followUpCount > 0
+                    ? enquiry.follow_ups[enquiry.follow_ups.length - 1]
+                    : null
 
-                    return (
-                      <TableRow key={enquiry.enquiry_id || index}>
-                        <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
-                        <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{enquiry.date || "—"}</TableCell>
-                        <TableCell className="frozen-col frozen-col-2" style={{ fontWeight: "600" }}>{enquiry.patientName || "—"}</TableCell>
-                        <TableCell>{enquiry.phoneNumber || "—"}</TableCell>
-                        <TableCell>{enquiry.opNumber || "—"}</TableCell>
-                        <TableCell>{enquiry.ipNumber || "—"}</TableCell>
-                        <TableCell>{enquiry.insuranceName || "—"}</TableCell>
-                        <TableCell>{enquiry.specificInsuranceCompany || "—"}</TableCell>
-                        <TableCell>{enquiry.treatment || "—"}</TableCell>
-                        <TableCell
-                          style={{ maxWidth: "220px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                          title={enquiry.reasonForApproach}
-                        >
-                          {enquiry.reasonForApproach || "—"}
-                        </TableCell>
+                  return (
+                    <TableRow key={enquiry.enquiry_id || index}>
+                      <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
+                      <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{enquiry.date || "—"}</TableCell>
+                      <TableCell className="frozen-col frozen-col-2" style={{ fontWeight: "600" }}>{enquiry.patientName || "—"}</TableCell>
+                      <TableCell>{enquiry.phoneNumber || "—"}</TableCell>
+                      <TableCell>{enquiry.opNumber || "—"}</TableCell>
+                      <TableCell>{enquiry.ipNumber || "—"}</TableCell>
+                      <TableCell>{enquiry.insuranceName || "—"}</TableCell>
+                      <TableCell>{enquiry.specificInsuranceCompany || "—"}</TableCell>
+                      <TableCell>{enquiry.treatment || "—"}</TableCell>
+                      <TableCell
+                        style={{ maxWidth: "220px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                        title={enquiry.reasonForApproach}
+                      >
+                        {enquiry.reasonForApproach || "—"}
+                      </TableCell>
 
-                        <TableCell>{enquiry.created_by_name || "—"}</TableCell>
+                      <TableCell>{enquiry.created_by_name || "—"}</TableCell>
 
-                        {/* Follow Up count + latest date */}
-                        <TableCell style={{ whiteSpace: "nowrap" }}>
-                          {followUpCount > 0 ? (
-                            <span style={{
-                              padding: "2px 8px", borderRadius: "12px",
-                              background: "#f0fdf4", color: "#16a34a",
-                              fontSize: "12px", fontWeight: "600",
-                            }}>
-                              {followUpCount} {followUpCount === 1 ? "follow up" : "follow ups"}
-                            </span>
-                          ) : (
-                            <span style={{ color: "#d1d5db" }}>—</span>
-                          )}
-                          {lastFollowUp && (
-                            <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
-                              Last: {lastFollowUp.followup_date}
-                            </div>
-                          )}
-                        </TableCell>
+                      {/* Follow Up count + latest date */}
+                      <TableCell style={{ whiteSpace: "nowrap" }}>
+                        {followUpCount > 0 ? (
+                          <span style={{
+                            padding: "2px 8px", borderRadius: "12px",
+                            background: "#f0fdf4", color: "#16a34a",
+                            fontSize: "12px", fontWeight: "600",
+                          }}>
+                            {followUpCount} {followUpCount === 1 ? "follow up" : "follow ups"}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#d1d5db" }}>—</span>
+                        )}
+                        {lastFollowUp && (
+                          <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
+                            Last: {lastFollowUp.followup_date}
+                          </div>
+                        )}
+                      </TableCell>
 
-                        {/* Action button — always shows the modal */}
-                        <TableCell style={{ textAlign: "center" }}>
-                          {followUpCount > 0 ? (
-                            <button
-                              onClick={() => setFollowUpTarget(enquiry)}
-                              style={btnStyle.edit}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = "#d97706"; e.currentTarget.style.color = "#fff" }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = btnStyle.edit.background; e.currentTarget.style.color = btnStyle.edit.color }}
-                            >
-                              ✏️ Follow Ups ({followUpCount})
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setFollowUpTarget(enquiry)}
-                              style={btnStyle.add}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = "#16a34a"; e.currentTarget.style.color = "#fff" }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = btnStyle.add.background; e.currentTarget.style.color = btnStyle.add.color }}
-                            >
-                              + Follow Up
-                            </button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan="12" style={{ textAlign: "center", padding: "40px" }}>
-                      No enquiries found matching the current filters
-                    </TableCell>
-                  </TableRow>
-                )}
-              </tbody>
-            </Table>
-          </ScrollableTableContainer>
-        </ResponsiveTableWrapper>
+                      {/* Action button — always shows the modal */}
+                      <TableCell style={{ textAlign: "center" }}>
+                        {followUpCount > 0 ? (
+                          <button
+                            onClick={() => setFollowUpTarget(enquiry)}
+                            style={btnStyle.edit}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "#d97706"; e.currentTarget.style.color = "#fff" }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = btnStyle.edit.background; e.currentTarget.style.color = btnStyle.edit.color }}
+                          >
+                            ✏️ Follow Ups ({followUpCount})
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setFollowUpTarget(enquiry)}
+                            style={btnStyle.add}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "#16a34a"; e.currentTarget.style.color = "#fff" }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = btnStyle.add.background; e.currentTarget.style.color = btnStyle.add.color }}
+                          >
+                            + Follow Up
+                          </button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="13" style={{ textAlign: "center", padding: "40px" }}>
+                    No enquiries found matching the current filters
+                  </TableCell>
+                </TableRow>
+              )}
+            </tbody>
+          </Table>
+        </ScrollableTableContainer>
 
-        <style jsx global>{`
-          .frozen-columns-table { position: relative; }
-          .frozen-col { position: sticky !important; background-color: white; z-index: 10; }
+        <style>{`
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
+          .frozen-col { position: sticky !important; z-index: 10; background-color: #ffffff; outline: 1px solid #b0c4be; }
           .frozen-col-0 { left: 0px; min-width: 60px; text-align: center; }
           .frozen-col-1 { left: 60px; min-width: 110px; }
-          .frozen-col-2 { left: 170px; min-width: 160px; border-right: 2px solid #ddd; }
-          .frozen-col-2::after { content: ''; position: absolute; top: 0; right: -10px; bottom: 0; width: 10px; background: linear-gradient(to right, rgba(0,0,0,0.1), transparent); pointer-events: none; }
-          thead tr th { position: sticky !important; top: 0; z-index: 11; }
-          thead .frozen-col { background-color: ${primaryColor}; position: sticky !important; top: 0; z-index: 20 !important; }
-          tbody tr:hover .frozen-col { background-color: #f5f5f5; }
+          .frozen-col-2 { left: 170px; min-width: 160px; box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15); }
+          thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: ${primaryColor}; }
+          thead .frozen-col { background-color: ${primaryColor} !important; color: #fff; position: sticky !important; top: 0; z-index: 20 !important; outline: 1px solid #9aaea9; }
+          tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+          tbody tr:nth-child(odd)  .frozen-col { background-color: #ffffff; }
+          tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
           .date-picker-popper, .react-datepicker-popper, .react-datepicker { z-index: 9999 !important; }
         `}</style>
       </Container>

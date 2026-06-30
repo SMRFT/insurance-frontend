@@ -197,100 +197,99 @@ const OtherGatePass = () => {
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-          <ResponsiveTableWrapper>
-            <ScrollableTableContainer>
-              <Table className="frozen-columns-table">
-                <thead>
-                  <tr>
-                    <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
-                    <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
-                    <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
-                    <TableHeader>Mobile</TableHeader>
-                    <TableHeader>Company</TableHeader>
-                    <TableHeader>Treatment</TableHeader>
-                    <TableHeader>Amount</TableHeader>
-                    <TableHeader>Payment Method</TableHeader>
-                    <TableHeader>Refund</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Created By</TableHeader>
-                    <TableHeader>Approved By</TableHeader>
-                    <TableHeader>Final Approved By</TableHeader>
-                    <TableHeader>Action</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRecords.length > 0 ? (
-                    filteredRecords.map((record, index) => {
-                      const isIssued = issuedRecords.has(record.original_id || record.id)
-                      return (
-                        <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
-                          <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
-                          <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
-                          <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
-                          <TableCell>{record.mobile_number}</TableCell>
-                          <TableCell>{record.company_name}</TableCell>
-                          <TableCell>{record.treatment}</TableCell>
-                          <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                          <TableCell>{record.payment_method}</TableCell>
-                          <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                          <TableCell>
-                            <StatusBadge color="#4caf50">Final Approved</StatusBadge>
-                          </TableCell>
-                          <TableCell>{record.created_by_name || "-"}</TableCell>
-                          <TableCell>{record.approved_by_name || "-"}</TableCell>
-                          <TableCell style={{ fontWeight: "600", color: "#4caf50" }}>
-                            {record.final_approved_by_name || "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              onClick={() => handleIssueGatePass(record)}
-                              disabled={isIssued}
-                              style={{
-                                backgroundColor: isIssued ? "#ccc" : "#4caf50",
-                                cursor: isIssued ? "not-allowed" : "pointer",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {isIssued ? "✓ Issued" : "Issue Gate Pass"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan="14" style={{ textAlign: "center", padding: "20px" }}>
-                        No collected records found matching the current filters
+        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+          <Table className="frozen-columns-table">
+            <thead>
+              <tr>
+                <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
+                <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
+                <TableHeader>Mobile</TableHeader>
+                <TableHeader>Company</TableHeader>
+                <TableHeader>Treatment</TableHeader>
+                <TableHeader>Amount</TableHeader>
+                <TableHeader>Payment Method</TableHeader>
+                <TableHeader>Refund</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Created By</TableHeader>
+                <TableHeader>Approved By</TableHeader>
+                <TableHeader>Final Approved By</TableHeader>
+                <TableHeader>Action</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRecords.length > 0 ? (
+                filteredRecords.map((record, index) => {
+                  const isIssued = issuedRecords.has(record.original_id || record.id)
+                  return (
+                    <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
+                      <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
+                      <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
+                      <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
+                      <TableCell>{record.mobile_number}</TableCell>
+                      <TableCell>{record.company_name}</TableCell>
+                      <TableCell>{record.treatment}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                      <TableCell>{record.payment_method}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <StatusBadge color="#4caf50">Final Approved</StatusBadge>
+                      </TableCell>
+                      <TableCell>{record.created_by_name || "-"}</TableCell>
+                      <TableCell>{record.approved_by_name || "-"}</TableCell>
+                      <TableCell style={{ fontWeight: "600", color: "#4caf50" }}>
+                        {record.final_approved_by_name || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          onClick={() => handleIssueGatePass(record)}
+                          disabled={isIssued}
+                          style={{
+                            backgroundColor: isIssued ? "#ccc" : "#4caf50",
+                            cursor: isIssued ? "not-allowed" : "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {isIssued ? "✓ Issued" : "Issue Gate Pass"}
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  )}
-                </tbody>
-                {filteredRecords.length > 0 && (
-                  <tfoot>
-                    <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                      <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
-                        GRAND TOTAL:
-                      </TableCell>
-                      <TableCell colSpan="3"></TableCell>
-                      <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                      <TableCell colSpan="5"></TableCell>
-                    </tr>
-                  </tfoot>
-                )}
-              </Table>
-            </ScrollableTableContainer>
-          </ResponsiveTableWrapper>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="14" style={{ textAlign: "center", padding: "20px" }}>
+                    No collected records found matching the current filters
+                  </TableCell>
+                </TableRow>
+              )}
+            </tbody>
+            {filteredRecords.length > 0 && (
+              <tfoot>
+                <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                  <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
+                    GRAND TOTAL:
+                  </TableCell>
+                  <TableCell colSpan="3"></TableCell>
+                  <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                  <TableCell colSpan="5"></TableCell>
+                </tr>
+              </tfoot>
+            )}
+          </Table>
+        </ScrollableTableContainer>
         )}
 
-        <style jsx global>{`
-          .frozen-columns-table { position: relative; }
+        <style>{`
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
 
           .frozen-col {
             position: sticky !important;
-            background-color: white;
             z-index: 10;
+            background-color: #ffffff;
+            outline: 1px solid #b0c4be;
           }
 
           .frozen-col-1 { left: 0px;   min-width: 110px; }
@@ -298,34 +297,25 @@ const OtherGatePass = () => {
           .frozen-col-3 {
             left: 260px;
             min-width: 120px;
-            border-right: 2px solid #ddd;
+            box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15);
           }
 
-          .frozen-col-3::after {
-            content: '';
-            position: absolute;
-            top: 0; right: -10px; bottom: 0;
-            width: 10px;
-            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-            pointer-events: none;
-          }
-
-          thead tr th {
-            position: sticky !important;
-            top: 0;
-            z-index: 11;
-          }
+          thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; }
 
           thead .frozen-col {
-            background-color: #6F8B83;
+            background-color: #6F8B83 !important;
+            color: #fff;
             position: sticky !important;
             top: 0;
             z-index: 20 !important;
+            outline: 1px solid #9aaea9;
           }
 
-          tfoot .frozen-col { background-color: #f8f9fa; }
+          tfoot .frozen-col { background-color: #f8f9fa !important; }
 
-          tbody tr:hover .frozen-col { background-color: #f5f5f5; }
+          tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+          tbody tr:nth-child(odd)  .frozen-col { background-color: #ffffff; }
+          tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
 
           .date-picker-popper        { z-index: 9999 !important; }
           .react-datepicker-popper   { z-index: 9999 !important; }

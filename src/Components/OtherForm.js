@@ -511,8 +511,6 @@ const OtherForm = ({ editData = null, onSuccess }) => {
       } else {
         setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", date: "", isExisting: false }])
       }
-
-      toast.success("📝 Form data loaded for editing", { duration: 2000, icon: "✏️" })
     }
   }, [editDataFromNav])
 

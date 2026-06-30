@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   FormWrapper,
   FilterWrapper,
@@ -24,6 +24,8 @@ import {
   ScrollableTableContainer,
   ResultsInfo,
   StyledDatePicker,
+  Spinner,
+  LoadingSpinnerContainer,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
 
@@ -32,7 +34,6 @@ const accentColor = "#9aaea9"
 
 const OtherReport = () => {
   const [records, setRecords] = useState([])
-  const [filteredRecords, setFilteredRecords] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState("")
@@ -46,34 +47,23 @@ const OtherReport = () => {
 
   // Fetch doctor list on mount
   useEffect(() => {
-    fetchDoctorList()
-  }, [])
-
-  // Fetch records when date filters change
-  useEffect(() => {
-    fetchRecords()
-  }, [selectedCompany, fromDate, toDate])
-
-  // Re-filter whenever records or filter values change
-  useEffect(() => {
-    filterRecords()
-  }, [records, searchTerm, selectedCompany, selectedPaymentMethod, selectedDoctor])
-
-  const fetchDoctorList = async () => {
-    try {
-      const url = `${Insurancebaseurl}get_doctor_list/`
-      const response = await apiRequest(url, "GET")
-      if (response.success) {
-        setDoctorList(response.data || [])
-      } else {
-        console.error("Error fetching doctor list:", response.error || response.data)
+    const fetchDoctorList = async () => {
+      try {
+        const url = `${Insurancebaseurl}get_doctor_list/`
+        const response = await apiRequest(url, "GET")
+        if (response.success) {
+          setDoctorList(response.data || [])
+        } else {
+          console.error("Error fetching doctor list:", response.error || response.data)
+        }
+      } catch (error) {
+        console.error("Error fetching doctor list:", error)
       }
-    } catch (error) {
-      console.error("Error fetching doctor list:", error)
     }
-  }
+    fetchDoctorList()
+  }, [Insurancebaseurl])
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true)
     try {
       const url = `${Insurancebaseurl}other_records/report/`
@@ -107,12 +97,17 @@ const OtherReport = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fromDate, toDate, Insurancebaseurl])
+
+  // Fetch records when date filters change
+  useEffect(() => {
+    fetchRecords()
+  }, [fetchRecords])
 
   const handleFromDateChange = (date) => setFromDate(date)
   const handleToDateChange = (date) => setToDate(date)
 
-  const filterRecords = () => {
+  const filteredRecords = useMemo(() => {
     let filtered = [...records]
 
     if (searchTerm) {
@@ -137,8 +132,8 @@ const OtherReport = () => {
       filtered = filtered.filter((record) => record.doctor_name === selectedDoctor)
     }
 
-    setFilteredRecords(filtered)
-  }
+    return filtered
+  }, [records, searchTerm, selectedCompany, selectedPaymentMethod, selectedDoctor])
 
   const handleCompanyFilterChange = (event) => setSelectedCompany(event.target.value)
   const handlePaymentMethodFilterChange = (event) => setSelectedPaymentMethod(event.target.value)
@@ -462,117 +457,118 @@ const OtherReport = () => {
 
         <ResultsInfo>Showing {filteredRecords.length} result(s)</ResultsInfo>
 
-        <ResponsiveTableWrapper>
-          <ScrollableTableContainer>
-            <Table className="frozen-columns-table">
-              <thead>
-                <tr>
-                  <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
-                  <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
-                  <TableHeader className="frozen-col frozen-col-2">IP/OP Type</TableHeader>
-                  <TableHeader className="frozen-col frozen-col-3">IP/OP Number</TableHeader>
-                  <TableHeader className="frozen-col frozen-col-4">Patient Name</TableHeader>
-                  <TableHeader>Mobile</TableHeader>
-                  <TableHeader style={{ minWidth: "150px" }}>Doctor Name</TableHeader>
-                  <TableHeader>Company</TableHeader>
-                  <TableHeader>Treatment</TableHeader>
-                  <TableHeader>Amount</TableHeader>
-                  <TableHeader>Payment Method</TableHeader>
-                  <TableHeader>Has Refund</TableHeader>
-                  <TableHeader>Refund</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader>Approved By</TableHeader>
-                  <TableHeader>Final Approved By</TableHeader>
-                  <TableHeader>Refund Approved By</TableHeader>
-                  <TableHeader>Created By</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecords.length > 0 ? (
-                  filteredRecords.map((record, index) => (
-                    <TableRow key={`${record.id}-${record.date}-${record.amount}-${index}`}>
-                      <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>
-                        {index + 1}
-                      </TableCell>
-                      <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>
-                        {record.date}
-                      </TableCell>
-                      <TableCell className="frozen-col frozen-col-2">{record.ip_op_type}</TableCell>
-                      <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
-                      <TableCell className="frozen-col frozen-col-4">{record.patient_name}</TableCell>
-                      <TableCell>{record.mobile_number}</TableCell>
-                      <TableCell style={{ wordWrap: "break-word", whiteSpace: "normal", maxWidth: "200px", minWidth: "150px" }}>
-                        {record.doctor_name}
-                      </TableCell>
-                      <TableCell>{record.company_name}</TableCell>
-                      <TableCell>{record.treatment}</TableCell>
-                      <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                      <TableCell>{record.payment_method}</TableCell>
-                      <TableCell>
-                        <StatusBadge color={record.has_refund ? "#4caf50" : "#f44336"}>
-                          {record.has_refund ? "Yes" : "No"}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <StatusBadge color={getStatusColor(record.status)}>
-                          {record.status || "Pending"}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>{record.approved_by_name || "-"}</TableCell>
-                      <TableCell>{record.final_approved_by_name || "-"}</TableCell>
-                      <TableCell>{record.refund_approved_by_name || "-"}</TableCell>
-                      <TableCell>{record.created_by_name || "-"}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
-                      No records found matching the current filters
+        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+          <Table className="frozen-columns-table">
+            <thead>
+              <tr>
+                <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
+                <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
+                <TableHeader className="frozen-col frozen-col-2">IP/OP Type</TableHeader>
+                <TableHeader className="frozen-col frozen-col-3">IP/OP Number</TableHeader>
+                <TableHeader className="frozen-col frozen-col-4">Patient Name</TableHeader>
+                <TableHeader>Mobile</TableHeader>
+                <TableHeader style={{ minWidth: "150px" }}>Doctor Name</TableHeader>
+                <TableHeader>Company</TableHeader>
+                <TableHeader>Treatment</TableHeader>
+                <TableHeader>Amount</TableHeader>
+                <TableHeader>Payment Method</TableHeader>
+                <TableHeader>Has Refund</TableHeader>
+                <TableHeader>Refund</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Approved By</TableHeader>
+                <TableHeader>Final Approved By</TableHeader>
+                <TableHeader>Refund Approved By</TableHeader>
+                <TableHeader>Created By</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
+                    <LoadingSpinnerContainer>
+                      <Spinner />
+                      <span>Loading records...</span>
+                    </LoadingSpinnerContainer>
+                  </TableCell>
+                </TableRow>
+              ) : filteredRecords.length > 0 ? (
+                filteredRecords.map((record, index) => (
+                  <TableRow key={`${record.id}-${record.date}-${record.amount}-${index}`}>
+                    <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>
+                      {index + 1}
                     </TableCell>
+                    <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>
+                      {record.date}
+                    </TableCell>
+                    <TableCell className="frozen-col frozen-col-2">{record.ip_op_type}</TableCell>
+                    <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
+                    <TableCell className="frozen-col frozen-col-4">{record.patient_name}</TableCell>
+                    <TableCell>{record.mobile_number}</TableCell>
+                    <TableCell style={{ wordWrap: "break-word", whiteSpace: "normal", maxWidth: "200px", minWidth: "150px" }}>
+                      {record.doctor_name}
+                    </TableCell>
+                    <TableCell>{record.company_name}</TableCell>
+                    <TableCell>{record.treatment}</TableCell>
+                    <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                    <TableCell>{record.payment_method}</TableCell>
+                    <TableCell>
+                      <StatusBadge color={record.has_refund ? "#4caf50" : "#f44336"}>
+                        {record.has_refund ? "Yes" : "No"}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <StatusBadge color={getStatusColor(record.status)}>
+                        {record.status || "Pending"}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>{record.approved_by_name || "-"}</TableCell>
+                    <TableCell>{record.final_approved_by_name || "-"}</TableCell>
+                    <TableCell>{record.refund_approved_by_name || "-"}</TableCell>
+                    <TableCell>{record.created_by_name || "-"}</TableCell>
                   </TableRow>
-                )}
-              </tbody>
-              {filteredRecords.length > 0 && (
-                <tfoot>
-                  <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                    <TableCell className="frozen-col frozen-col-0"></TableCell>
-                    <TableCell className="frozen-col frozen-col-1" colSpan="4" style={{ textAlign: "right" }}>
-                      GRAND TOTAL:
-                    </TableCell>
-                    <TableCell colSpan="4"></TableCell>
-                    <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                    <TableCell colSpan="5"></TableCell>
-                  </tr>
-                </tfoot>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
+                    No records found matching the current filters
+                  </TableCell>
+                </TableRow>
               )}
-            </Table>
-          </ScrollableTableContainer>
-        </ResponsiveTableWrapper>
+            </tbody>
+            {filteredRecords.length > 0 && (
+              <tfoot>
+                <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                  <TableCell className="frozen-col frozen-col-0"></TableCell>
+                  <TableCell className="frozen-col frozen-col-1" colSpan="4" style={{ textAlign: "right" }}>
+                    GRAND TOTAL:
+                  </TableCell>
+                  <TableCell colSpan="4"></TableCell>
+                  <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                  <TableCell colSpan="5"></TableCell>
+                </tr>
+              </tfoot>
+            )}
+          </Table>
+        </ScrollableTableContainer>
 
-        <style jsx global>{`
-          .frozen-columns-table { position: relative; }
-          .frozen-col { position: sticky !important; background-color: white; z-index: 10; }
+        <style>{`
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
+          .frozen-col { position: sticky !important; z-index: 10; background-color: #ffffff; outline: 1px solid #b0c4be; }
           .frozen-col-0 { left: 0px; min-width: 60px; text-align: center; }
           .frozen-col-1 { left: 60px; min-width: 110px; }
           .frozen-col-2 { left: 170px; min-width: 150px; }
           .frozen-col-3 { left: 320px; min-width: 120px; }
-          .frozen-col-4 { left: 440px; min-width: 130px; border-right: 2px solid #ddd; }
-          .frozen-col-4::after {
-            content: '';
-            position: absolute;
-            top: 0; right: -10px; bottom: 0;
-            width: 10px;
-            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-            pointer-events: none;
-          }
-          thead tr th { position: sticky !important; top: 0; z-index: 11; }
-          thead .frozen-col { background-color: #6F8B83; position: sticky !important; top: 0; z-index: 20 !important; }
-          tfoot .frozen-col { background-color: #f8f9fa; }
-          tbody tr:hover .frozen-col { background-color: #f5f5f5; }
+          .frozen-col-4 { left: 440px; min-width: 130px; box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15); }
+          thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; }
+          thead .frozen-col { background-color: #6F8B83 !important; color: #fff; position: sticky !important; top: 0; z-index: 20 !important; outline: 1px solid #9aaea9; }
+          tfoot .frozen-col { background-color: #f8f9fa !important; }
+          tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+          tbody tr:nth-child(odd) .frozen-col { background-color: #ffffff; }
+          tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
           .date-picker-popper { z-index: 9999 !important; }
           .react-datepicker-popper { z-index: 9999 !important; }
           .react-datepicker { z-index: 9999 !important; }

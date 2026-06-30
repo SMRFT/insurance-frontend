@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import * as XLSX from "xlsx"
+import { Eye, FileDown, Search, Filter } from "lucide-react"
 import {
   FilterWrapper,
   Container,
@@ -13,21 +14,26 @@ import {
   Button,
   SearchWrapper,
   SearchInput,
-  ResultsInfo,
   BlinkingLight,
   FilterContainer,
   ScrollableTableContainer,
   StyledDatePicker,
-  ReportContainer
+  ReportContainer,
+  Spinner,
+  LoadingSpinnerContainer,
+  EmptyStateContainer,
+  EmptyStateTitle,
+  EmptyStateText,
+  IconButton,
+  ResultsInfo,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
 
-const primaryColor = "#6F8B83"
-const accentColor = "#9aaea9"
+const primaryColor = "#4E7B6F"
 
 const InsuranceReport = () => {
   const [insuranceData, setInsuranceData] = useState([])
-  const [filteredData, setFilteredData] = useState([])
+  const [loading, setLoading] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState("")
   const [fromDate, setFromDate] = useState(new Date())
   const [toDate, setToDate] = useState(new Date())
@@ -36,11 +42,8 @@ const InsuranceReport = () => {
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
-  useEffect(() => {
-    fetchData()
-  }, [selectedCompany, fromDate, toDate, searchField, searchValue])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true)
     try {
       const params = new URLSearchParams()
       if (selectedCompany) params.append("companyName", selectedCompany)
@@ -52,22 +55,25 @@ const InsuranceReport = () => {
 
       if (result.success) {
         setInsuranceData(result.data)
-        setFilteredData(applyLocalFilters(result.data))
       } else {
         console.error("API error fetching data:", result.error)
         setInsuranceData([])
-        setFilteredData([])
       }
     } catch (error) {
       console.error("Unexpected error:", error)
       setInsuranceData([])
-      setFilteredData([])
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [selectedCompany, fromDate, toDate, Insurancebaseurl])
 
-  const applyLocalFilters = (data) => {
-    if (!searchField || !searchValue) return data
-    return data.filter((item) => {
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const filteredData = useMemo(() => {
+    if (!searchField || !searchValue) return insuranceData
+    return insuranceData.filter((item) => {
       const fieldValue = item[searchField]
       if (searchValue.toLowerCase() === "n/a") {
         return !fieldValue || fieldValue === "" || fieldValue === "N/A"
@@ -80,7 +86,7 @@ const InsuranceReport = () => {
       }
       return false
     })
-  }
+  }, [insuranceData, searchField, searchValue])
 
   const handleCompanyFilterChange  = (e) => setSelectedCompany(e.target.value)
   const handleFromDateChange        = (date) => setFromDate(date)
@@ -124,13 +130,25 @@ const InsuranceReport = () => {
   return (
     <ReportContainer>
       <Container>
-        <Title>Insurance Report</Title>
 
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexShrink: 0, flexWrap: 'wrap', gap: '10px' }}>
+          <Title style={{ margin: 0, textAlign: 'left' }}>Insurance Report</Title>
+          <Button onClick={exportToExcel} style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' }}>
+            <FileDown size={15} />
+            Export to Excel
+          </Button>
+        </div>
+
+        {/* ── Filters ── */}
         <FilterContainer>
           <FilterWrapper>
-            <Label htmlFor="companyName">Filter by Company:</Label>
+            <Label htmlFor="companyName">
+              <Filter size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Company
+            </Label>
             <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-              <option value="">Select Company</option>
+              <option value="">All Companies</option>
               <option value="General Insurance">General Insurance</option>
               <option value="ECHS">ECHS</option>
               <option value="ESI">ESI</option>
@@ -144,7 +162,7 @@ const InsuranceReport = () => {
           </FilterWrapper>
 
           <FilterWrapper>
-            <Label>From Date:</Label>
+            <Label>From Date</Label>
             <StyledDatePicker
               selected={fromDate}
               onChange={handleFromDateChange}
@@ -156,7 +174,7 @@ const InsuranceReport = () => {
           </FilterWrapper>
 
           <FilterWrapper>
-            <Label>To Date:</Label>
+            <Label>To Date</Label>
             <StyledDatePicker
               selected={toDate}
               onChange={handleToDateChange}
@@ -169,9 +187,12 @@ const InsuranceReport = () => {
           </FilterWrapper>
 
           <FilterWrapper>
-            <Label>Search by:</Label>
+            <Label>
+              <Search size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Search By
+            </Label>
             <FormControl value={searchField} onChange={handleSearchFieldChange}>
-              <option value="">Select Search Field</option>
+              <option value="">Select Field</option>
               <option value="billNumber">Bill Number</option>
               <option value="ipNumber">IP Number</option>
               <option value="opNumber">OP Number</option>
@@ -182,7 +203,7 @@ const InsuranceReport = () => {
 
           {searchField && (
             <SearchWrapper>
-              <Label>Search Value:</Label>
+              <Label>Search Value</Label>
               <SearchInput
                 type={searchField === "dateOfDischarge" ? "date" : "text"}
                 value={searchValue}
@@ -191,16 +212,15 @@ const InsuranceReport = () => {
               />
             </SearchWrapper>
           )}
-
-          <FilterWrapper>
-            <Button onClick={exportToExcel}>Export to Excel</Button>
-          </FilterWrapper>
         </FilterContainer>
 
-        <ResultsInfo>Showing {filteredData.length} result(s)</ResultsInfo>
+        {/* ── Results count ── */}
+        <ResultsInfo>
+          Showing <strong>{filteredData.length}</strong> record{filteredData.length !== 1 ? 's' : ''}
+        </ResultsInfo>
 
-        {/* Single scroll container — no double-wrapper */}
-        <ScrollableTableContainer>
+        {/* ── Table ── */}
+        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
           <Table className="frozen-columns-table">
             <thead>
               <tr>
@@ -232,11 +252,20 @@ const InsuranceReport = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredData.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="23" style={{ padding: 0 }}>
+                    <LoadingSpinnerContainer>
+                      <Spinner />
+                      <span>Loading report data...</span>
+                    </LoadingSpinnerContainer>
+                  </td>
+                </tr>
+              ) : filteredData.length > 0 ? (
                 filteredData.map((item, index) => (
                   <TableRow key={index}>
                     {/* ── Frozen cols ── */}
-                    <TableCell className="frozen-col frozen-col-0" style={{ textAlign: "center" }}>{index + 1}</TableCell>
+                    <TableCell className="frozen-col frozen-col-0">{index + 1}</TableCell>
                     <TableCell className="frozen-col frozen-col-1">{item.patient_uhid || "N/A"}</TableCell>
                     <TableCell className="frozen-col frozen-col-2">{item.patient_name || "N/A"}</TableCell>
                     {/* ── Scrollable cols ── */}
@@ -246,15 +275,23 @@ const InsuranceReport = () => {
                     <TableCell>{item.billNumber || "N/A"}</TableCell>
                     <TableCell>{item.billAmount || "N/A"}</TableCell>
                     <TableCell>
-                      {item.billingFile && <Button onClick={() => handleViewFile(item.billingFile)}>View</Button>}
+                      {item.billingFile ? (
+                        <IconButton onClick={() => handleViewFile(item.billingFile)}>
+                          <Eye size={13} /> View
+                        </IconButton>
+                      ) : "—"}
                     </TableCell>
                     <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
-                    <TableCell style={{ whiteSpace: "nowrap" }}>
+                    <TableCell>
                       {item.submissionStatus === "Physical" && <BlinkingLight />}
                     </TableCell>
                     <TableCell>{item.submissionStatus || "N/A"}</TableCell>
                     <TableCell>
-                      {item.queryUpload && <Button onClick={() => handleViewFile(item.queryUpload)}>View</Button>}
+                      {item.queryUpload ? (
+                        <IconButton onClick={() => handleViewFile(item.queryUpload)}>
+                          <Eye size={13} /> View
+                        </IconButton>
+                      ) : "—"}
                     </TableCell>
                     <TableCell>{item.approvalAmount || "N/A"}</TableCell>
                     <TableCell>{item.claimId || "N/A"}</TableCell>
@@ -269,58 +306,34 @@ const InsuranceReport = () => {
                   </TableRow>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan="23" style={{ textAlign: "center", padding: "20px" }}>
-                    No records found matching the current filters
-                  </TableCell>
-                </TableRow>
+                <tr>
+                  <td colSpan="23" style={{ padding: 0 }}>
+                    <EmptyStateContainer>
+                      <Search size={40} strokeWidth={1.2} />
+                      <EmptyStateTitle>No Records Found</EmptyStateTitle>
+                      <EmptyStateText>
+                        No insurance records match the selected filters. Try changing the date range, company, or search field.
+                      </EmptyStateText>
+                    </EmptyStateContainer>
+                  </td>
+                </tr>
               )}
             </tbody>
           </Table>
         </ScrollableTableContainer>
 
-        <style jsx global>{`
-          /* ── Frozen column positions ─────────────────────────────── */
-          .frozen-columns-table { position: relative; }
-
-          .frozen-col {
-            position: sticky !important;
-            background-color: white;
-            z-index: 10;
-          }
-
-          /* Col 0 — S.No */
-          .frozen-col-0 { left: 0px;   min-width: 60px;  text-align: center; }
-
-          /* Col 1 — Patient UHID */
-          .frozen-col-1 { left: 60px;  min-width: 130px; }
-
-          /* Col 2 — Patient Name (last frozen — shadow divider) */
-          .frozen-col-2 {
-            left: 190px;
-            min-width: 140px;
-            border-right: 2px solid #ddd;
-          }
-          .frozen-col-2::after {
-            content: '';
-            position: absolute;
-            top: 0; right: -10px; bottom: 0;
-            width: 10px;
-            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-            pointer-events: none;
-          }
-
-          /* ── Sticky header ───────────────────────────────────────── */
-          thead tr th       { position: sticky !important; top: 0; z-index: 11; }
-          thead .frozen-col { background-color: #6F8B83; position: sticky !important; top: 0; z-index: 20 !important; }
-
-          /* ── Hover keeps frozen cols highlighted ─────────────────── */
-          tbody tr:hover .frozen-col { background-color: rgba(111, 139, 131, 0.2); }
-
-          /* ── DatePicker z-index ──────────────────────────────────── */
-          .date-picker-popper      { z-index: 9999 !important; }
-          .react-datepicker-popper { z-index: 9999 !important; }
-          .react-datepicker        { z-index: 9999 !important; }
+        <style>{`
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
+          .frozen-col { position: sticky !important; z-index: 10; background-color: #ffffff; outline: 1px solid #c8d8d4; }
+          .frozen-col-0 { left: 0px;   min-width: 55px;  text-align: center; }
+          .frozen-col-1 { left: 55px;  min-width: 130px; }
+          .frozen-col-2 { left: 185px; min-width: 140px; box-shadow: 4px 0 8px -2px rgba(0,0,0,0.12); }
+          thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: ${primaryColor}; }
+          thead .frozen-col { background-color: ${primaryColor} !important; color: #fff; top: 0; z-index: 20 !important; outline: 1px solid #3A5C52; }
+          tbody tr:nth-child(even) .frozen-col { background-color: #f5f8f7; }
+          tbody tr:nth-child(odd)  .frozen-col { background-color: #ffffff; }
+          tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
+          .date-picker-popper, .react-datepicker-popper, .react-datepicker { z-index: 9999 !important; }
         `}</style>
       </Container>
     </ReportContainer>

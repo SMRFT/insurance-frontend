@@ -46,7 +46,6 @@ function EnquiryForm() {
         const result = await apiRequest(`${Insurancebaseurl}get_insurance_companies/`)
         if (result.success) {
           setInsuranceCompanies(result.data)
-          toast.success("Insurance companies loaded successfully!")
         } else {
           console.error("Error fetching insurance companies:", result.error)
           toast.error("Failed to load insurance companies")
@@ -88,7 +87,6 @@ function EnquiryForm() {
         }
       })
       setFormData(newFormData)
-      toast.success("Form loaded for editing")
     }
   }, [formDataFromUpdate])
 

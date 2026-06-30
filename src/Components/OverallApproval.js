@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import {
   ReportContainer,
   Title,
@@ -24,6 +24,8 @@ import {
   SearchInput,
   StyledDatePicker,
   ScrollableTableContainer,
+  Spinner,
+  LoadingSpinnerContainer,
 } from "./SharedStyledComponents"
 
 import apiRequest from "./ApiRequest"
@@ -46,7 +48,6 @@ const DatePickerWrapper = styled(FilterWrapper)`
 
 const OverallApproval = () => {
   const [records, setRecords] = useState([])
-  const [groupedRecords, setGroupedRecords] = useState({})
   const [loading, setLoading] = useState(false)
   const [approving, setApproving] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -60,10 +61,6 @@ const OverallApproval = () => {
   useEffect(() => {
     fetchRecords()
   }, [fromDate, toDate])
-
-  useEffect(() => {
-    groupRecordsByDate()
-  }, [records, searchTerm, selectedRecords, selectedCompany])
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -89,7 +86,7 @@ const OverallApproval = () => {
     }
   }
 
-  const groupRecordsByDate = () => {
+  const groupedRecords = useMemo(() => {
     const grouped = {}
 
     records.forEach((record) => {
@@ -118,8 +115,8 @@ const OverallApproval = () => {
         sortedGrouped[date] = grouped[date]
       })
 
-    setGroupedRecords(sortedGrouped)
-  }
+    return sortedGrouped
+  }, [records, searchTerm, selectedCompany])
 
   const handleSelectRecord = (recordId) => {
     const newSelected = new Set(selectedRecords)
@@ -289,7 +286,10 @@ const OverallApproval = () => {
         </InfoText>
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
+          <LoadingSpinnerContainer>
+            <Spinner />
+            <span>Loading pending approvals...</span>
+          </LoadingSpinnerContainer>
         ) : Object.keys(groupedRecords).length > 0 ? (
           <>
             {Object.entries(groupedRecords).map(([date, dateRecords]) => {
@@ -324,12 +324,11 @@ const OverallApproval = () => {
                     />
                   </div>
 
-                  <ResponsiveTableWrapper>
-                    <ScrollableTableContainer>
-                      <Table>
+                  <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+                      <Table className="frozen-columns-table">
                         <thead>
                           <tr>
-                            <TableHeader style={{ width: '40px' }}>
+                            <TableHeader style={{ width: '40px' }} className="frozen-col frozen-col-0">
                               <input
                                 type="checkbox"
                                 checked={allDateRecordsSelected && dateRecords.length > 0}
@@ -337,8 +336,8 @@ const OverallApproval = () => {
                                 style={{ cursor: 'pointer' }}
                               />
                             </TableHeader>
-                            <TableHeader>Patient Name</TableHeader>
-                            <TableHeader>UHID</TableHeader>
+                            <TableHeader className="frozen-col frozen-col-1">Patient Name</TableHeader>
+                            <TableHeader className="frozen-col frozen-col-2">UHID</TableHeader>
                             <TableHeader>Mobile</TableHeader>
                             <TableHeader style={{ minWidth: '160px' }}>Doctor</TableHeader>
                             <TableHeader>Company</TableHeader>
@@ -358,7 +357,7 @@ const OverallApproval = () => {
 
                             return (
                               <TableRow key={`${recordId}-${index}`}>
-                                <TableCell style={{ textAlign: 'center' }}>
+                                <TableCell style={{ textAlign: 'center' }} className="frozen-col frozen-col-0">
                                   <input
                                     type="checkbox"
                                     checked={selectedRecords.has(recordId)}
@@ -366,8 +365,8 @@ const OverallApproval = () => {
                                     style={{ cursor: 'pointer' }}
                                   />
                                 </TableCell>
-                                <TableCell>{record.patient_name}</TableCell>
-                                <TableCell>{record.patient_uhid}</TableCell>
+                                <TableCell className="frozen-col frozen-col-1">{record.patient_name}</TableCell>
+                                <TableCell className="frozen-col frozen-col-2">{record.patient_uhid}</TableCell>
                                 <TableCell>{record.mobile_number}</TableCell>
                                 <TableCell style={{
                                   wordWrap: 'break-word',
@@ -399,7 +398,6 @@ const OverallApproval = () => {
                         </tbody>
                       </Table>
                     </ScrollableTableContainer>
-                  </ResponsiveTableWrapper>
                 </div>
               )
             })}
@@ -422,6 +420,18 @@ const OverallApproval = () => {
           </div>
         )}
       </Container>
+      <style>{`
+        .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
+        .frozen-col { position: sticky !important; z-index: 10; background-color: #ffffff; outline: 1px solid #b0c4be; }
+        .frozen-col-0 { left: 0px; min-width: 40px; text-align: center; }
+        .frozen-col-1 { left: 40px; min-width: 150px; }
+        .frozen-col-2 { left: 190px; min-width: 100px; box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15); }
+        thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; }
+        thead .frozen-col { background-color: #6F8B83 !important; color: #fff; position: sticky !important; top: 0; z-index: 20 !important; outline: 1px solid #9aaea9; }
+        tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+        tbody tr:nth-child(odd) .frozen-col { background-color: #ffffff; }
+        tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
+      `}</style>
     </ReportContainer>
   )
 }

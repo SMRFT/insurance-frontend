@@ -1,13 +1,183 @@
+/* ── Google Fonts ─────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+/* ── Design Tokens ────────────────────────────────────────────────────── */
+:root {
+  /* Brand Colors */
+  --color-primary:        #4E7B6F;
+  --color-primary-light:  #6F8B83;
+  --color-primary-dark:   #3A5C52;
+  --color-primary-50:     #E8F0EE;
+  --color-primary-100:    #D0E2DE;
+  --color-accent:         #9AB3AB;
+  --color-accent-light:   #C4D4CF;
+
+  /* Semantic Colors */
+  --color-success:        #16A34A;
+  --color-success-bg:     #DCFCE7;
+  --color-warning:        #D97706;
+  --color-warning-bg:     #FEF3C7;
+  --color-danger:         #DC2626;
+  --color-danger-bg:      #FEE2E2;
+  --color-info:           #0284C7;
+  --color-info-bg:        #E0F2FE;
+
+  /* Neutral / Surface */
+  --color-surface:        #FFFFFF;
+  --color-surface-alt:    #F5F8F7;
+  --color-surface-raised: #FFFFFF;
+  --color-bg:             #EDF2F0;
+  --color-border:         #DDE6E3;
+  --color-border-light:   #EEF3F1;
+
+  /* Text */
+  --color-text-primary:   #1A2E2B;
+  --color-text-secondary: #4A6660;
+  --color-text-muted:     #7A9A93;
+  --color-text-inverse:   #FFFFFF;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Border Radius */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-xs:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-xl:  0 16px 48px rgba(0,0,0,0.14), 0 6px 16px rgba(0,0,0,0.08);
+
+  /* Transitions */
+  --transition-fast:   0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow:   0.4s ease;
+
+  /* Font */
+  --font-sans: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Fira Code', 'Courier New', monospace;
+}
+
+/* ── Global Reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.6;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: var(--font-mono);
+}
+
+/* ── Global Scrollbar Styling ─────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent-light) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-accent-light);
+  border-radius: var(--radius-full);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* ── Focus Ring ───────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Frozen Column Styles ─────────────────────────────────────────────── */
+/* Each component owns its own frozen-col offsets, but shared rules live here */
+
+/* ── DatePicker Global Override ───────────────────────────────────────── */
+.date-picker-popper,
+.react-datepicker-popper,
+.react-datepicker {
+  z-index: 9999 !important;
+}
+
+.react-datepicker {
+  font-family: var(--font-sans) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--color-primary) !important;
+  border-bottom: none !important;
+  border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: white !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--color-primary) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: var(--color-primary-50) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ── Toast Override ───────────────────────────────────────────────────── */
+.react-hot-toast {
+  font-family: var(--font-sans) !important;
+}
+
+/* ── Utility Classes ──────────────────────────────────────────────────── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

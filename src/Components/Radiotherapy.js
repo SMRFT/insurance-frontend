@@ -447,12 +447,12 @@ const RadiotherapyReport = () => {
           </FilterWrapper>
         </FilterContainer>
 
-        <ScrollableTableContainer>
-          <Table>
+        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+          <Table className="frozen-columns-table">
             <thead>
               <tr>
-                <TableHeader>Patient UHID</TableHeader>
-                <TableHeader>Patient Name</TableHeader>
+                <TableHeader className="frozen-col frozen-col-0">Patient UHID</TableHeader>
+                <TableHeader className="frozen-col frozen-col-1">Patient Name</TableHeader>
                 <TableHeader>Bill Number</TableHeader>
                 <TableHeader>Bill Date</TableHeader>
                 <TableHeader>Company Name</TableHeader>
@@ -465,10 +465,10 @@ const RadiotherapyReport = () => {
             </thead>
             <tbody>
               {filteredData.map((item) => (
-                <TableRow key={item.billNumber}>
-                  <TableCell>{item.patient_uhid || "N/A"}</TableCell>
-                  <TableCell>{item.patient_name || "N/A"}</TableCell>
-                  <TableCell>{item.billNumber || "N/A"}</TableCell>
+                  <TableRow key={item.billNumber}>
+                    <TableCell className="frozen-col frozen-col-0">{item.patient_uhid || "N/A"}</TableCell>
+                    <TableCell className="frozen-col frozen-col-1">{item.patient_name || "N/A"}</TableCell>
+                    <TableCell>{item.billNumber || "N/A"}</TableCell>
                   <TableCell>{formatDate(item.billDate)}</TableCell>
                   <TableCell>{item.companyName || "N/A"}</TableCell>
                   <TableCell>{item.radiotherapyCycles || "N/A"}</TableCell>
@@ -639,7 +639,16 @@ const RadiotherapyReport = () => {
           </>
         )}
 
-        <style jsx global>{`
+        <style>{`
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
+          .frozen-col { position: sticky !important; z-index: 10; background-color: #ffffff; outline: 1px solid #b0c4be; }
+          .frozen-col-0 { left: 0px; min-width: 100px; text-align: center; }
+          .frozen-col-1 { left: 100px; min-width: 150px; box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15); }
+          thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; color: white; }
+          thead .frozen-col { background-color: #6F8B83 !important; color: #fff; position: sticky !important; top: 0; z-index: 20 !important; outline: 1px solid #9aaea9; }
+          tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+          tbody tr:nth-child(odd) .frozen-col { background-color: #ffffff; }
+          tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
           .date-picker-popper      { z-index: 9999 !important; }
           .react-datepicker-popper { z-index: 9999 !important; }
           .react-datepicker        { z-index: 9999 !important; }

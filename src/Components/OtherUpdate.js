@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   FormWrapper,
@@ -36,7 +36,6 @@ import toast, { Toaster } from 'react-hot-toast'
 
 const OtherUpdate = () => {
   const [records, setRecords] = useState([])
-  const [filteredRecords, setFilteredRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompany, setSelectedCompany] = useState("")
@@ -50,19 +49,9 @@ const OtherUpdate = () => {
   const STATUS_OPTIONS = ["Pending", "Approved", "Collected"]
 
     // Fetch data when filters change
-  useEffect(() => {
-    fetchRecords()
-  }, [fromDate, toDate])
-
-  useEffect(() => {
-    filterRecords()
-  }, [records, searchTerm, selectedCompany, selectedStatus])
-
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true)
     try {
-
       const url = `${Insurancebaseurl}other_records/`
       const response = await apiRequest(url, "GET", null, {}, { 
         params: { 
@@ -76,29 +65,28 @@ const OtherUpdate = () => {
         response.data.forEach((record) => {
           if (record.payment_details && Array.isArray(record.payment_details) && record.payment_details.length > 0) {
             record.payment_details.forEach((payment) => {
-            processedRecords.push({
-              id: record.id || record._id,
-              original_id: record.id || record._id,
-              date: payment.date
-                ? new Date(payment.date).toLocaleDateString("en-CA")
-                : record.date
-                ? new Date(record.date).toLocaleDateString("en-CA")
-                : "",
-              patient_name: record.patient_name,
-              patient_uhid: record.patient_uhid,
-              mobile_number: record.mobile_number,
-              company_name: record.company_name,
-              treatment: record.treatment,
-              amount: payment.amount,
-              payment_method: payment.payment_method,
-              refund: record.refund || 0,
-              status: record.status || "Pending",
-              is_approved: record.is_approved || false,
-              approved_by_name: record.approved_by_name || "",
-              created_by_name: record.created_by_name || "",
-              originalRecord: record,
-            })
-
+              processedRecords.push({
+                id: record.id || record._id,
+                original_id: record.id || record._id,
+                date: payment.date
+                  ? new Date(payment.date).toLocaleDateString("en-CA")
+                  : record.date
+                  ? new Date(record.date).toLocaleDateString("en-CA")
+                  : "",
+                patient_name: record.patient_name,
+                patient_uhid: record.patient_uhid,
+                mobile_number: record.mobile_number,
+                company_name: record.company_name,
+                treatment: record.treatment,
+                amount: payment.amount,
+                payment_method: payment.payment_method,
+                refund: record.refund || 0,
+                status: record.status || "Pending",
+                is_approved: record.is_approved || false,
+                approved_by_name: record.approved_by_name || "",
+                created_by_name: record.created_by_name || "",
+                originalRecord: record,
+              })
             })
           }
         })
@@ -129,18 +117,14 @@ const OtherUpdate = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fromDate, toDate, Insurancebaseurl])
 
+  // Fetch data when filters change
+  useEffect(() => {
+    fetchRecords()
+  }, [fetchRecords])
 
-  const handleFromDateChange = (date) => {
-    setFromDate(date)
-  }
-
-  const handleToDateChange = (date) => {
-    setToDate(date)
-  }
-
-  const filterRecords = () => {
+  const filteredRecords = useMemo(() => {
     let filtered = [...records]
 
     if (selectedCompany) {
@@ -160,9 +144,19 @@ const OtherUpdate = () => {
           record.treatment?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
+    return filtered
+  }, [records, searchTerm, selectedCompany, selectedStatus])
 
-    setFilteredRecords(filtered)
+
+  const handleFromDateChange = (date) => {
+    setFromDate(date)
   }
+
+  const handleToDateChange = (date) => {
+    setToDate(date)
+  }
+
+
 
   const handleCompanyFilterChange = (event) => {
     setSelectedCompany(event.target.value)
@@ -367,194 +361,141 @@ const getStatusColor = (status) => {
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-          <ResponsiveTableWrapper>
-            <ScrollableTableContainer>
-              <Table className="frozen-columns-table">
-                <thead>
-                  <tr>
-                    <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
-                    <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
-                    <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
-                    <TableHeader>Mobile</TableHeader>
-                    <TableHeader>Company</TableHeader>
-                    <TableHeader>Treatment</TableHeader>
-                    <TableHeader>Amount</TableHeader>
-                    <TableHeader>Payment Method</TableHeader>
-                    <TableHeader>Refund</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Created By</TableHeader>
-                    <TableHeader>Action</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRecords.length > 0 ? (
-                    filteredRecords.map((record, index) => {
-                      const isDropdownDisabled =
-                        record.status === "Gate Pass Issued" ||
-                        record.status === "Final Approved" ||
-                        record.status === "Collected"
+        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+          <Table className="frozen-columns-table">
+            <thead>
+              <tr>
+                <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
+                <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
+                <TableHeader>Mobile</TableHeader>
+                <TableHeader>Company</TableHeader>
+                <TableHeader>Treatment</TableHeader>
+                <TableHeader>Amount</TableHeader>
+                <TableHeader>Payment Method</TableHeader>
+                <TableHeader>Refund</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>Created By</TableHeader>
+                <TableHeader>Action</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRecords.length > 0 ? (
+                filteredRecords.map((record, index) => {
+                  const isDropdownDisabled =
+                    record.status === "Gate Pass Issued" ||
+                    record.status === "Final Approved" ||
+                    record.status === "Collected"
 
-                      return (
-                        <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
-                          <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
-                          <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
-                          <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
-                          <TableCell>{record.mobile_number}</TableCell>
-                          <TableCell>{record.company_name}</TableCell>
-                          <TableCell>{record.treatment}</TableCell>
-                          <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                          <TableCell>{record.payment_method}</TableCell>
-                          <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                          <TableCell>
-                          <StatusBadge color={getStatusColor(record.status)}>
-                            {record.status || "Pending"}
-                          </StatusBadge>                          
-                          </TableCell>
-                          <TableCell>{record.created_by_name || "-"}</TableCell>
-                          <ActionCell>
-                          <ButtonGroup>
-
-                          <StatusSelect
-                            value={record.status}
-                            disabled={isDropdownDisabled}
-                            onChange={(e) => handleStatusChange(record, e.target.value)}
-                            statusColor={getStatusColor(record.status)}
-                          >
-                            {STATUS_OPTIONS.map((status) => {
-                              let isDisabled = false
-
-                              if (record.status === "Pending") {
-                                // From Pending → only Approved
-                                isDisabled = status === "Collected"
-                              } else if (record.status === "Approved") {
-                                // From Approved → Collected or stay Approved
-                                isDisabled = status === "Pending"
-                              } else if (record.status === "Collected") {
-                                // Collected is final
-                                isDisabled = status !== "Collected"
-                              }
-
-                              return (
-                                <option key={status} value={status} disabled={isDisabled}>
-                                  {status}
-                                </option>
-                              )
-                            })}
-                          </StatusSelect>
-
-                              <EditButton onClick={() => handleEdit(record)}>
-                                Edit
-                              </EditButton>
-                            </ButtonGroup>
-                          </ActionCell>
-                        </TableRow>
-                      )
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                        No records found matching the current filters
+                  return (
+                    <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
+                      <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
+                      <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
+                      <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
+                      <TableCell>{record.mobile_number}</TableCell>
+                      <TableCell>{record.company_name}</TableCell>
+                      <TableCell>{record.treatment}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                      <TableCell>{record.payment_method}</TableCell>
+                      <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                      <StatusBadge color={getStatusColor(record.status)}>
+                        {record.status || "Pending"}
+                      </StatusBadge>                          
                       </TableCell>
+                      <TableCell>{record.created_by_name || "-"}</TableCell>
+                      <ActionCell>
+                      <ButtonGroup>
+
+                      <StatusSelect
+                        value={record.status}
+                        disabled={isDropdownDisabled}
+                        onChange={(e) => handleStatusChange(record, e.target.value)}
+                        statusColor={getStatusColor(record.status)}
+                      >
+                        {STATUS_OPTIONS.map((status) => {
+                          let isDisabled = false
+
+                          if (record.status === "Pending") {
+                            // From Pending → only Approved
+                            isDisabled = status === "Collected"
+                          } else if (record.status === "Approved") {
+                            // From Approved → Collected or stay Approved
+                            isDisabled = status === "Pending"
+                          } else if (record.status === "Collected") {
+                            // Collected is final
+                            isDisabled = status !== "Collected"
+                          }
+
+                          return (
+                            <option key={status} value={status} disabled={isDisabled}>
+                              {status}
+                            </option>
+                          )
+                        })}
+                      </StatusSelect>
+
+                          <EditButton onClick={() => handleEdit(record)}>
+                            Edit
+                          </EditButton>
+                        </ButtonGroup>
+                      </ActionCell>
                     </TableRow>
-                  )}
-                </tbody>
-                {filteredRecords.length > 0 && (
-                  <tfoot>
-                    <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                      <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
-                        GRAND TOTAL:
-                      </TableCell>
-                      <TableCell colSpan="3"></TableCell>
-                      <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                    </tr>
-                  </tfoot>
-                )}
-              </Table>
-            </ScrollableTableContainer>
-          </ResponsiveTableWrapper>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                    No records found matching the current filters
+                  </TableCell>
+                </TableRow>
+              )}
+            </tbody>
+            {filteredRecords.length > 0 && (
+              <tfoot>
+                <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                  <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
+                    GRAND TOTAL:
+                  </TableCell>
+                  <TableCell colSpan="3"></TableCell>
+                  <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                </tr>
+              </tfoot>
+            )}
+          </Table>
+        </ScrollableTableContainer>
         )}
 
-      <style jsx global>{`
-        /* Frozen columns styling */
-        .frozen-columns-table {
-          position: relative;
-        }
+      <style>{`
+        /* border-collapse:separate is REQUIRED for position:sticky to paint solid backgrounds */
+        .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
 
         .frozen-col {
           position: sticky !important;
-          background-color: white;
           z-index: 10;
+          background-color: #ffffff;
+          outline: 1px solid #b0c4be;
         }
 
-        .frozen-col-1 {
-          left: 0px;
-          min-width: 110px;
-        }
+        .frozen-col-1 { left: 0px;   min-width: 110px; }
+        .frozen-col-2 { left: 110px; min-width: 150px; }
+        .frozen-col-3 { left: 260px; min-width: 120px; box-shadow: 4px 0 6px -2px rgba(0,0,0,0.15); }
 
-        .frozen-col-2 {
-          left: 110px;
-          min-width: 150px;
-        }
+        thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; }
+        thead .frozen-col { background-color: #6F8B83 !important; color: #fff; position: sticky !important; top: 0; z-index: 20 !important; outline: 1px solid #9aaea9; }
+        tfoot .frozen-col { background-color: #f8f9fa !important; }
+        tbody tr:nth-child(even) .frozen-col { background-color: #f9f9f9; }
+        tbody tr:nth-child(odd)  .frozen-col { background-color: #ffffff; }
+        tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
 
-        .frozen-col-3 {
-          left: 260px;
-          min-width: 120px;
-          border-right: 2px solid #ddd;
-        }
-
-        /* Add shadow effect to frozen columns */
-        .frozen-col-3::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          right: -10px;
-          bottom: 0;
-          width: 10px;
-          background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
-          pointer-events: none;
-        }
-
-        /* Sticky header row — freezes on vertical scroll */
-        thead tr th {
-          position: sticky !important;
-          top: 0;
-          z-index: 11;
-        }
-
-        /* Ensure header frozen columns have darker background + highest z-index */
-        thead .frozen-col {
-          background-color: #6F8B83;
-          position: sticky !important;
-          top: 0;
-          z-index: 20 !important;
-        }
-
-        /* Ensure footer frozen columns match */
-        tfoot .frozen-col {
-          background-color: #f8f9fa;
-        }
-
-        /* Ensure row hover doesn't break frozen column background */
-        tbody tr:hover .frozen-col {
-          background-color: #f5f5f5;
-        }
-
-        .date-picker-popper {
-          z-index: 9999 !important;
-        }
-
-        .react-datepicker-popper {
-          z-index: 9999 !important;
-        }
-
-        .react-datepicker {
-          z-index: 9999 !important;
-        }
+        .date-picker-popper      { z-index: 9999 !important; }
+        .react-datepicker-popper { z-index: 9999 !important; }
+        .react-datepicker        { z-index: 9999 !important; }
       `}</style>
       </Container>
     </ReportContainer>

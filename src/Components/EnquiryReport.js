@@ -341,34 +341,32 @@ function EnquiryDetailPage() {
                         {followUpCount === 0 ? (
                           <div style={cardStyles.noFollowUps}>No follow ups recorded yet.</div>
                         ) : (
-                          <ResponsiveTableWrapper>
-                            <ScrollableTableContainer>
-                              <Table>
-                                <thead>
-                                  <tr>
-                                    <TableHeader style={{ width: "50px" }}>#</TableHeader>
-                                    <TableHeader style={{ width: "150px" }}>Follow Up Date</TableHeader>
-                                    <TableHeader>Notes / Remarks</TableHeader>
-                                    <TableHeader style={{ width: "160px" }}>Added By</TableHeader>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {enquiry.follow_ups.map((fu, fi) => (
-                                    <TableRow key={fu.followup_id ?? fi}>
-                                      <TableCell style={{ textAlign: "center" }}>{fi + 1}</TableCell>
-                                      <TableCell style={{ whiteSpace: "nowrap" }}>{fu.followup_date || "—"}</TableCell>
-                                      <TableCell>{fu.followup_Remarks || "—"}</TableCell>
-                                      <TableCell>
-                                        {fu.created_by_name
-                                          ? <span style={cardStyles.badge("#f0f7f5", primaryColor)}>👤 {fu.created_by_name}</span>
-                                          : "—"}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </tbody>
-                              </Table>
-                            </ScrollableTableContainer>
-                          </ResponsiveTableWrapper>
+                          <ScrollableTableContainer>
+                            <Table className="frozen-columns-table">
+                              <thead>
+                                <tr>
+                                  <TableHeader style={{ width: "50px" }}>#</TableHeader>
+                                  <TableHeader style={{ width: "150px" }}>Follow Up Date</TableHeader>
+                                  <TableHeader>Notes / Remarks</TableHeader>
+                                  <TableHeader style={{ width: "160px" }}>Added By</TableHeader>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {enquiry.follow_ups.map((fu, fi) => (
+                                  <TableRow key={fu.followup_id ?? fi}>
+                                    <TableCell style={{ textAlign: "center" }}>{fi + 1}</TableCell>
+                                    <TableCell style={{ whiteSpace: "nowrap" }}>{fu.followup_date || "—"}</TableCell>
+                                    <TableCell>{fu.followup_Remarks || "—"}</TableCell>
+                                    <TableCell>
+                                      {fu.created_by_name
+                                        ? <span style={cardStyles.badge("#f0f7f5", "#6F8B83")}>👤 {fu.created_by_name}</span>
+                                        : "—"}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </tbody>
+                            </Table>
+                          </ScrollableTableContainer>
                         )}
                       </div>
                     )}
@@ -379,7 +377,9 @@ function EnquiryDetailPage() {
           )}
         </PageScrollArea>
 
-        <style jsx global>{`
+        <style>{`
+          .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
+          thead tr th { position: sticky !important; top: 0; z-index: 11; background-color: #6F8B83; color: white; }
           .date-picker-popper, .react-datepicker-popper, .react-datepicker { z-index: 9999 !important; }
         `}</style>
       </Container>

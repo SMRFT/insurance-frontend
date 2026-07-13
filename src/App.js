@@ -17,6 +17,10 @@ const RefundApproval = lazy(() => import("./Components/RefundApproval"));
 const EnquiryForm = lazy(() => import("./Components/EnquiryForm"));
 const EnquiryList = lazy(() => import("./Components/EnquiryList"));
 const EnquiryDetailPage = lazy(() => import("./Components/EnquiryReport"));
+const RTForm = lazy(() => import("./Components/RTForm"));
+const ChemoForm = lazy(() => import("./Components/ChemoForm"));
+const RTReport = lazy(() => import("./Components/RTReport"));
+const ChemoReport = lazy(() => import("./Components/ChemoReport"));
 
 function AppContent() {
   const location = useLocation();
@@ -39,6 +43,12 @@ function AppContent() {
         break;
       case "Insurance Super Admin":
         navigate("/");
+        break;
+      case "RT Staff":
+        navigate("/RTForm");
+        break;
+      case "Chemo Staff":
+        navigate("/ChemoForm");
         break;
       default:
         navigate("/");
@@ -138,6 +148,10 @@ function AppContent() {
                 <Route path="/RadiotherapyReport" element={<RadiotherapyReport />} />
                 <Route path="/EnquiryForm" element={<EnquiryForm />} />
                 <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
+                <Route path="/RTReport" element={<RTReport />} />
+                <Route path="/ChemoReport" element={<ChemoReport />} />
+                <Route path="/RTForm" element={<RTForm />} />
+                <Route path="/ChemoForm" element={<ChemoForm />} />
               </>
             )}
 
@@ -147,6 +161,8 @@ function AppContent() {
                 <Route path="/" element={<OtherReport />} />
                 <Route path="/InsuranceReport" element={<InsuranceReport />} />
                 <Route path="/OtherReport" element={<OtherReport />} />
+                <Route path="/RTReport" element={<RTReport />} />
+                <Route path="/ChemoReport" element={<ChemoReport />} />
               </>
             )}
 
@@ -164,6 +180,8 @@ function AppContent() {
                 <Route path="/OverallApproval" element={<OverallApproval />} />
                 <Route path="/RefundApproval" element={<RefundApproval />} />
                 <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
+                <Route path="/RTReport" element={<RTReport />} />
+                <Route path="/ChemoReport" element={<ChemoReport />} />
               </>
             )}
 
@@ -173,6 +191,24 @@ function AppContent() {
                 <Route path="/" element={<EnquiryList />} />
                 <Route path="/EnquiryList" element={<EnquiryList />} />
                 <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
+              </>
+            )}
+
+            {/* RT Staff Routes */}
+            {role === "RT Staff" && (
+              <>
+                <Route path="/" element={<RTForm />} />
+                <Route path="/RTForm" element={<RTForm />} />
+                <Route path="/RTReport" element={<RTReport />} />
+              </>
+            )}
+
+            {/* Chemo Staff Routes */}
+            {role === "Chemo Staff" && (
+              <>
+                <Route path="/" element={<ChemoForm />} />
+                <Route path="/ChemoForm" element={<ChemoForm />} />
+                <Route path="/ChemoReport" element={<ChemoReport />} />
               </>
             )}
 
@@ -210,6 +246,12 @@ function AppContent() {
                   path="/EnquiryDetailPage"
                   element={<EnquiryDetailPage />}
                 />
+                
+                {/* RT and Chemo */}
+                <Route path="/RTForm" element={<RTForm />} />
+                <Route path="/ChemoForm" element={<ChemoForm />} />
+                <Route path="/RTReport" element={<RTReport />} />
+                <Route path="/ChemoReport" element={<ChemoReport />} />
               </>
             )}
 

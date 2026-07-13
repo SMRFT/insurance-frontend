@@ -471,6 +471,8 @@ function Sidebar({ userRole }) {
               { path: "/InsuranceReport",   label: "Insurance Report",   icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
               { path: "/OtherReport",       label: "Other Report",       icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
               { path: "/RadiotherapyReport",label: "Radiotherapy Report",icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/RTReport",          label: "RT Report",          icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/ChemoReport",       label: "Chemo Report",       icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
             ]
           },
           {
@@ -489,6 +491,8 @@ function Sidebar({ userRole }) {
             items: [
               { path: "/InsuranceReport", label: "Insurance Report", icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
               { path: "/OtherReport",     label: "Other Report",     icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
+              { path: "/RTReport",        label: "RT Report",        icon: <Stethoscope size={15} />,  color: ICON_COLORS.radiotherapy },
+              { path: "/ChemoReport",     label: "Chemo Report",     icon: <Stethoscope size={15} />,  color: ICON_COLORS.radiotherapy },
             ]
           },
         ];
@@ -515,6 +519,8 @@ function Sidebar({ userRole }) {
               { path: "/InsuranceReport",   label: "Insurance Report",   icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
               { path: "/OtherReport",       label: "Other Report",       icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
               { path: "/RadiotherapyReport",label: "Radiotherapy Report",icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/RTReport",          label: "RT Report",          icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/ChemoReport",       label: "Chemo Report",       icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
             ]
           },
           {
@@ -536,7 +542,39 @@ function Sidebar({ userRole }) {
           },
         ];
 
-        case "Insurance Testing":
+      case "RT Staff":
+        return [
+          {
+            id: "insurance", label: "Insurance Forms",
+            items: [
+              { path: "/RTForm", label: "RT Form", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+            ]
+          },
+          {
+            id: "reports", label: "Reports",
+            items: [
+              { path: "/RTReport", label: "RT Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+            ]
+          }
+        ];
+
+      case "Chemo Staff":
+        return [
+          {
+            id: "insurance", label: "Insurance Forms",
+            items: [
+              { path: "/ChemoForm", label: "Chemo Form", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+            ]
+          },
+          {
+            id: "reports", label: "Reports",
+            items: [
+              { path: "/ChemoReport", label: "Chemo Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+            ]
+          }
+        ];
+
+      case "Insurance Testing":
         return [
           {
             id: "insurance",
@@ -554,6 +592,18 @@ function Sidebar({ userRole }) {
                 icon: <PlusSquare size={15} />,
                 color: ICON_COLORS.otherForm
               },
+              {
+                path: "/RTForm",
+                label: "RT Form",
+                icon: <Stethoscope size={15} />,
+                color: ICON_COLORS.radiotherapy
+              },
+              {
+                path: "/ChemoForm",
+                label: "Chemo Form",
+                icon: <Stethoscope size={15} />,
+                color: ICON_COLORS.radiotherapy
+              }
             ]
           },
 
@@ -620,6 +670,18 @@ function Sidebar({ userRole }) {
               {
                 path: "/RadiotherapyReport",
                 label: "Radiotherapy Report",
+                icon: <Stethoscope size={15} />,
+                color: ICON_COLORS.radiotherapy
+              },
+              {
+                path: "/RTReport",
+                label: "RT Report",
+                icon: <Stethoscope size={15} />,
+                color: ICON_COLORS.radiotherapy
+              },
+              {
+                path: "/ChemoReport",
+                label: "Chemo Report",
                 icon: <Stethoscope size={15} />,
                 color: ICON_COLORS.radiotherapy
               },

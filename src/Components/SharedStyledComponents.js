@@ -4,31 +4,31 @@ import "react-datepicker/dist/react-datepicker.css"
 
 // ── Design Tokens (mirrored from CSS vars for JS usage) ─────────────────
 export const colors = {
-  primary:       '#4E7B6F',
-  primaryLight:  '#6F8B83',
-  primaryDark:   '#3A5C52',
-  primary50:     '#E8F0EE',
-  accent:        '#9AB3AB',
-  accentLight:   '#C4D4CF',
-  surface:       '#FFFFFF',
-  surfaceAlt:    '#F5F8F7',
-  bg:            '#EDF2F0',
-  border:        '#DDE6E3',
-  borderLight:   '#EEF3F1',
-  textPrimary:   '#1A2E2B',
+  primary: '#4E7B6F',
+  primaryLight: '#6F8B83',
+  primaryDark: '#3A5C52',
+  primary50: '#E8F0EE',
+  accent: '#9AB3AB',
+  accentLight: '#C4D4CF',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F5F8F7',
+  bg: '#EDF2F0',
+  border: '#DDE6E3',
+  borderLight: '#EEF3F1',
+  textPrimary: '#1A2E2B',
   textSecondary: '#4A6660',
-  textMuted:     '#7A9A93',
-  success:       '#16A34A',
-  warning:       '#D97706',
-  danger:        '#DC2626',
-  info:          '#0284C7',
+  textMuted: '#7A9A93',
+  success: '#16A34A',
+  warning: '#D97706',
+  danger: '#DC2626',
+  info: '#0284C7',
 }
 
 // Legacy aliases (used internally below)
-const primaryColor     = colors.primary
-const accentColor      = colors.accent
-const backgroundColor  = colors.surfaceAlt
-const textColor        = colors.textPrimary
+const primaryColor = colors.primary
+const accentColor = colors.accent
+const backgroundColor = colors.surfaceAlt
+const textColor = colors.textPrimary
 
 // ── Animations ──────────────────────────────────────────────────────────
 const rotate = keyframes`
@@ -204,6 +204,7 @@ export const FormContainer = styled.div`
   box-shadow: 0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
   width: 100%;
   max-width: 960px;
+  margin: 0 auto;
   box-sizing: border-box;
   border: 1px solid var(--color-border, #DDE6E3);
   animation: ${fadeInUp} 0.35s ease;
@@ -415,6 +416,18 @@ export const ResponsiveButton = styled(Button)`
 `
 
 export const EditButton = styled(Button)`
+  min-width: 36px;
+  padding: 5px 10px;
+  font-size: 12px;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    min-width: 100%;
+    padding: 6px;
+  }
+`
+
+export const ViewButton = styled(Button)`
   min-width: 36px;
   padding: 5px 10px;
   font-size: 12px;
@@ -692,6 +705,10 @@ export const TableCell = styled.td`
 export const ActionCell = styled(TableCell)`
   padding: 7px 8px;
   min-width: 200px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
 
   @media (max-width: 1024px) { min-width: 170px; }
   @media (max-width: 768px)  { min-width: 150px; }

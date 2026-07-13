@@ -48,16 +48,16 @@ const OtherUpdate = () => {
 
   const STATUS_OPTIONS = ["Pending", "Approved", "Collected"]
 
-    // Fetch data when filters change
+  // Fetch data when filters change
   const fetchRecords = useCallback(async () => {
     setLoading(true)
     try {
       const url = `${Insurancebaseurl}other_records/`
-      const response = await apiRequest(url, "GET", null, {}, { 
-        params: { 
-          from_date: fromDate.toLocaleDateString("en-CA"), 
+      const response = await apiRequest(url, "GET", null, {}, {
+        params: {
+          from_date: fromDate.toLocaleDateString("en-CA"),
           to_date: toDate.toLocaleDateString("en-CA")
-        } 
+        }
       })
 
       if (response.success && Array.isArray(response.data)) {
@@ -71,8 +71,8 @@ const OtherUpdate = () => {
                 date: payment.date
                   ? new Date(payment.date).toLocaleDateString("en-CA")
                   : record.date
-                  ? new Date(record.date).toLocaleDateString("en-CA")
-                  : "",
+                    ? new Date(record.date).toLocaleDateString("en-CA")
+                    : "",
                 patient_name: record.patient_name,
                 patient_uhid: record.patient_uhid,
                 mobile_number: record.mobile_number,
@@ -214,7 +214,7 @@ const OtherUpdate = () => {
         // Show toast notification with appropriate message
         const statusMessage = getStatusMessage(record.status, newStatus)
         toast.success(statusMessage)
-        
+
         // Refresh records to get updated data
         fetchRecords()
       } else if (response.error) {
@@ -223,7 +223,7 @@ const OtherUpdate = () => {
       }
     } catch (error) {
       console.error("Error updating status:", error)
-      
+
       // Check if error response has a specific message
       if (error.response && error.response.data && error.response.data.error) {
         toast.error(error.response.data.error)
@@ -232,20 +232,20 @@ const OtherUpdate = () => {
       }
     }
   }
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Pending":
-      return "#f44336"       // red
-    case "Approved":
-      return "#2196f3"       // blue
-    case "Collected":
-      return "#ff9800"       // orange
-    case "Final Approved":
-      return "#f9ee5dfa"     // yellow
-    case "Gate Pass Issued": 
-      return "#4caf50"
-    default: 
-      return "#666"
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending":
+        return "#f44336"       // red
+      case "Approved":
+        return "#2196f3"       // blue
+      case "Collected":
+        return "#ff9800"       // orange
+      case "Final Approved":
+        return "#f9ee5dfa"     // yellow
+      case "Gate Pass Issued":
+        return "#4caf50"
+      default:
+        return "#666"
     }
   }
 
@@ -263,8 +263,8 @@ const getStatusColor = (status) => {
       <Container>
         <Title>Other Records - All Statuses</Title>
 
-      <FilterContainer>
-        <SearchWrapper>
+        <FilterContainer>
+          <SearchWrapper>
             <Label>Search</Label>
             <SearchInput
               type="text"
@@ -274,21 +274,21 @@ const getStatusColor = (status) => {
             />
           </SearchWrapper>
 
-        <FilterWrapper>
-          <Label htmlFor="companyName">Filter by Company:</Label>
-          <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-            <option value="">Select Company</option>
-            <option value="General Insurance">General Insurance</option>
-            <option value="ECHS">ECHS</option>
-            <option value="ESI">ESI</option>
-            <option value="ESIC">ESIC</option>
-            <option value="Railway CTSE">Railway CTSE</option>
-            <option value="TNCM">TNCM</option>
-            <option value="TKT">TKT</option>
-            <option value="FCA">FCA</option>
-            <option value="Airport">Airport</option>
-          </FormControl>
-        </FilterWrapper>
+          <FilterWrapper>
+            <Label htmlFor="companyName">Filter by Company:</Label>
+            <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
+              <option value="">Select Company</option>
+              <option value="General Insurance">General Insurance</option>
+              <option value="ECHS">ECHS</option>
+              <option value="ESI">ESI</option>
+              <option value="ESIC">ESIC</option>
+              <option value="Railway CTSE">Railway CTSE</option>
+              <option value="TNCM">TNCM</option>
+              <option value="TKT">TKT</option>
+              <option value="FCA">FCA</option>
+              <option value="Airport">Airport</option>
+            </FormControl>
+          </FilterWrapper>
 
           <FilterWrapper>
             <Label htmlFor="statusFilter">Filter by Status</Label>
@@ -361,117 +361,117 @@ const getStatusColor = (status) => {
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
         ) : (
-        <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
-          <Table className="frozen-columns-table">
-            <thead>
-              <tr>
-                <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
-                <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
-                <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
-                <TableHeader>Mobile</TableHeader>
-                <TableHeader>Company</TableHeader>
-                <TableHeader>Treatment</TableHeader>
-                <TableHeader>Amount</TableHeader>
-                <TableHeader>Payment Method</TableHeader>
-                <TableHeader>Refund</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader>Created By</TableHeader>
-                <TableHeader>Action</TableHeader>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record, index) => {
-                  const isDropdownDisabled =
-                    record.status === "Gate Pass Issued" ||
-                    record.status === "Final Approved" ||
-                    record.status === "Collected"
-
-                  return (
-                    <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
-                      <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
-                      <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
-                      <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
-                      <TableCell>{record.mobile_number}</TableCell>
-                      <TableCell>{record.company_name}</TableCell>
-                      <TableCell>{record.treatment}</TableCell>
-                      <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
-                      <TableCell>{record.payment_method}</TableCell>
-                      <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
-                      <TableCell>
-                      <StatusBadge color={getStatusColor(record.status)}>
-                        {record.status || "Pending"}
-                      </StatusBadge>                          
-                      </TableCell>
-                      <TableCell>{record.created_by_name || "-"}</TableCell>
-                      <ActionCell>
-                      <ButtonGroup>
-
-                      <StatusSelect
-                        value={record.status}
-                        disabled={isDropdownDisabled}
-                        onChange={(e) => handleStatusChange(record, e.target.value)}
-                        statusColor={getStatusColor(record.status)}
-                      >
-                        {STATUS_OPTIONS.map((status) => {
-                          let isDisabled = false
-
-                          if (record.status === "Pending") {
-                            // From Pending → only Approved
-                            isDisabled = status === "Collected"
-                          } else if (record.status === "Approved") {
-                            // From Approved → Collected or stay Approved
-                            isDisabled = status === "Pending"
-                          } else if (record.status === "Collected") {
-                            // Collected is final
-                            isDisabled = status !== "Collected"
-                          }
-
-                          return (
-                            <option key={status} value={status} disabled={isDisabled}>
-                              {status}
-                            </option>
-                          )
-                        })}
-                      </StatusSelect>
-
-                          <EditButton onClick={() => handleEdit(record)}>
-                            Edit
-                          </EditButton>
-                        </ButtonGroup>
-                      </ActionCell>
-                    </TableRow>
-                  )
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
-                    No records found matching the current filters
-                  </TableCell>
-                </TableRow>
-              )}
-            </tbody>
-            {filteredRecords.length > 0 && (
-              <tfoot>
-                <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-                  <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
-                    GRAND TOTAL:
-                  </TableCell>
-                  <TableCell colSpan="3"></TableCell>
-                  <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                  <TableCell></TableCell>
-                  <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                  <TableCell></TableCell>
-                  <TableCell></TableCell>
-                  <TableCell></TableCell>
+          <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
+            <Table className="frozen-columns-table">
+              <thead>
+                <tr>
+                  <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
+                  <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                  <TableHeader className="frozen-col frozen-col-3">UHID</TableHeader>
+                  <TableHeader>Mobile</TableHeader>
+                  <TableHeader>Company</TableHeader>
+                  <TableHeader>Treatment</TableHeader>
+                  <TableHeader>Amount</TableHeader>
+                  <TableHeader>Payment Method</TableHeader>
+                  <TableHeader>Refund</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader>Created By</TableHeader>
+                  <TableHeader>Action</TableHeader>
                 </tr>
-              </tfoot>
-            )}
-          </Table>
-        </ScrollableTableContainer>
+              </thead>
+              <tbody>
+                {filteredRecords.length > 0 ? (
+                  filteredRecords.map((record, index) => {
+                    const isDropdownDisabled =
+                      record.status === "Gate Pass Issued" ||
+                      record.status === "Final Approved" ||
+                      record.status === "Collected"
+
+                    return (
+                      <TableRow key={`${record.original_id}-${record.date}-${record.amount}-${index}`}>
+                        <TableCell className="frozen-col frozen-col-1" style={{ whiteSpace: "nowrap" }}>{record.date}</TableCell>
+                        <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
+                        <TableCell className="frozen-col frozen-col-3">{record.patient_uhid}</TableCell>
+                        <TableCell>{record.mobile_number}</TableCell>
+                        <TableCell>{record.company_name}</TableCell>
+                        <TableCell>{record.treatment}</TableCell>
+                        <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
+                        <TableCell>{record.payment_method}</TableCell>
+                        <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <StatusBadge color={getStatusColor(record.status)}>
+                            {record.status || "Pending"}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell>{record.created_by_name || "-"}</TableCell>
+                        <ActionCell>
+                          <ButtonGroup>
+
+                            <StatusSelect
+                              value={record.status}
+                              disabled={isDropdownDisabled}
+                              onChange={(e) => handleStatusChange(record, e.target.value)}
+                              statusColor={getStatusColor(record.status)}
+                            >
+                              {STATUS_OPTIONS.map((status) => {
+                                let isDisabled = false
+
+                                if (record.status === "Pending") {
+                                  // From Pending → only Approved
+                                  isDisabled = status === "Collected"
+                                } else if (record.status === "Approved") {
+                                  // From Approved → Collected or stay Approved
+                                  isDisabled = status === "Pending"
+                                } else if (record.status === "Collected") {
+                                  // Collected is final
+                                  isDisabled = status !== "Collected"
+                                }
+
+                                return (
+                                  <option key={status} value={status} disabled={isDisabled}>
+                                    {status}
+                                  </option>
+                                )
+                              })}
+                            </StatusSelect>
+
+                            <EditButton onClick={() => handleEdit(record)}>
+                              Edit
+                            </EditButton>
+                          </ButtonGroup>
+                        </ActionCell>
+                      </TableRow>
+                    )
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan="12" style={{ textAlign: "center", padding: "20px" }}>
+                      No records found matching the current filters
+                    </TableCell>
+                  </TableRow>
+                )}
+              </tbody>
+              {filteredRecords.length > 0 && (
+                <tfoot>
+                  <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
+                    <TableCell className="frozen-col frozen-col-1" colSpan="3" style={{ textAlign: "right" }}>
+                      GRAND TOTAL:
+                    </TableCell>
+                    <TableCell colSpan="3"></TableCell>
+                    <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                  </tr>
+                </tfoot>
+              )}
+            </Table>
+          </ScrollableTableContainer>
         )}
 
-      <style>{`
+        <style>{`
         /* border-collapse:separate is REQUIRED for position:sticky to paint solid backgrounds */
         .frozen-columns-table { border-collapse: separate !important; border-spacing: 0 !important; }
 

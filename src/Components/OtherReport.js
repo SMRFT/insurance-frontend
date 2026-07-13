@@ -163,7 +163,8 @@ const OtherReport = () => {
       "Patient Name",
       "Mobile Number",
       "Doctor Name",
-      "Company Name",
+      "Company",
+      "Provider",
       "Treatment",
       "Amount",
       "Payment Method",
@@ -188,6 +189,7 @@ const OtherReport = () => {
         record.mobile_number || "",
         record.doctor_name || "",
         record.company_name || "",
+        record.specificInsuranceCompany || "",
         record.treatment || "",
         Number.parseFloat(record.amount || 0).toFixed(2),
         record.payment_method || "",
@@ -469,6 +471,7 @@ const OtherReport = () => {
                 <TableHeader>Mobile</TableHeader>
                 <TableHeader style={{ minWidth: "150px" }}>Doctor Name</TableHeader>
                 <TableHeader>Company</TableHeader>
+                <TableHeader>Provider</TableHeader>
                 <TableHeader>Treatment</TableHeader>
                 <TableHeader>Amount</TableHeader>
                 <TableHeader>Payment Method</TableHeader>
@@ -508,6 +511,7 @@ const OtherReport = () => {
                       {record.doctor_name}
                     </TableCell>
                     <TableCell>{record.company_name}</TableCell>
+                    <TableCell>{record.specificInsuranceCompany || "-"}</TableCell>
                     <TableCell>{record.treatment}</TableCell>
                     <TableCell>₹{Number.parseFloat(record.amount || 0).toFixed(2)}</TableCell>
                     <TableCell>{record.payment_method}</TableCell>

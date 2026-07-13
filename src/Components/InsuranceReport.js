@@ -232,6 +232,7 @@ const InsuranceReport = () => {
                 <TableHeader>Date</TableHeader>
                 <TableHeader>IP / OP Number</TableHeader>
                 <TableHeader>Company Name</TableHeader>
+                <TableHeader>Provider</TableHeader>
                 <TableHeader>Bill Number</TableHeader>
                 <TableHeader>Bill Amount</TableHeader>
                 <TableHeader>Billing File</TableHeader>
@@ -272,6 +273,7 @@ const InsuranceReport = () => {
                     <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
                     <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
                     <TableCell>{item.companyName || "N/A"}</TableCell>
+                    <TableCell>{item.specificInsuranceCompany || "N/A"}</TableCell>
                     <TableCell>{item.billNumber || "N/A"}</TableCell>
                     <TableCell>{item.billAmount || "N/A"}</TableCell>
                     <TableCell>

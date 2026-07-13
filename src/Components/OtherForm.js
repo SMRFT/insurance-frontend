@@ -366,13 +366,14 @@ const OtherForm = ({ editData = null, onSuccess }) => {
     ipOpType: "",
     doctorName: "",
     companyName: "",
+    specificInsuranceCompany: "",
     treatment: "",
     hasRefund: false,
     refundAmount: "",
   })
 
   const [paymentEntries, setPaymentEntries] = useState([
-    { id: Date.now(), amount: "", payment_method: "", date: "" },
+    { id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "" },
   ])
 
   const [loading, setLoading] = useState(false)
@@ -426,6 +427,22 @@ const OtherForm = ({ editData = null, onSuccess }) => {
     }
 
     if (Insurancebaseurl) fetchDoctors()
+  }, [Insurancebaseurl])
+
+  // ── Fetch Insurance Companies ──────────────────────────────────────────────────
+  const [insuranceCompanies, setInsuranceCompanies] = useState([])
+  useEffect(() => {
+    const fetchInsuranceCompanies = async () => {
+      try {
+        const result = await apiRequest(`${Insurancebaseurl}get_insurance_companies/`)
+        if (result.success) {
+          setInsuranceCompanies(result.data)
+        }
+      } catch (error) {
+        console.error("Error fetching insurance companies:", error)
+      }
+    }
+    if (Insurancebaseurl) fetchInsuranceCompanies()
   }, [Insurancebaseurl])
 
   // ── Fetch Treatments ─────────────────────────────────────────────────────────
@@ -487,6 +504,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
         ipOpType: editDataFromNav.ip_op_type || "",
         doctorName: editDataFromNav.doctor_name || "",
         companyName: editDataFromNav.company_name || "",
+        specificInsuranceCompany: editDataFromNav.specificInsuranceCompany || "",
         treatment: editDataFromNav.treatment || "",
         hasRefund: hasRefundValue,
         refundAmount: refundValue,
@@ -497,6 +515,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
           id: Date.now() + index,
           amount: payment.amount ? payment.amount.toString() : "",
           payment_method: payment.payment_method || "",
+          upi_details: payment.upi_details || "",
           date: payment.date || "",
           isExisting: true,
         }))
@@ -504,12 +523,13 @@ const OtherForm = ({ editData = null, onSuccess }) => {
           id: Date.now() + editDataFromNav.payment_details.length,
           amount: "",
           payment_method: "",
+          upi_details: "",
           date: "",
           isExisting: false,
         }
         setPaymentEntries([...existingPayments, newPaymentEntry])
       } else {
-        setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", date: "", isExisting: false }])
+        setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "", isExisting: false }])
       }
     }
   }, [editDataFromNav])
@@ -530,7 +550,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
   const addPaymentEntry = () => {
     setPaymentEntries((prev) => [
       ...prev,
-      { id: Date.now(), amount: "", payment_method: "", date: "" },
+      { id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "" },
     ])
     toast.success("➕ New payment entry added!", {
       duration: 2000,
@@ -590,7 +610,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
         if (typeof value === "boolean") return false
         return value && value.toString().trim() !== ""
       }) ||
-      paymentEntries.some((entry) => entry.amount || entry.payment_method || entry.date)
+      paymentEntries.some((entry) => entry.amount || entry.payment_method || entry.upi_details || entry.date)
 
     if (!hasAnyData) {
       toast.dismiss(loadingToast)
@@ -612,16 +632,15 @@ const OtherForm = ({ editData = null, onSuccess }) => {
       return
     }
 
-    const validPaymentEntries = paymentEntries.filter(
-      (entry) => !entry.isExisting && (entry.amount || entry.payment_method || entry.date)
-    )
-
     try {
-      const paymentDetailsForBackend = validPaymentEntries.map((entry) => ({
-        amount: entry.amount ? Number.parseFloat(entry.amount) : 0,
-        payment_method: entry.payment_method || "",
-        date: entry.date || "",
-      }))
+      const paymentDetailsForBackend = paymentEntries
+        .filter((entry) => entry.amount || entry.payment_method || entry.upi_details || entry.date)
+        .map((entry) => ({
+          amount: entry.amount ? Number.parseFloat(entry.amount) : 0,
+          payment_method: entry.payment_method || "",
+          upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
+          date: entry.date || "",
+        }))
 
       const payload = {
         date: formData.date,
@@ -631,6 +650,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
         ip_op_type: formData.ipOpType,
         doctor_name: formData.doctorName,
         company_name: formData.companyName,
+        specificInsuranceCompany: formData.specificInsuranceCompany,
         treatment: formData.treatment,
         has_refund: formData.hasRefund,
         refund: formData.refundAmount || "0",
@@ -676,11 +696,12 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               ipOpType: "",
               doctorName: "",
               companyName: "",
+              specificInsuranceCompany: "",
               treatment: "",
               hasRefund: false,
               refundAmount: "",
             })
-            setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", date: "" }])
+            setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "", isExisting: false }])
             toast.success("📝 Form reset for new entry", {
               duration: 2000,
               style: { background: "#6b7280", color: "#fff" },
@@ -891,6 +912,27 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                 </Select>
               </div>
 
+              {formData.companyName === "General Insurance" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <Label>
+                    Insurance Provider <span style={{ color: "#ef4444" }}>*</span>
+                  </Label>
+                  <Select
+                    name="specificInsuranceCompany"
+                    value={formData.specificInsuranceCompany}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Insurance Provider</option>
+                    {insuranceCompanies.map((company, index) => (
+                      <option key={index} value={company.name}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+
               {/* Treatment with + button */}
               <div>
                 <Label>Treatment</Label>
@@ -1050,6 +1092,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                       onChange={(e) => handlePaymentEntryChange(entry.id, "payment_method", e.target.value)}
                       disabled={entry.isExisting}
                       style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}
+                      required={!!entry.amount}
                     >
                       <option value="">Select Method</option>
                       <option value="Cash">Cash</option>
@@ -1058,6 +1101,20 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                       <option value="Cheque">Cheque</option>
                     </Select>
                   </div>
+                  {entry.payment_method === "UPI" && (
+                    <div>
+                      <Label>UPI Details</Label>
+                      <Input
+                        type="text"
+                        value={entry.upi_details || ""}
+                        onChange={(e) => handlePaymentEntryChange(entry.id, "upi_details", e.target.value)}
+                        placeholder="Enter UPI Transaction ID"
+                        readOnly={entry.isExisting}
+                        required
+                        style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}
+                      />
+                    </div>
+                  )}
                   <div>
                     <Label>Date</Label>
                     <Input
@@ -1065,6 +1122,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                       value={entry.date}
                       onChange={(e) => handlePaymentEntryChange(entry.id, "date", e.target.value)}
                       readOnly={entry.isExisting}
+                      required={!!entry.amount}
                       max={getTodayDate()}
                       style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}
                     />

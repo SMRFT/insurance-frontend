@@ -291,7 +291,7 @@ const OverallApproval = () => {
             <span>Loading pending approvals...</span>
           </LoadingSpinnerContainer>
         ) : Object.keys(groupedRecords).length > 0 ? (
-          <>
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px', maxHeight: 'calc(100vh - 260px)' }}>
             {Object.entries(groupedRecords).map(([date, dateRecords]) => {
               const dateTotal = dateRecords.reduce((sum, r) => sum + Number.parseFloat(r.amount || 0), 0)
               const dateRefund = dateRecords.reduce((sum, r) => sum + Number.parseFloat(r.refund || 0), 0)
@@ -412,7 +412,7 @@ const OverallApproval = () => {
               <p><strong>Total Amount:</strong> ₹{totalAmount.toFixed(2)}</p>
               <p><strong>Total Refund:</strong> ₹{totalRefund.toFixed(2)}</p>
             </div>
-          </>
+          </div>
         ) : (
           <div style={{ textAlign: "center", padding: "40px" }}>
             No records found for the selected date range

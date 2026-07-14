@@ -59,7 +59,7 @@ function AppContent() {
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     const token = localStorage.getItem("access_token");
-    
+
     console.log("App.js - User data loaded:", {
       storedRole,
       hasToken: !!token,
@@ -180,12 +180,14 @@ function AppContent() {
                 <Route path="/OverallApproval" element={<OverallApproval />} />
                 <Route path="/RefundApproval" element={<RefundApproval />} />
                 <Route path="/EnquiryDetailPage" element={<EnquiryDetailPage />} />
+                <Route path="/RTForm" element={<RTForm />} />
+                <Route path="/ChemoForm" element={<ChemoForm />} />
                 <Route path="/RTReport" element={<RTReport />} />
                 <Route path="/ChemoReport" element={<ChemoReport />} />
               </>
             )}
 
-           {/* Insurance Marketting */}
+            {/* Insurance Marketting */}
             {role === "Insurance Marketting" && (
               <>
                 <Route path="/" element={<EnquiryList />} />
@@ -246,7 +248,7 @@ function AppContent() {
                   path="/EnquiryDetailPage"
                   element={<EnquiryDetailPage />}
                 />
-                
+
                 {/* RT and Chemo */}
                 <Route path="/RTForm" element={<RTForm />} />
                 <Route path="/ChemoForm" element={<ChemoForm />} />

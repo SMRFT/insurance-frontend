@@ -652,6 +652,18 @@ export const Table = styled.table`
   @media (max-width: 1024px) { min-width: 700px; font-size: 12px; }
   @media (max-width: 768px)  { min-width: 600px; font-size: 11px; }
   @media (max-width: 480px)  { min-width: 500px; font-size: 10px; }
+
+  tfoot th, tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background-color: #f8f9fa;
+    box-shadow: 0 -2px 2px rgba(0,0,0,0.05);
+  }
+  
+  tfoot .frozen-col {
+    z-index: 20 !important;
+  }
 `
 
 export const TableHeader = styled.th`

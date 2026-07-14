@@ -544,7 +544,11 @@ const OtherReport = () => {
               <tfoot>
                 <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
                   <TableCell className="frozen-col frozen-col-0"></TableCell>
-                  <TableCell className="frozen-col frozen-col-1" colSpan="4" style={{ textAlign: "right" }}>
+                  <TableCell className="frozen-col frozen-col-1"></TableCell>
+                  <TableCell className="frozen-col frozen-col-2"></TableCell>
+                  <TableCell className="frozen-col frozen-col-3"></TableCell>
+                  <TableCell className="frozen-col frozen-col-4"></TableCell>
+                  <TableCell colSpan="4" style={{ textAlign: "right" }}>
                     GRAND TOTAL:
                   </TableCell>
                   <TableCell colSpan="4"></TableCell>

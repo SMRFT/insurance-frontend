@@ -137,7 +137,7 @@ const ChemoForm = () => {
       let method = "POST";
       
       if (editData?.chemo_id || editData?.id) {
-        url = `${Insurancebaseurl}chemo_records/${editData.chemo_id || editData.id}/`;
+        url = `${Insurancebaseurl}chemorecords/${editData.chemo_id || editData.id}/`;
         method = "PUT";
       }
       

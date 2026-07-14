@@ -137,7 +137,7 @@ const RTForm = () => {
       let method = "POST";
       
       if (editData?.rt_id || editData?.id) {
-        url = `${Insurancebaseurl}rt_records/${editData.rt_id || editData.id}/`;
+        url = `${Insurancebaseurl}rtrecords/${editData.rt_id || editData.id}/`;
         method = "PUT";
       }
       

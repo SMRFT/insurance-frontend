@@ -64,7 +64,7 @@ const RTReport = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState("")
-  const [fromDate, setFromDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)))
+  const [fromDate, setFromDate] = useState(new Date())
   const [toDate, setToDate] = useState(new Date())
   const [viewModalData, setViewModalData] = useState(null)
 
@@ -447,7 +447,9 @@ const RTReport = () => {
               <tfoot>
                 <tr style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
                   <TableCell className="frozen-col frozen-col-0"></TableCell>
-                  <TableCell className="frozen-col frozen-col-1" colSpan="5" style={{ textAlign: "right" }}>
+                  <TableCell className="frozen-col frozen-col-1"></TableCell>
+                  <TableCell className="frozen-col frozen-col-2"></TableCell>
+                  <TableCell colSpan="4" style={{ textAlign: "right" }}>
                     GRAND TOTAL:
                   </TableCell>
                   <TableCell>₹{totalExpectedAmount.toFixed(2)}</TableCell>

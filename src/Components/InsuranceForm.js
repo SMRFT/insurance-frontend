@@ -59,6 +59,12 @@ function InsuranceForm() {
     treatmentType: "",
     radiotherapyCycles: "",
     claimId: "",
+    voucherNumber: "",
+    referral: "",
+    grossAmount: "",
+    taxAmount: "",
+    netAmount: "",
+    gst: "",
   })
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
@@ -131,12 +137,34 @@ function InsuranceForm() {
       setOpIpNumberManuallyChanged(true)
     }
 
+    if (name === "companyName" && value === "Railway CTSE") {
+      setFormData((prevData) => ({
+        ...prevData,
+        companyName: value,
+        opIpSelection: "IP",
+      }))
+      return
+    }
+
+    if (name === "grossAmount") {
+      const gross = parseFloat(value) || 0
+      const tax = Math.round(gross * 0.1)
+      const net = gross - tax
+      setFormData((prevData) => ({
+        ...prevData,
+        grossAmount: value,
+        taxAmount: value ? tax.toString() : "",
+        netAmount: value ? net.toString() : "",
+      }))
+      return
+    }
+
     if (name === "patient_uhid" && !Object.keys(formDataFromUpdate).length) {
       if (!opIpNumberManuallyChanged) {
         setFormData({
           ...formData,
           [name]: value,
-          opIpSelection: "OP",
+          opIpSelection: formData.companyName === "Railway CTSE" ? "IP" : "OP",
           opIpNumber: value,
         })
       } else {
@@ -196,12 +224,12 @@ function InsuranceForm() {
         formDataToSend.append("billingFile", formData.billingFile)
         toast.success(`📎 Billing file "${formData.billingFile.name}" attached`)
       }
-      
+
       if (formData.queryUpload && formData.queryUpload instanceof File) {
         formDataToSend.append("queryUpload", formData.queryUpload)
         toast.success(`📎 Query file "${formData.queryUpload.name}" attached`)
       }
-      
+
       if (formData.queryResponse && formData.queryResponse instanceof File) {
         formDataToSend.append("queryResponse", formData.queryResponse)
         toast.success(`📎 Response file "${formData.queryResponse.name}" attached`)
@@ -235,10 +263,10 @@ function InsuranceForm() {
 
       if (apiResult.success) {
         console.log("Response data:", apiResult.data)
-        
+
         // Success toast with custom styling
         toast.success(
-          isUpdate ? "✅ Form updated successfully!" : "🎉 Form submitted successfully!", 
+          isUpdate ? "✅ Form updated successfully!" : "🎉 Form submitted successfully!",
           {
             duration: 4000,
             style: {
@@ -286,6 +314,12 @@ function InsuranceForm() {
             treatmentType: "",
             radiotherapyCycles: "",
             claimId: "",
+            voucherNumber: "",
+            referral: "",
+            grossAmount: "",
+            taxAmount: "",
+            netAmount: "",
+            gst: "",
           })
           setOpIpNumberManuallyChanged(false)
           toast.success("📝 Form reset for new entry")
@@ -293,7 +327,7 @@ function InsuranceForm() {
       } else {
         console.error("Error response:", apiResult.error)
         toast.error(
-          `❌ Failed: ${apiResult.error}`, 
+          `❌ Failed: ${apiResult.error}`,
           {
             duration: 6000,
             style: {
@@ -307,7 +341,7 @@ function InsuranceForm() {
       toast.dismiss(loadingToast)
       console.error("Exception:", error)
       toast.error(
-        `💥 Error: ${error.message}`, 
+        `💥 Error: ${error.message}`,
         {
           duration: 6000,
           style: {
@@ -328,9 +362,9 @@ function InsuranceForm() {
     <FormWrapper>
       <FormContainer>
         <Title>{formDataFromUpdate.opNumber ? "Update Insurance Form" : "Insurance Form"}</Title>
-        
+
         {/* Toast Container */}
-        <Toaster 
+        <Toaster
           position="top-right"
           reverseOrder={false}
           gutter={8}
@@ -367,480 +401,565 @@ function InsuranceForm() {
         />
 
         <Form onSubmit={handleSubmit}>
-          {/* Patient Information Section */}
-          <FormSection>
-            <SectionTitle>Patient Information</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Date</Label>
-                <Input type="date" name="date" value={formData.date} onChange={handleChange} max={getTodayDate()} />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Patient UHID</Label>
-                <Input type="text" name="patient_uhid" value={formData.patient_uhid} onChange={handleChange} />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Patient Name</Label>
-                <Input type="text" name="patient_name" value={formData.patient_name} onChange={handleChange} />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>OP or IP</Label>
-                <RadioGroup>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="opIpSelection"
-                      value="OP"
-                      checked={formData.opIpSelection === "OP"}
-                      onChange={handleChange}
-                    />
-                    OP
-                  </RadioLabel>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="opIpSelection"
-                      value="IP"
-                      checked={formData.opIpSelection === "IP"}
-                      onChange={handleChange}
-                    />
-                    IP
-                  </RadioLabel>
-                </RadioGroup>
-                {formData.opIpSelection && (
-                  <>
-                    <Label>{formData.opIpSelection === "OP" ? "OP Number" : "IP Number"}</Label>
+          {formData.companyName === "Railway CTSE" ? (
+            <>
+              {/* Railway CTSE Specific Layout */}
+              <FormSection>
+                <SectionTitle>Railway CTSE Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Company Name</Label>
+                    <Select name="companyName" value={formData.companyName} onChange={handleChange}>
+                      <option value="">Select Company</option>
+                      <option value="General Insurance">General Insurance</option>
+                      <option value="ECHS">ECHS</option>
+                      <option value="ESI">ESI</option>
+                      <option value="ESIC">ESIC</option>
+                      <option value="Railway CTSE">Railway CTSE</option>
+                      <option value="TKT">TKT</option>
+                      <option value="FCI">FCI</option>
+                      <option value="Airport">Airport</option>
+                    </Select>
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Date</Label>
+                    <Input type="date" name="date" value={formData.date} onChange={handleChange} max={getTodayDate()} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Patient UHID</Label>
+                    <Input type="text" name="patient_uhid" value={formData.patient_uhid} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Patient Name</Label>
+                    <Input type="text" name="patient_name" value={formData.patient_name} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>IP Number</Label>
                     <Input
                       type="text"
                       name="opIpNumber"
                       value={formData.opIpNumber}
                       onChange={handleChange}
-                      placeholder={`Enter ${formData.opIpSelection} Number`}
+                      placeholder="Enter IP Number"
                     />
-                  </>
-                )}
-              </Col>
-            </Row>
-          </FormSection>
-          
-          {/* Billing Information Section */}
-          <FormSection>
-            <SectionTitle>Billing Information</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Bill Number</Label>
-                <Input type="text" name="billNumber" value={formData.billNumber} onChange={handleChange} />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Bill Date</Label>
-                <Input
-                  type="date"
-                  name="billDate"
-                  value={formData.billDate}
-                  onChange={handleChange}
-                  max={getTodayDate()}
-                />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Bill Amount</Label>
-                <Input type="text" name="billAmount" value={formData.billAmount} onChange={handleChange} />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Billing Done</Label>
-                <Input
-                  type="file"
-                  name="billingFile"
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                  onChange={handleChange}
-                />
-                {formData.billingFile && (
-                  <small style={{ color: '#10b981', fontSize: '12px' }}>
-                    ✅ Selected: {formData.billingFile.name}
-                  </small>
-                )}
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Date Of Discharge</Label>
-                <Input
-                  type="date"
-                  name="dateOfDischarge"
-                  value={formData.dateOfDischarge}
-                  onChange={handleChange}
-                  max={getTodayDate()}
-                />
-              </Col>
-              <Col xs={12} sm={6} md={6} lg={3}>
-                <Label>Claim Id</Label>
-                <Input type="text" name="claimId" value={formData.claimId} onChange={handleChange} />
-              </Col>
-            </Row>
-          </FormSection>
-          
-          {/* Insurance Company Section */}
-          <FormSection>
-            <SectionTitle>Insurance Company Details</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={12} md={6} lg={6}>
-                <Label>Company Name</Label>
-                <Select name="companyName" value={formData.companyName} onChange={handleChange}>
-                  <option value="">Select Company</option>
-                  <option value="General Insurance">General Insurance</option>
-                  <option value="ECHS">ECHS</option>
-                  <option value="ESI">ESI</option>
-                  <option value="ESIC">ESIC</option>
-                  <option value="Railway CTSE">Railway CTSE</option>
-                  <option value="TKT">TKT</option>
-                  <option value="FCI">FCI</option>
-                  <option value="Airport">Airport</option>
-                </Select>
-              </Col>
-              {formData.companyName === "General Insurance" && (
-                <Col xs={12} sm={12} md={6} lg={6}>
-                  <Label>Select Insurance Provider</Label>
-                  <Select
-                    name="specificInsuranceCompany"
-                    value={formData.specificInsuranceCompany}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select Insurance Provider</option>
-                    {insuranceCompanies.map((company, index) => (
-                      <option key={index} value={company.name}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Col>
-              )}
-            </Row>
-          </FormSection>
-          
-          {/* Treatment Information Section */}
-          <FormSection>
-            <SectionTitle>Treatment Information</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={12} md={6} lg={6}>
-                <Label>Treatment Type</Label>
-                <RadioGroup>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="treatmentType"
-                      value="Radiotherapy"
-                      checked={formData.treatmentType === "Radiotherapy"}
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Voucher Number</Label>
+                    <Input type="text" name="voucherNumber" value={formData.voucherNumber} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Referral</Label>
+                    <Input type="text" name="referral" value={formData.referral} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Bill Number</Label>
+                    <Input type="text" name="billNumber" value={formData.billNumber} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Gross Amount</Label>
+                    <Input type="text" name="grossAmount" value={formData.grossAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Tax Amount 10%</Label>
+                    <Input type="text" name="taxAmount" value={formData.taxAmount} readOnly style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Net Amount</Label>
+                    <Input type="text" name="netAmount" value={formData.netAmount} readOnly style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed" }} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>GST</Label>
+                    <Input type="text" name="gst" value={formData.gst} onChange={handleChange} />
+                  </Col>
+                </Row>
+              </FormSection>
+            </>
+          ) : (
+            <>
+              {/* Patient Information Section */}
+              <FormSection>
+                <SectionTitle>Patient Information</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Date</Label>
+                    <Input type="date" name="date" value={formData.date} onChange={handleChange} max={getTodayDate()} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Patient UHID</Label>
+                    <Input type="text" name="patient_uhid" value={formData.patient_uhid} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Patient Name</Label>
+                    <Input type="text" name="patient_name" value={formData.patient_name} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>OP or IP</Label>
+                    <RadioGroup>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="opIpSelection"
+                          value="OP"
+                          checked={formData.opIpSelection === "OP"}
+                          onChange={handleChange}
+                        />
+                        OP
+                      </RadioLabel>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="opIpSelection"
+                          value="IP"
+                          checked={formData.opIpSelection === "IP"}
+                          onChange={handleChange}
+                        />
+                        IP
+                      </RadioLabel>
+                    </RadioGroup>
+                    {formData.opIpSelection && (
+                      <>
+                        <Label>{formData.opIpSelection === "OP" ? "OP Number" : "IP Number"}</Label>
+                        <Input
+                          type="text"
+                          name="opIpNumber"
+                          value={formData.opIpNumber}
+                          onChange={handleChange}
+                          placeholder={`Enter ${formData.opIpSelection} Number`}
+                        />
+                      </>
+                    )}
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* Billing Information Section */}
+              <FormSection>
+                <SectionTitle>Billing Information</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Bill Number</Label>
+                    <Input type="text" name="billNumber" value={formData.billNumber} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Bill Date</Label>
+                    <Input
+                      type="date"
+                      name="billDate"
+                      value={formData.billDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Bill Amount</Label>
+                    <Input type="text" name="billAmount" value={formData.billAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Billing Done</Label>
+                    <Input
+                      type="file"
+                      name="billingFile"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
                       onChange={handleChange}
                     />
-                    Radiotherapy
-                  </RadioLabel>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="treatmentType"
-                      value="Chemotherapy"
-                      checked={formData.treatmentType === "Chemotherapy"}
+                    {formData.billingFile && (
+                      <small style={{ color: '#10b981', fontSize: '12px' }}>
+                        ✅ Selected: {formData.billingFile.name}
+                      </small>
+                    )}
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Date Of Discharge</Label>
+                    <Input
+                      type="date"
+                      name="dateOfDischarge"
+                      value={formData.dateOfDischarge}
                       onChange={handleChange}
+                      max={getTodayDate()}
                     />
-                    Chemotherapy
-                  </RadioLabel>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="treatmentType"
-                      value="Other"
-                      checked={formData.treatmentType === "Other"}
-                      onChange={handleChange}
-                    />
-                    Other
-                  </RadioLabel>
-                </RadioGroup>
-              </Col>
-              {formData.treatmentType === "Radiotherapy" && (
-                <Col xs={12} sm={12} md={6} lg={6}>
-                  <Label>Number of Cycles</Label>
-                  <Input
-                    type="number"
-                    name="radiotherapyCycles"
-                    value={formData.radiotherapyCycles}
-                    onChange={handleChange}
-                    placeholder="Enter number of cycles"
-                  />
-                </Col>
-              )}
-            </Row>
-          </FormSection>
-          
-          {/* Submission Details Section */}
-          <FormSection>
-            <SectionTitle>Submission Details</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>File Submission Date</Label>
-                <Input
-                  type="date"
-                  name="fileSubmissionDate"
-                  value={formData.fileSubmissionDate}
-                  onChange={handleChange}
-                  max={getTodayDate()}
-                />
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Submission Status</Label>
-                <RadioGroup>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="submissionStatus"
-                      value="Online"
-                      checked={formData.submissionStatus === "Online"}
-                      onChange={handleChange}
-                    />
-                    Online
-                  </RadioLabel>
-                  <RadioLabel>
-                    <input
-                      type="radio"
-                      name="submissionStatus"
-                      value="Physical"
-                      checked={formData.submissionStatus === "Physical"}
-                      onChange={handleChange}
-                    />
-                    Physical
-                  </RadioLabel>
-                </RadioGroup>
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Approval Date</Label>
-                <Input
-                  type="date"
-                  name="approvalDate"
-                  value={formData.approvalDate}
-                  onChange={handleChange}
-                  max={getTodayDate()}
-                />
-              </Col>
-            </Row>
-          </FormSection>
-          
-          {/* Query Information Section */}
-          <FormSection>
-            <SectionTitle>Query Information</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Query Date/Return File Date</Label>
-                <Input
-                  type="date"
-                  name="queryDate"
-                  value={formData.queryDate}
-                  onChange={handleChange}
-                  max={getTodayDate()}
-                />
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Query Upload</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                  name="queryUpload"
-                  onChange={handleChange}
-                />
-                {formData.queryUpload && (
-                  <small style={{ color: '#10b981', fontSize: '12px' }}>
-                    ✅ Selected: {formData.queryUpload.name}
-                  </small>
-                )}
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Query Response</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                  name="queryResponse"
-                  onChange={handleChange}
-                />
-                {formData.queryResponse && (
-                  <small style={{ color: '#10b981', fontSize: '12px' }}>
-                    ✅ Selected: {formData.queryResponse.name}
-                  </small>
-                )}
-              </Col>
-            </Row>
-          </FormSection>
-          
-          {/* Financial Details Section */}
-          <FormSection>
-            <SectionTitle>Financial Details</SectionTitle>
-            <Row
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "20px",
-                alignItems: "center",
-              }}
-              className="responsive-row"
-            >
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Approval Amount</Label>
-                <Input type="text" name="approvalAmount" value={formData.approvalAmount} onChange={handleChange} />
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Claimed Amount</Label>
-                <Input type="text" name="claimedAmount" value={formData.claimedAmount} onChange={handleChange} />
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Settled Amount</Label>
-                <Input type="text" name="settledAmount" value={formData.settledAmount} onChange={handleChange} />
-              </Col>
-            </Row>
-          </FormSection>
-          
-          {/* Approval Section */}
-          <CenteredContainer>
-            <Label>Approval</Label>
-            <Select name="approval" value={formData.approval} onChange={handleChange}>
-              <option value="As per norm">As per norm</option>
-              <option value="Not per norms">Not per norms</option>
-            </Select>
-          </CenteredContainer>
-          
-          {/* Conditional fields for "Not per norms" */}
-          {formData.approval === "Not per norms" && (
-            <FormSection>
-              <SectionTitle>Additional Information</SectionTitle>
-              <Row
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "20px",
-                  alignItems: "center",
-                }}
-                className="responsive-row"
-              >
-                <Col xs={12} sm={6} md={6} lg={3}>
-                  <Label>Follow Up</Label>
-                  <Input type="text" name="followUp" value={formData.followUp} onChange={handleChange} />
-                </Col>
-                <Col xs={12} sm={6} md={6} lg={3}>
-                  <Label>Reason for Not Match</Label>
-                  <Input type="text" name="reasonNotMatch" value={formData.reasonNotMatch} onChange={handleChange} />
-                </Col>
-                <Col xs={12} sm={6} md={6} lg={3}>
-                  <Label>Claim Option</Label>
-                  <RadioGroup>
-                    <RadioLabel>
-                      <input
-                        type="radio"
-                        name="claimOption"
-                        value="Claim"
-                        checked={formData.claimOption === "Claim"}
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Claim Id</Label>
+                    <Input type="text" name="claimId" value={formData.claimId} onChange={handleChange} />
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* Insurance Company Section */}
+              <FormSection>
+                <SectionTitle>Insurance Company Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={12} md={6} lg={6}>
+                    <Label>Company Name</Label>
+                    <Select name="companyName" value={formData.companyName} onChange={handleChange}>
+                      <option value="">Select Company</option>
+                      <option value="General Insurance">General Insurance</option>
+                      <option value="ECHS">ECHS</option>
+                      <option value="ESI">ESI</option>
+                      <option value="ESIC">ESIC</option>
+                      <option value="Railway CTSE">Railway CTSE</option>
+                      <option value="TKT">TKT</option>
+                      <option value="FCI">FCI</option>
+                      <option value="Airport">Airport</option>
+                    </Select>
+                  </Col>
+                  {formData.companyName === "General Insurance" && (
+                    <Col xs={12} sm={12} md={6} lg={6}>
+                      <Label>Select Insurance Provider</Label>
+                      <Select
+                        name="specificInsuranceCompany"
+                        value={formData.specificInsuranceCompany}
                         onChange={handleChange}
-                      />
-                      Claim
-                    </RadioLabel>
-                    <RadioLabel>
-                      <input
-                        type="radio"
-                        name="claimOption"
-                        value="Not Claim"
-                        checked={formData.claimOption === "Not Claim"}
-                        onChange={handleChange}
-                      />
-                      Not Claim
-                    </RadioLabel>
-                  </RadioGroup>
-                </Col>
-                <Col xs={12} sm={6} md={6} lg={3}>
-                  {formData.claimOption === "Claim" && (
-                    <>
-                      <Label>Claim Details</Label>
-                      <Input type="text" name="claimDetails" value={formData.claimDetails} onChange={handleChange} />
-                    </>
+                      >
+                        <option value="">Select Insurance Provider</option>
+                        {insuranceCompanies.map((company, index) => (
+                          <option key={index} value={company.name}>
+                            {company.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </Col>
                   )}
-                  {formData.claimOption === "Not Claim" && (
-                    <>
-                      <Label>Reason for Not Claim</Label>
+                </Row>
+              </FormSection>
+
+              {/* Treatment Information Section */}
+              <FormSection>
+                <SectionTitle>Treatment Information</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={12} md={6} lg={6}>
+                    <Label>Treatment Type</Label>
+                    <RadioGroup>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="treatmentType"
+                          value="Radiotherapy"
+                          checked={formData.treatmentType === "Radiotherapy"}
+                          onChange={handleChange}
+                        />
+                        Radiotherapy
+                      </RadioLabel>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="treatmentType"
+                          value="Chemotherapy"
+                          checked={formData.treatmentType === "Chemotherapy"}
+                          onChange={handleChange}
+                        />
+                        Chemotherapy
+                      </RadioLabel>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="treatmentType"
+                          value="Other"
+                          checked={formData.treatmentType === "Other"}
+                          onChange={handleChange}
+                        />
+                        Other
+                      </RadioLabel>
+                    </RadioGroup>
+                  </Col>
+                  {formData.treatmentType === "Radiotherapy" && (
+                    <Col xs={12} sm={12} md={6} lg={6}>
+                      <Label>Number of Cycles</Label>
                       <Input
-                        type="text"
-                        name="notClaimReason"
-                        value={formData.notClaimReason}
+                        type="number"
+                        name="radiotherapyCycles"
+                        value={formData.radiotherapyCycles}
                         onChange={handleChange}
+                        placeholder="Enter number of cycles"
                       />
-                    </>
+                    </Col>
                   )}
-                </Col>
-              </Row>
-            </FormSection>
+                </Row>
+              </FormSection>
+
+              {/* Submission Details Section */}
+              <FormSection>
+                <SectionTitle>Submission Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>File Submission Date</Label>
+                    <Input
+                      type="date"
+                      name="fileSubmissionDate"
+                      value={formData.fileSubmissionDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Submission Status</Label>
+                    <RadioGroup>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="submissionStatus"
+                          value="Online"
+                          checked={formData.submissionStatus === "Online"}
+                          onChange={handleChange}
+                        />
+                        Online
+                      </RadioLabel>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="submissionStatus"
+                          value="Physical"
+                          checked={formData.submissionStatus === "Physical"}
+                          onChange={handleChange}
+                        />
+                        Physical
+                      </RadioLabel>
+                    </RadioGroup>
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Approval Date</Label>
+                    <Input
+                      type="date"
+                      name="approvalDate"
+                      value={formData.approvalDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* Query Information Section */}
+              <FormSection>
+                <SectionTitle>Query Information</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Query Date/Return File Date</Label>
+                    <Input
+                      type="date"
+                      name="queryDate"
+                      value={formData.queryDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Query Upload</Label>
+                    <Input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                      name="queryUpload"
+                      onChange={handleChange}
+                    />
+                    {formData.queryUpload && (
+                      <small style={{ color: '#10b981', fontSize: '12px' }}>
+                        ✅ Selected: {formData.queryUpload.name}
+                      </small>
+                    )}
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Query Response</Label>
+                    <Input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                      name="queryResponse"
+                      onChange={handleChange}
+                    />
+                    {formData.queryResponse && (
+                      <small style={{ color: '#10b981', fontSize: '12px' }}>
+                        ✅ Selected: {formData.queryResponse.name}
+                      </small>
+                    )}
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* Financial Details Section */}
+              <FormSection>
+                <SectionTitle>Financial Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Approval Amount</Label>
+                    <Input type="text" name="approvalAmount" value={formData.approvalAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Claimed Amount</Label>
+                    <Input type="text" name="claimedAmount" value={formData.claimedAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Settled Amount</Label>
+                    <Input type="text" name="settledAmount" value={formData.settledAmount} onChange={handleChange} />
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* Approval Section */}
+              <CenteredContainer>
+                <Label>Approval</Label>
+                <Select name="approval" value={formData.approval} onChange={handleChange}>
+                  <option value="As per norm">As per norm</option>
+                  <option value="Not per norms">Not per norms</option>
+                </Select>
+              </CenteredContainer>
+
+              {/* Conditional fields for "Not per norms" */}
+              {formData.approval === "Not per norms" && (
+                <FormSection>
+                  <SectionTitle>Additional Information</SectionTitle>
+                  <Row
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, 1fr)",
+                      gap: "20px",
+                      alignItems: "center",
+                    }}
+                    className="responsive-row"
+                  >
+                    <Col xs={12} sm={6} md={6} lg={3}>
+                      <Label>Follow Up</Label>
+                      <Input type="text" name="followUp" value={formData.followUp} onChange={handleChange} />
+                    </Col>
+                    <Col xs={12} sm={6} md={6} lg={3}>
+                      <Label>Reason for Not Match</Label>
+                      <Input type="text" name="reasonNotMatch" value={formData.reasonNotMatch} onChange={handleChange} />
+                    </Col>
+                    <Col xs={12} sm={6} md={6} lg={3}>
+                      <Label>Claim Option</Label>
+                      <RadioGroup>
+                        <RadioLabel>
+                          <input
+                            type="radio"
+                            name="claimOption"
+                            value="Claim"
+                            checked={formData.claimOption === "Claim"}
+                            onChange={handleChange}
+                          />
+                          Claim
+                        </RadioLabel>
+                        <RadioLabel>
+                          <input
+                            type="radio"
+                            name="claimOption"
+                            value="Not Claim"
+                            checked={formData.claimOption === "Not Claim"}
+                            onChange={handleChange}
+                          />
+                          Not Claim
+                        </RadioLabel>
+                      </RadioGroup>
+                    </Col>
+                    <Col xs={12} sm={6} md={6} lg={3}>
+                      {formData.claimOption === "Claim" && (
+                        <>
+                          <Label>Claim Details</Label>
+                          <Input type="text" name="claimDetails" value={formData.claimDetails} onChange={handleChange} />
+                        </>
+                      )}
+                      {formData.claimOption === "Not Claim" && (
+                        <>
+                          <Label>Reason for Not Claim</Label>
+                          <Input
+                            type="text"
+                            name="notClaimReason"
+                            value={formData.notClaimReason}
+                            onChange={handleChange}
+                          />
+                        </>
+                      )}
+                    </Col>
+                  </Row>
+                </FormSection>
+              )}
+
+              {/* Remarks Section */}
+              <FormSection>
+                <SectionTitle>Remarks</SectionTitle>
+                <Row>
+                  <Col xs={12}>
+                    <Label>Remarks</Label>
+                    <Input
+                      type="textarea"
+                      name="remarks"
+                      value={formData.remarks}
+                      onChange={handleChange}
+                      style={{ minHeight: "100px" }}
+                    />
+                  </Col>
+                </Row>
+              </FormSection>
+            </>
           )}
-          
-          {/* Remarks Section */}
-          <FormSection>
-            <SectionTitle>Remarks</SectionTitle>
-            <Row>
-              <Col xs={12}>
-                <Label>Remarks</Label>
-                <Input
-                  type="textarea"
-                  name="remarks"
-                  value={formData.remarks}
-                  onChange={handleChange}
-                  style={{ minHeight: "100px" }}
-                />
-              </Col>
-            </Row>
-          </FormSection>
-          
+
           <ButtonWrapper>
             <Button type="submit">{formDataFromUpdate.billNumber ? "Update" : "Submit"}</Button>
           </ButtonWrapper>
         </Form>
       </FormContainer>
-      
+
       <style>{`
         @media (max-width: 991px) {
           .responsive-row {

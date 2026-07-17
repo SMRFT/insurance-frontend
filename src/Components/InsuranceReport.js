@@ -31,6 +31,23 @@ import apiRequest from "./ApiRequest"
 
 const primaryColor = "#4E7B6F"
 
+const sortVoucherNumbers = (voucherStr) => {
+  if (!voucherStr) return ""
+  return voucherStr
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p !== "")
+    .sort((a, b) => {
+      const numA = parseFloat(a)
+      const numB = parseFloat(b)
+      if (isNaN(numA) && isNaN(numB)) return a.localeCompare(b)
+      if (isNaN(numA)) return 1
+      if (isNaN(numB)) return -1
+      return numA - numB
+    })
+    .join(", ")
+}
+
 const InsuranceReport = () => {
   const [insuranceData, setInsuranceData] = useState([])
   const [loading, setLoading] = useState(false)
@@ -47,8 +64,8 @@ const InsuranceReport = () => {
     try {
       const params = new URLSearchParams()
       if (selectedCompany) params.append("companyName", selectedCompany)
-      if (fromDate)        params.append("from_date", fromDate.toLocaleDateString("en-CA"))
-      if (toDate)          params.append("to_date", toDate.toLocaleDateString("en-CA"))
+      if (fromDate) params.append("from_date", fromDate.toLocaleDateString("en-CA"))
+      if (toDate) params.append("to_date", toDate.toLocaleDateString("en-CA"))
 
       const url = `${Insurancebaseurl}insurance/?${params.toString()}`
       const result = await apiRequest(url, "GET")
@@ -88,38 +105,123 @@ const InsuranceReport = () => {
     })
   }, [insuranceData, searchField, searchValue])
 
-  const handleCompanyFilterChange  = (e) => setSelectedCompany(e.target.value)
-  const handleFromDateChange        = (date) => setFromDate(date)
-  const handleToDateChange          = (date) => setToDate(date)
-  const handleSearchFieldChange     = (e) => { setSearchField(e.target.value); setSearchValue("") }
-  const handleSearchValueChange     = (e) => setSearchValue(e.target.value)
+  const totals = useMemo(() => {
+    let gross = 0
+    let tax = 0
+    let net = 0
+    let gst = 0
+    filteredData.forEach((item) => {
+      gross += parseFloat(item.grossAmount) || 0
+      tax += parseFloat(item.taxAmount) || 0
+      net += parseFloat(item.netAmount) || 0
+      gst += parseFloat(item.gst) || 0
+    })
+    return { gross, tax, net, gst }
+  }, [filteredData])
+
+  const handleCompanyFilterChange = (e) => setSelectedCompany(e.target.value)
+  const handleFromDateChange = (date) => setFromDate(date)
+  const handleToDateChange = (date) => setToDate(date)
+  const handleSearchFieldChange = (e) => { setSearchField(e.target.value); setSearchValue("") }
+  const handleSearchValueChange = (e) => setSearchValue(e.target.value)
 
   const handleViewFile = (fileId) => {
     window.open(`${Insurancebaseurl}insurance/serve_file/${fileId}`, "_blank")
   }
 
   const exportToExcel = () => {
-    const exportData = filteredData.map((item, index) => ({
-      "S.No": index + 1,
-      "Patient UHID": item.patient_uhid || "N/A",
-      "Patient Name": item.patient_name || "N/A",
-      Date: item.date || "N/A",
-      "IP/OP Number": item.opNumber || item.ipNumber || "N/A",
-      "Bill Number": item.billNumber || "N/A",
-      "Bill Amount": item.billAmount || "N/A",
-      "Company Name": item.companyName || "N/A",
-      "Date of Discharge": item.dateOfDischarge || "N/A",
-      "Submission Status": item.submissionStatus || "N/A",
-      "Approval Amount": item.approvalAmount || "N/A",
-      "Claimed Amount": item.claimedAmount || "N/A",
-      "Settled Amount": item.settledAmount || "N/A",
-      Approval: item.approval || "N/A",
-      "Follow-Up": item.followUp || "N/A",
-      "Reason Not Match": item.reasonNotMatch || "N/A",
-      "Claim Option": item.claimOption || "N/A",
-      "Claim Details": item.claimDetails || "N/A",
-      "Not Claim Reason": item.notClaimReason || "N/A",
-    }))
+    const exportData = filteredData.map((item, index) => {
+      if (selectedCompany === "Railway CTSE") {
+        return {
+          "S.No": index + 1,
+          "Date": item.date || "N/A",
+          "Patient Name": item.patient_name || "N/A",
+          "Patient UHID": item.patient_uhid || "N/A",
+          "IP Number": item.ipNumber || item.opNumber || "N/A",
+          "Voucher Number": sortVoucherNumbers(item.voucherNumber) || "N/A",
+          Referral: item.referral || "N/A",
+          "Bill Number": item.billNumber || "N/A",
+          "Gross Amount": item.grossAmount || "N/A",
+          "Tax Amount": item.taxAmount || "N/A",
+          "Net Amount": item.netAmount || "N/A",
+          GST: item.gst || "N/A",
+        }
+      }
+      return {
+        "S.No": index + 1,
+        "Patient UHID": item.patient_uhid || "N/A",
+        "Patient Name": item.patient_name || "N/A",
+        Date: item.date || "N/A",
+        "IP/OP Number": item.opNumber || item.ipNumber || "N/A",
+        "Bill Number": item.billNumber || "N/A",
+        "Bill Amount": item.billAmount || "N/A",
+        "Company Name": item.companyName || "N/A",
+        "Voucher Number": sortVoucherNumbers(item.voucherNumber) || "N/A",
+        Referral: item.referral || "N/A",
+        "Gross Amount": item.grossAmount || "N/A",
+        "Tax Amount": item.taxAmount || "N/A",
+        "Net Amount": item.netAmount || "N/A",
+        GST: item.gst || "N/A",
+        "Date of Discharge": item.dateOfDischarge || "N/A",
+        "Submission Status": item.submissionStatus || "N/A",
+        "Approval Amount": item.approvalAmount || "N/A",
+        "Claimed Amount": item.claimedAmount || "N/A",
+        "Settled Amount": item.settledAmount || "N/A",
+        Approval: item.approval || "N/A",
+        "Follow-Up": item.followUp || "N/A",
+        "Reason Not Match": item.reasonNotMatch || "N/A",
+        "Claim Option": item.claimOption || "N/A",
+        "Claim Details": item.claimDetails || "N/A",
+        "Not Claim Reason": item.notClaimReason || "N/A",
+      }
+    })
+
+    if (filteredData.length > 0) {
+      if (selectedCompany === "Railway CTSE") {
+        exportData.push({
+          "S.No": "Total",
+          "Date": "",
+          "Patient Name": "",
+          "Patient UHID": "",
+          "IP Number": "",
+          "Voucher Number": "",
+          Referral: "",
+          "Bill Number": "",
+          "Gross Amount": totals.gross,
+          "Tax Amount": totals.tax,
+          "Net Amount": totals.net,
+          GST: totals.gst,
+        })
+      } else {
+        exportData.push({
+          "S.No": "Total",
+          "Patient UHID": "",
+          "Patient Name": "",
+          Date: "",
+          "IP/OP Number": "",
+          "Bill Number": "",
+          "Bill Amount": "",
+          "Company Name": "",
+          "Voucher Number": "",
+          Referral: "",
+          "Gross Amount": totals.gross,
+          "Tax Amount": totals.tax,
+          "Net Amount": totals.net,
+          GST: totals.gst,
+          "Date of Discharge": "",
+          "Submission Status": "",
+          "Approval Amount": "",
+          "Claimed Amount": "",
+          "Settled Amount": "",
+          Approval: "",
+          "Follow-Up": "",
+          "Reason Not Match": "",
+          "Claim Option": "",
+          "Claim Details": "",
+          "Not Claim Reason": "",
+        })
+      }
+    }
 
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.json_to_sheet(exportData)
@@ -233,6 +335,12 @@ const InsuranceReport = () => {
                 <TableHeader>IP / OP Number</TableHeader>
                 <TableHeader>Company Name</TableHeader>
                 <TableHeader>Provider</TableHeader>
+                <TableHeader>Voucher Number</TableHeader>
+                <TableHeader>Referral</TableHeader>
+                <TableHeader>Gross Amount</TableHeader>
+                <TableHeader>Tax Amount 10%</TableHeader>
+                <TableHeader>Net Amount</TableHeader>
+                <TableHeader>GST</TableHeader>
                 <TableHeader>Bill Number</TableHeader>
                 <TableHeader>Bill Amount</TableHeader>
                 <TableHeader>Billing File</TableHeader>
@@ -255,7 +363,7 @@ const InsuranceReport = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="23" style={{ padding: 0 }}>
+                  <td colSpan="30" style={{ padding: 0 }}>
                     <LoadingSpinnerContainer>
                       <Spinner />
                       <span>Loading report data...</span>
@@ -263,53 +371,95 @@ const InsuranceReport = () => {
                   </td>
                 </tr>
               ) : filteredData.length > 0 ? (
-                filteredData.map((item, index) => (
-                  <TableRow key={index}>
-                    {/* ── Frozen cols ── */}
-                    <TableCell className="frozen-col frozen-col-0">{index + 1}</TableCell>
-                    <TableCell className="frozen-col frozen-col-1">{item.patient_uhid || "N/A"}</TableCell>
-                    <TableCell className="frozen-col frozen-col-2">{item.patient_name || "N/A"}</TableCell>
-                    {/* ── Scrollable cols ── */}
-                    <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
-                    <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
-                    <TableCell>{item.companyName || "N/A"}</TableCell>
-                    <TableCell>{item.specificInsuranceCompany || "N/A"}</TableCell>
-                    <TableCell>{item.billNumber || "N/A"}</TableCell>
-                    <TableCell>{item.billAmount || "N/A"}</TableCell>
-                    <TableCell>
-                      {item.billingFile ? (
-                        <IconButton onClick={() => handleViewFile(item.billingFile)}>
-                          <Eye size={13} /> View
-                        </IconButton>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
-                    <TableCell>
-                      {item.submissionStatus === "Physical" && <BlinkingLight />}
-                    </TableCell>
-                    <TableCell>{item.submissionStatus || "N/A"}</TableCell>
-                    <TableCell>
-                      {item.queryUpload ? (
-                        <IconButton onClick={() => handleViewFile(item.queryUpload)}>
-                          <Eye size={13} /> View
-                        </IconButton>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell>{item.approvalAmount || "N/A"}</TableCell>
-                    <TableCell>{item.claimId || "N/A"}</TableCell>
-                    <TableCell>{item.claimedAmount || "N/A"}</TableCell>
-                    <TableCell>{item.settledAmount || "N/A"}</TableCell>
-                    <TableCell>{item.approval || "N/A"}</TableCell>
-                    <TableCell>{item.followUp || "N/A"}</TableCell>
-                    <TableCell>{item.reasonNotMatch || "N/A"}</TableCell>
-                    <TableCell>{item.claimOption || "N/A"}</TableCell>
-                    <TableCell>{item.claimDetails || "N/A"}</TableCell>
-                    <TableCell>{item.notClaimReason || "N/A"}</TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {filteredData.map((item, index) => (
+                    <TableRow key={index}>
+                      {/* ── Frozen cols ── */}
+                      <TableCell className="frozen-col frozen-col-0">{index + 1}</TableCell>
+                      <TableCell className="frozen-col frozen-col-1">{item.patient_uhid || "N/A"}</TableCell>
+                      <TableCell className="frozen-col frozen-col-2">{item.patient_name || "N/A"}</TableCell>
+                      {/* ── Scrollable cols ── */}
+                      <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
+                      <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
+                      <TableCell>{item.companyName || "N/A"}</TableCell>
+                      <TableCell>{item.specificInsuranceCompany || "N/A"}</TableCell>
+                      <TableCell>{sortVoucherNumbers(item.voucherNumber) || "N/A"}</TableCell>
+                      <TableCell>{item.referral || "N/A"}</TableCell>
+                      <TableCell>{item.grossAmount || "N/A"}</TableCell>
+                      <TableCell>{item.taxAmount || "N/A"}</TableCell>
+                      <TableCell>{item.netAmount || "N/A"}</TableCell>
+                      <TableCell>{item.gst || "N/A"}</TableCell>
+                      <TableCell>{item.billNumber || "N/A"}</TableCell>
+                      <TableCell>{item.billAmount || "N/A"}</TableCell>
+                      <TableCell>
+                        {item.billingFile ? (
+                          <IconButton onClick={() => handleViewFile(item.billingFile)}>
+                            <Eye size={13} /> View
+                          </IconButton>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
+                      <TableCell>
+                        {item.submissionStatus === "Physical" && <BlinkingLight />}
+                      </TableCell>
+                      <TableCell>{item.submissionStatus || "N/A"}</TableCell>
+                      <TableCell>
+                        {item.queryUpload ? (
+                          <IconButton onClick={() => handleViewFile(item.queryUpload)}>
+                            <Eye size={13} /> View
+                          </IconButton>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>{item.approvalAmount || "N/A"}</TableCell>
+                      <TableCell>{item.claimId || "N/A"}</TableCell>
+                      <TableCell>{item.claimedAmount || "N/A"}</TableCell>
+                      <TableCell>{item.settledAmount || "N/A"}</TableCell>
+                      <TableCell>{item.approval || "N/A"}</TableCell>
+                      <TableCell>{item.followUp || "N/A"}</TableCell>
+                      <TableCell>{item.reasonNotMatch || "N/A"}</TableCell>
+                      <TableCell>{item.claimOption || "N/A"}</TableCell>
+                      <TableCell>{item.claimDetails || "N/A"}</TableCell>
+                      <TableCell>{item.notClaimReason || "N/A"}</TableCell>
+                    </TableRow>
+                  ))}
+                  {selectedCompany === "Railway CTSE" && (
+                    <TableRow style={{ fontWeight: "bold", backgroundColor: "#f3f4f6" }}>
+                      <TableCell className="frozen-col frozen-col-0" style={{ fontWeight: "bold" }}>Total</TableCell>
+                      <TableCell className="frozen-col frozen-col-1" style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell className="frozen-col frozen-col-2" style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}>{totals.gross}</TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}>{totals.tax}</TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}>{totals.net}</TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}>{totals.gst}</TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                      <TableCell style={{ fontWeight: "bold" }}></TableCell>
+                    </TableRow>
+                  )}
+                </>
               ) : (
                 <tr>
-                  <td colSpan="23" style={{ padding: 0 }}>
+                  <td colSpan="30" style={{ padding: 0 }}>
                     <EmptyStateContainer>
                       <Search size={40} strokeWidth={1.2} />
                       <EmptyStateTitle>No Records Found</EmptyStateTitle>

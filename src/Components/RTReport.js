@@ -96,10 +96,10 @@ const RTReport = () => {
             }
           }
           if (!Array.isArray(payments)) payments = [];
-          
+
           let totalPaid = 0;
           payments.forEach(p => totalPaid += Number.parseFloat(p.amount || 0));
-          
+
           return {
             ...record,
             payment_details: payments,
@@ -424,7 +424,7 @@ const RTReport = () => {
                       </StatusBadge>
                     </TableCell>
                     <ActionCell>
-                      {(role === "Insurance Admin" || role === "Insurance Super Admin") && (
+                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance Testing") && (
                         <EditButton onClick={() => handleEdit(record)}>
                           Edit
                         </EditButton>

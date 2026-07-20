@@ -541,7 +541,7 @@ function InsuranceForm() {
                         <input type="radio" name="ctseType" value="Pensionary" checked={formData.ctseType === "Pensionary"} onChange={handleChange} /> Pensionary
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                        <input type="radio" name="ctseType" value="Normal" checked={formData.ctseType === "Normal"} onChange={handleChange} /> Normal
+                        <input type="radio" name="ctseType" value="Regular" checked={formData.ctseType === "Regular"} onChange={handleChange} /> Regular
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                         <input type="radio" name="ctseType" value="All" checked={formData.ctseType === "All"} onChange={handleChange} /> All

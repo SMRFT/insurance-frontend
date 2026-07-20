@@ -287,7 +287,7 @@ const InsuranceReport = () => {
               <FormControl id="ctseTypeFilter" value={ctseTypeFilter} onChange={(e) => setCtseTypeFilter(e.target.value)}>
                 <option value="">All Types</option>
                 <option value="Pensionary">Pensionary</option>
-                <option value="Normal">Normal</option>
+                <option value="Regular">Regular</option>
                 <option value="All">All</option>
               </FormControl>
             </FilterWrapper>

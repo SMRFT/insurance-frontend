@@ -28,13 +28,27 @@ import {
   LoadingSpinnerContainer,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
-
+import { History, FileDown, Search, Filter } from "lucide-react"
 const primaryColor = "#6F8B83"
 const accentColor = "#9aaea9"
 
 const OtherReport = () => {
   const [records, setRecords] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [activeHistory, setActiveHistory] = useState([])
+  const [activeHistoryName, setActiveHistoryName] = useState("")
+
+  const userPayloadStr = localStorage.getItem("user_payload");
+  const userPayload = userPayloadStr ? JSON.parse(userPayloadStr) : {};
+  const allowedActions = userPayload["allowed-actions"] || [];
+  const isAccounts = allowedActions.includes("SIN-R-ACC") || allowedActions.includes("SIN-R-TST");
+
+  const handleOpenHistoryModal = (history, name) => {
+    setActiveHistory(history)
+    setActiveHistoryName(name)
+    setShowHistoryModal(true)
+  }
   const [loading, setLoading] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("")
@@ -138,6 +152,33 @@ const OtherReport = () => {
   const handleCompanyFilterChange = (event) => setSelectedCompany(event.target.value)
   const handlePaymentMethodFilterChange = (event) => setSelectedPaymentMethod(event.target.value)
   const handleDoctorFilterChange = (event) => setSelectedDoctor(event.target.value)
+
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedRecordForRefund, setSelectedRecordForRefund] = useState(null);
+
+  const handleInitiateRefund = async () => {
+    if (!selectedRecordForRefund) return;
+    try {
+      const url = `${Insurancebaseurl}other_records/`;
+      const payload = {
+        id: selectedRecordForRefund.id || (selectedRecordForRefund._id && selectedRecordForRefund._id.$oid) || selectedRecordForRefund._id,
+        is_refund_initiated: true
+      };
+      
+      const response = await apiRequest(url, "PUT", payload);
+      
+      if (response.success || response.status === 200 || response.status === 201 || (response.data && response.data.message)) {
+        setShowRefundModal(false);
+        fetchRecords(); // Refresh the data
+      } else {
+        console.error("Failed to update refund status:", response.error);
+        alert("Failed to initiate refund. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error initiating refund:", error);
+      alert("Error initiating refund. Please try again.");
+    }
+  };
 
   const calculateTotals = () => {
     const totalAmount = filteredRecords.reduce((sum, record) => sum + (Number.parseFloat(record.amount) || 0), 0)
@@ -360,11 +401,28 @@ const OtherReport = () => {
   return (
     <ReportContainer>
       <Container>
-        <Title>Other Records Report - All Status</Title>
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexShrink: 0, flexWrap: 'wrap', gap: '10px' }}>
+          <Title style={{ margin: 0, textAlign: 'left' }}>Other Records Report - All Status</Title>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Button onClick={exportToCSV} disabled={filteredRecords.length === 0} style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' }}>
+              <FileDown size={15} />
+              Export CSV
+            </Button>
+            <Button onClick={handlePrintReport} disabled={filteredRecords.length === 0} style={{ display: 'flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' }}>
+              <FileDown size={15} />
+              Print Report
+            </Button>
+          </div>
+        </div>
 
+        {/* ── Filters ── */}
         <FilterContainer>
           <SearchWrapper>
-            <Label>Search</Label>
+            <Label>
+              <Search size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Search
+            </Label>
             <SearchInput
               type="text"
               placeholder="Search by name, UHID, mobile..."
@@ -374,9 +432,12 @@ const OtherReport = () => {
           </SearchWrapper>
 
           <FilterWrapper>
-            <Label htmlFor="companyName">Filter by Company:</Label>
+            <Label htmlFor="companyName">
+              <Filter size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Company
+            </Label>
             <FormControl id="companyName" value={selectedCompany} onChange={handleCompanyFilterChange}>
-              <option value="">Select Company</option>
+              <option value="">All Companies</option>
               <option value="General Insurance">General Insurance</option>
               <option value="ECHS">ECHS</option>
               <option value="ESI">ESI</option>
@@ -389,9 +450,12 @@ const OtherReport = () => {
           </FilterWrapper>
 
           <FilterWrapper>
-            <Label htmlFor="paymentMethod">Filter by Payment:</Label>
+            <Label htmlFor="paymentMethod">
+              <Filter size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Payment
+            </Label>
             <FormControl id="paymentMethod" value={selectedPaymentMethod} onChange={handlePaymentMethodFilterChange}>
-              <option value="">Select Payment Method</option>
+              <option value="">All Methods</option>
               <option value="Cash">Cash</option>
               <option value="Card">Card</option>
               <option value="UPI">UPI</option>
@@ -401,7 +465,10 @@ const OtherReport = () => {
 
           {/* ── Doctor filter ── */}
           <FilterWrapper>
-            <Label htmlFor="doctorFilter">Filter by Doctor:</Label>
+            <Label htmlFor="doctorFilter">
+              <Filter size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Doctor
+            </Label>
             <FormControl id="doctorFilter" value={selectedDoctor} onChange={handleDoctorFilterChange}>
               <option value="">All Doctors</option>
               {doctorList.map((doctor, index) => (
@@ -416,7 +483,7 @@ const OtherReport = () => {
           </FilterWrapper>
 
           <FilterWrapper>
-            <Label>From Date:</Label>
+            <Label>From Date</Label>
             <StyledDatePicker
               selected={fromDate}
               onChange={handleFromDateChange}
@@ -431,7 +498,7 @@ const OtherReport = () => {
           </FilterWrapper>
 
           <FilterWrapper>
-            <Label>To Date:</Label>
+            <Label>To Date</Label>
             <StyledDatePicker
               selected={toDate}
               onChange={handleToDateChange}
@@ -445,17 +512,7 @@ const OtherReport = () => {
               popperClassName="date-picker-popper"
             />
           </FilterWrapper>
-
         </FilterContainer>
-
-        <ButtonWrapper>
-          <Button onClick={exportToCSV} disabled={filteredRecords.length === 0}>
-            Export CSV
-          </Button>
-          <Button onClick={handlePrintReport} disabled={filteredRecords.length === 0}>
-            Print Report
-          </Button>
-        </ButtonWrapper>
 
         <ResultsInfo>Showing {filteredRecords.length} result(s)</ResultsInfo>
 
@@ -477,17 +534,21 @@ const OtherReport = () => {
                 <TableHeader>Payment Method</TableHeader>
                 <TableHeader>Has Refund</TableHeader>
                 <TableHeader>Refund</TableHeader>
+                <TableHeader>Refund Initiated</TableHeader>
                 <TableHeader>Status</TableHeader>
                 <TableHeader>Approved By</TableHeader>
                 <TableHeader>Final Approved By</TableHeader>
                 <TableHeader>Refund Approved By</TableHeader>
+                <TableHeader>Refund Initiated By</TableHeader>
                 <TableHeader>Created By</TableHeader>
+                <TableHeader style={{ textAlign: "center" }}>Edit History</TableHeader>
+                {isAccounts && <TableHeader style={{ textAlign: "center" }}>Action</TableHeader>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="23" style={{ textAlign: "center", padding: "20px" }}>
                     <LoadingSpinnerContainer>
                       <Spinner />
                       <span>Loading records...</span>
@@ -522,6 +583,11 @@ const OtherReport = () => {
                     </TableCell>
                     <TableCell>₹{Number.parseFloat(record.refund || 0).toFixed(2)}</TableCell>
                     <TableCell>
+                      <StatusBadge color={record.is_refund_initiated ? "#4caf50" : "#f44336"}>
+                        {record.is_refund_initiated ? "Yes" : "No"}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>
                       <StatusBadge color={getStatusColor(record.status)}>
                         {record.status || "Pending"}
                       </StatusBadge>
@@ -529,12 +595,57 @@ const OtherReport = () => {
                     <TableCell>{record.approved_by_name || "-"}</TableCell>
                     <TableCell>{record.final_approved_by_name || "-"}</TableCell>
                     <TableCell>{record.refund_approved_by_name || "-"}</TableCell>
+                    <TableCell>{record.refund_initiated_by_name || "-"}</TableCell>
                     <TableCell>{record.created_by_name || "-"}</TableCell>
+                    <TableCell style={{ textAlign: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenHistoryModal(record.editHistory || [], record.patient_name || "N/A")}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          background: "#eef2f6",
+                          color: "#334155",
+                          border: "none",
+                          cursor: "pointer"
+                        }}
+                      >
+                        <History size={12} /> View ({record.editHistory?.length || 0})
+                      </button>
+                    </TableCell>
+                    {isAccounts && (
+                      <TableCell style={{ textAlign: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedRecordForRefund(record);
+                            setShowRefundModal(true);
+                          }}
+                          disabled={!record.is_refund_approved || record.is_refund_initiated}
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                            background: (!record.is_refund_approved || record.is_refund_initiated) ? "#ccc" : "#4caf50",
+                            color: "white",
+                            border: "none",
+                            cursor: (!record.is_refund_approved || record.is_refund_initiated) ? "not-allowed" : "pointer",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          Refund Initiated
+                        </button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="23" style={{ textAlign: "center", padding: "20px" }}>
                     No records found matching the current filters
                   </TableCell>
                 </TableRow>
@@ -551,12 +662,11 @@ const OtherReport = () => {
                   <TableCell colSpan="4" style={{ textAlign: "right" }}>
                     GRAND TOTAL:
                   </TableCell>
-                  <TableCell colSpan="4"></TableCell>
+                  <TableCell colSpan="3"></TableCell>
                   <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                  <TableCell></TableCell>
-                  <TableCell></TableCell>
+                  <TableCell colSpan="2"></TableCell>
                   <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
-                  <TableCell colSpan="5"></TableCell>
+                  <TableCell colSpan={isAccounts ? 9 : 8}></TableCell>
                 </tr>
               </tfoot>
             )}
@@ -581,6 +691,197 @@ const OtherReport = () => {
           .react-datepicker-popper { z-index: 9999 !important; }
           .react-datepicker { z-index: 9999 !important; }
         `}</style>
+      {showHistoryModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            width: "90%",
+            maxWidth: "650px",
+            maxHeight: "80vh",
+            overflowY: "auto",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>
+                Edit History - {activeHistoryName}
+              </h3>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "20px",
+                  cursor: "pointer",
+                  color: "#64748b",
+                  fontWeight: "bold"
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {activeHistory && activeHistory.length > 0 ? (
+                [...activeHistory].reverse().map((entry, idx) => (
+                  <div key={idx} style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    padding: "16px",
+                    backgroundColor: "#f8fafc"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "500" }}>
+                      <span>👤 {entry.edited_by_name || entry.edited_by || "System"}</span>
+                      <span>📅 {entry.edited_date ? new Date(entry.edited_date).toLocaleString() : "N/A"}</span>
+                    </div>
+                    <div style={{
+                      fontSize: "14px",
+                      color: "#1e293b",
+                      marginBottom: "12px",
+                      fontStyle: "italic",
+                      background: "#f1f5f9",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      borderLeft: "3px solid #6f8b83"
+                    }}>
+                      <strong>Reason: </strong> {entry.edited_reason || "No reason provided"}
+                    </div>
+                    {entry.changes && entry.changes.length > 0 ? (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginTop: "8px" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#e2e8f0" }}>
+                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Field</th>
+                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Before</th>
+                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>After</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entry.changes.map((change, cIdx) => (
+                            <tr key={cIdx} style={{ backgroundColor: "white" }}>
+                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", fontWeight: "600", color: "#475569" }}>{change.field}</td>
+                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#b91c1c", backgroundColor: "#fef2f2" }}>{change.before || "Empty"}</td>
+                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#15803d", backgroundColor: "#f0fdf4" }}>{change.after || "Empty"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div style={{ fontSize: "12px", color: "#64748b" }}>No specific field modifications tracked.</div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: "center", padding: "20px", color: "#64748b", fontStyle: "italic" }}>
+                  No edit history available for this record.
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: "white",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRefundModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            width: "90%",
+            maxWidth: "400px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px"
+          }}>
+            <h3 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>
+              Confirm Refund
+            </h3>
+            <p style={{ color: "#475569", margin: 0 }}>
+              Is Amount refunded for {selectedRecordForRefund?.patient_name}?
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
+              <button
+                onClick={() => {
+                  setShowRefundModal(false);
+                  setSelectedRecordForRefund(null);
+                }}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: "white",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleInitiateRefund}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#4caf50",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       </Container>
     </ReportContainer>
   )

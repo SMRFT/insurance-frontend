@@ -27,10 +27,82 @@ function InsuranceForm() {
   const formDataFromUpdate = location.state || {}
   const [insuranceCompanies, setInsuranceCompanies] = useState([])
   const [opIpNumberManuallyChanged, setOpIpNumberManuallyChanged] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [tempReason, setTempReason] = useState("")
+
+  const getChangedFields = (original, current) => {
+    const changes = [];
+    const fieldsToCompare = Object.keys(current);
+
+    fieldsToCompare.forEach(key => {
+      if (["editHistory", "billingFile", "queryUpload", "queryResponse", "opIpSelection", "opIpNumber"].includes(key)) return;
+
+      const beforeVal = original[key] !== undefined && original[key] !== null ? original[key].toString().trim() : "";
+      const afterVal = current[key] !== undefined && current[key] !== null ? current[key].toString().trim() : "";
+
+      if (beforeVal !== afterVal) {
+        const fieldLabels = {
+          patient_uhid: "Patient UHID",
+          patient_name: "Patient Name",
+          billNumber: "Bill Number",
+          date: "Date",
+          dateOfDischarge: "Discharge Date",
+          companyName: "Company Name",
+          specificInsuranceCompany: "Insurance Provider",
+          submissionStatus: "Submission Status",
+          approvalAmount: "Approval Amount",
+          claimedAmount: "Claimed Amount",
+          settledAmount: "Settled Amount",
+          approval: "Approval Norms",
+          followUp: "Follow Up Details",
+          reasonNotMatch: "Reason for Not Matching",
+          claimOption: "Claim Option",
+          claimDetails: "Claim Details",
+          notClaimReason: "Reason for Not Claiming",
+          billDate: "Bill Date",
+          billAmount: "Bill Amount",
+          fileSubmissionDate: "File Submission Date",
+          queryDate: "Query Date",
+          approvalDate: "Approval Date",
+          remarks: "Remarks",
+          treatmentType: "Treatment Type",
+          radiotherapyCycles: "Radiotherapy Cycles",
+          claimId: "Claim ID",
+          voucherNumber: "Voucher Number",
+          referral: "Referral Details",
+          grossAmount: "Gross Amount",
+          taxAmount: "Tax Amount",
+          netAmount: "Net Amount",
+          gst: "GST"
+        };
+
+        changes.push({
+          field: fieldLabels[key] || key,
+          before: beforeVal || "Empty",
+          after: afterVal || "Empty"
+        });
+      }
+    });
+
+    // Compare OP/IP values specifically
+    const origOpIp = original.opNumber || original.ipNumber || original.opIpNumber || "";
+    const currOpIp = current.opIpNumber || "";
+    if (origOpIp.toString().trim() !== currOpIp.toString().trim()) {
+      changes.push({
+        field: "OP/IP Number",
+        before: origOpIp || "Empty",
+        after: currOpIp || "Empty"
+      });
+    }
+
+    return changes;
+  };
+
   const [formData, setFormData] = useState({
     patient_uhid: "",
     patient_name: "",
     billNumber: "",
+    ctseType: "",
     date: "",
     dateOfDischarge: "",
     companyName: "",
@@ -181,9 +253,7 @@ function InsuranceForm() {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
+  const executeSubmit = async (historyData = []) => {
     const isUpdate = Object.keys(formDataFromUpdate).length > 0
 
     // Validation
@@ -206,12 +276,17 @@ function InsuranceForm() {
           key !== "queryResponse" &&
           key !== "opIpSelection" &&
           key !== "opIpNumber" &&
+          key !== "editHistory" &&
           formData[key] !== null &&
           formData[key] !== ""
         ) {
           formDataToSend.append(key, formData[key])
         }
       })
+
+      if (isUpdate) {
+        formDataToSend.append("editHistory", JSON.stringify(historyData))
+      }
 
       if (formData.opIpSelection === "OP" && formData.opIpNumber) {
         formDataToSend.append("opNumber", formData.opIpNumber)
@@ -239,7 +314,9 @@ function InsuranceForm() {
       let updateIdentifier = ""
 
       if (isUpdate) {
-        if (formDataFromUpdate.opNumber) {
+        if (formDataFromUpdate.id) {
+          updateIdentifier = formDataFromUpdate.id
+        } else if (formDataFromUpdate.opNumber) {
           updateIdentifier = formDataFromUpdate.opNumber
         } else if (formDataFromUpdate.ipNumber) {
           updateIdentifier = formDataFromUpdate.ipNumber
@@ -286,9 +363,10 @@ function InsuranceForm() {
             patient_uhid: "",
             patient_name: "",
             billNumber: "",
+            ctseType: "",
             date: "",
             dateOfDischarge: "",
-            companyName: "",
+            companyName: formData.companyName,
             specificInsuranceCompany: "",
             billingFile: null,
             queryUpload: null,
@@ -351,6 +429,33 @@ function InsuranceForm() {
         }
       )
     }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    const isUpdate = Object.keys(formDataFromUpdate).length > 0
+    if (isUpdate) {
+      const changes = getChangedFields(formDataFromUpdate, formData)
+      if (changes.length > 0) {
+        setShowEditModal(true)
+        return
+      }
+    }
+    await executeSubmit(formDataFromUpdate.editHistory || [])
+  }
+
+  const handleModalConfirm = async (reason) => {
+    setShowEditModal(false)
+    const changes = getChangedFields(formDataFromUpdate, formData)
+    const newHistoryItem = {
+      edited_by: localStorage.getItem("employeeId") || localStorage.getItem("name") || "system",
+      edited_date: new Date().toISOString(),
+      edited_reason: reason,
+      changes: changes
+    }
+    const updatedHistory = [...(formDataFromUpdate.editHistory || []), newHistoryItem]
+    await executeSubmit(updatedHistory)
   }
 
   const getTodayDate = () => {
@@ -430,6 +535,20 @@ function InsuranceForm() {
                     </Select>
                   </Col>
                   <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>CTSE Type</Label>
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', height: '38px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                        <input type="radio" name="ctseType" value="Pensionary" checked={formData.ctseType === "Pensionary"} onChange={handleChange} /> Pensionary
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                        <input type="radio" name="ctseType" value="Normal" checked={formData.ctseType === "Normal"} onChange={handleChange} /> Normal
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                        <input type="radio" name="ctseType" value="All" checked={formData.ctseType === "All"} onChange={handleChange} /> All
+                      </label>
+                    </div>
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>Date</Label>
                     <Input type="date" name="date" value={formData.date} onChange={handleChange} max={getTodayDate()} />
                   </Col>
@@ -458,10 +577,6 @@ function InsuranceForm() {
                   <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>Referral</Label>
                     <Input type="text" name="referral" value={formData.referral} onChange={handleChange} />
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Bill Number</Label>
-                    <Input type="text" name="billNumber" value={formData.billNumber} onChange={handleChange} />
                   </Col>
                   <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>Gross Amount</Label>
@@ -959,6 +1074,95 @@ function InsuranceForm() {
           </ButtonWrapper>
         </Form>
       </FormContainer>
+
+      {showEditModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            width: "90%",
+            maxWidth: "500px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px"
+          }}>
+            <h4 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>Reason for Modification</h4>
+            <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>Please provide a brief reason for editing this record to keep the audit history updated.</p>
+            <textarea
+              style={{
+                width: "100%",
+                minHeight: "80px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "14px",
+                outline: "none",
+                resize: "vertical"
+              }}
+              placeholder="e.g. Corrected gross amount typo, updated claim status"
+              value={tempReason}
+              onChange={(e) => setTempReason(e.target.value)}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: "white",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setTempReason("")
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#4f46e5",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+                onClick={() => {
+                  if (!tempReason.trim()) {
+                    toast.error("Please enter an edit reason!")
+                    return
+                  }
+                  handleModalConfirm(tempReason)
+                  setTempReason("")
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 991px) {

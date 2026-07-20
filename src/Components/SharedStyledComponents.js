@@ -535,7 +535,8 @@ export const FilterContainer = styled.div`
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   align-items: flex-end;
   width: 100%;
   box-sizing: border-box;
@@ -544,8 +545,17 @@ export const FilterContainer = styled.div`
   border: 1px solid var(--color-border, #DDE6E3);
   border-radius: 10px;
   padding: 14px 16px;
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-border, #DDE6E3);
+    border-radius: 4px;
+  }
 
-  @media (max-width: 768px) { gap: 10px; padding: 12px; }
+  @media (max-width: 1200px) { flex-wrap: wrap; overflow-x: visible; }
+  @media (max-width: 768px) { gap: 10px; padding: 12px; flex-wrap: wrap; }
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: stretch;
@@ -571,7 +581,7 @@ export const FilterWrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-width: 150px;
+  min-width: 120px;
   flex: 1;
   box-sizing: border-box;
 
@@ -582,8 +592,8 @@ export const SearchWrapper = styled.div`
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-width: 180px;
-  flex: 1;
+  min-width: 140px;
+  flex: 1.5;
   box-sizing: border-box;
 
   @media (max-width: 768px) { min-width: 100%; }

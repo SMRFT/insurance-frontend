@@ -36,6 +36,68 @@ const ChemoForm = () => {
     medicine_details: editData?.medicine_details || "",
   });
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [tempReason, setTempReason] = useState("");
+
+  const getChangedFields = (original, currentPayload) => {
+    const changes = [];
+    const fieldMapping = {
+      patient_name: "Patient Name",
+      date_of_admission: "Admission Date",
+      date_of_discharge: "Discharge Date",
+      insurance_type: "Insurance Type",
+      specificInsuranceCompany: "Insurance Provider",
+      amount_to_be_paid: "Amount to be Paid",
+      medicine_details: "Medicine Details",
+    };
+
+    Object.keys(fieldMapping).forEach(key => {
+      let origVal = original[key] !== undefined && original[key] !== null ? original[key] : "";
+      let currVal = currentPayload[key] !== undefined && currentPayload[key] !== null ? currentPayload[key] : "";
+      
+      if (key.startsWith("date_of_") && origVal) {
+        origVal = formatDateStr(origVal);
+      }
+      if (key.startsWith("date_of_") && currVal) {
+        currVal = formatDateStr(currVal);
+      }
+
+      const origStr = origVal.toString().trim();
+      const currStr = currVal.toString().trim();
+      
+      if (origStr !== currStr) {
+        changes.push({
+          field: fieldMapping[key],
+          before: origStr || "Empty",
+          after: currStr || "Empty"
+        });
+      }
+    });
+
+    const origPayments = original.payment_details || [];
+    const currPayments = currentPayload.payment_details || [];
+    
+    const normalizePayment = (p) => ({
+      amount: Number(p.amount) || 0,
+      payment_method: (p.payment_method || "").toString().trim(),
+      upi_details: (p.payment_method || "").toString().trim() === "UPI" ? (p.upi_details || "").toString().trim() : "",
+      date: (p.date || "").toString().trim()
+    });
+
+    const origNormalized = origPayments.map(normalizePayment);
+    const currNormalized = currPayments.map(normalizePayment);
+
+    if (JSON.stringify(origNormalized) !== JSON.stringify(currNormalized)) {
+      changes.push({
+        field: "Payment Details",
+        before: origPayments.length ? `${origPayments.length} payment(s)` : "Empty",
+        after: currPayments.length ? `${currPayments.length} payment(s)` : "Empty"
+      });
+    }
+
+    return changes;
+  };
+
   const [insuranceCompanies, setInsuranceCompanies] = useState([]);
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
 
@@ -93,9 +155,7 @@ const ChemoForm = () => {
     return Math.max(0, totalAmount - paidAmount);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const executeSubmit = async (historyData = []) => {
     if (!formData.patient_name || !formData.date_of_admission) {
       toast.error("Please fill required fields (Patient Name, Date of Admission).");
       return;
@@ -128,15 +188,17 @@ const ChemoForm = () => {
         payment_details: validPayments,
       };
 
-      if (editData?.chemo_id || editData?.id) {
+      const isUpdate = editData?.chemo_id || editData?.id;
+      if (isUpdate) {
         payload.id = editData.chemo_id || editData.id;
+        payload.editHistory = historyData;
       }
 
       const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
       let url = `${Insurancebaseurl}chemo_records/`;
       let method = "POST";
       
-      if (editData?.chemo_id || editData?.id) {
+      if (isUpdate) {
         url = `${Insurancebaseurl}chemorecords/${editData.chemo_id || editData.id}/`;
         method = "PUT";
       }
@@ -167,6 +229,62 @@ const ChemoForm = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const isUpdate = editData?.chemo_id || editData?.id;
+    if (isUpdate) {
+      const validPayments = paymentEntries
+        .filter((entry) => entry.amount && entry.payment_method && entry.date)
+        .map((entry) => ({
+          amount: parseFloat(entry.amount),
+          payment_method: entry.payment_method,
+          upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
+          date: entry.date,
+        }));
+
+      const payload = {
+        ...formData,
+        date: editData?.date || getTodayDate(),
+        payment_details: validPayments,
+      };
+
+      const changes = getChangedFields(editData, payload);
+      if (changes.length > 0) {
+        setShowEditModal(true);
+        return;
+      }
+    }
+    await executeSubmit(editData ? (editData.editHistory || []) : []);
+  };
+
+  const handleModalConfirm = async (reason) => {
+    setShowEditModal(false);
+    const validPayments = paymentEntries
+      .filter((entry) => entry.amount && entry.payment_method && entry.date)
+      .map((entry) => ({
+        amount: parseFloat(entry.amount),
+        payment_method: entry.payment_method,
+        upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
+        date: entry.date,
+      }));
+
+    const payload = {
+      ...formData,
+      date: editData?.date || getTodayDate(),
+      payment_details: validPayments,
+    };
+
+    const changes = getChangedFields(editData, payload);
+    const newHistoryItem = {
+      edited_by: localStorage.getItem("employeeId") || localStorage.getItem("name") || "system",
+      edited_date: new Date().toISOString(),
+      edited_reason: reason,
+      changes: changes
+    };
+    const updatedHistory = [...((editData && editData.editHistory) || []), newHistoryItem];
+    await executeSubmit(updatedHistory);
   };
 
   return (
@@ -359,6 +477,95 @@ const ChemoForm = () => {
           )}
         </ButtonWrapper>
       </Form>
+
+      {showEditModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            width: "90%",
+            maxWidth: "500px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px"
+          }}>
+            <h4 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>Reason for Modification</h4>
+            <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>Please provide a brief reason for editing this record to keep the audit history updated.</p>
+            <textarea
+              style={{
+                width: "100%",
+                minHeight: "80px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "14px",
+                outline: "none",
+                resize: "vertical"
+              }}
+              placeholder="e.g. Corrected gross amount typo, updated claim status"
+              value={tempReason}
+              onChange={(e) => setTempReason(e.target.value)}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: "white",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setTempReason("")
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#4f46e5",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+                onClick={() => {
+                  if (!tempReason.trim()) {
+                    toast.error("Please enter an edit reason!")
+                    return
+                  }
+                  handleModalConfirm(tempReason)
+                  setTempReason("")
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </FormContainer>
   );
 };

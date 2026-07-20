@@ -385,6 +385,65 @@ const OtherForm = ({ editData = null, onSuccess }) => {
   // Modal states
   const [showDoctorModal, setShowDoctorModal] = useState(false)
   const [showTreatmentModal, setShowTreatmentModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [tempReason, setTempReason] = useState("")
+
+  const getChangedFields = (original, currentPayload) => {
+    const changes = [];
+    
+    // Compare basic fields
+    const fieldMapping = {
+      date: { label: "Date", origKey: "date" },
+      patient_name: { label: "Patient Name", origKey: "patient_name" },
+      patient_uhid: { label: "Patient UHID", origKey: "patient_uhid" },
+      mobile_number: { label: "Mobile Number", origKey: "mobile_number" },
+      ip_op_type: { label: "IP/OP Type", origKey: "ip_op_type" },
+      doctor_name: { label: "Doctor Name", origKey: "doctor_name" },
+      company_name: { label: "Company Name", origKey: "company_name" },
+      specificInsuranceCompany: { label: "Insurance Provider", origKey: "specificInsuranceCompany" },
+      treatment: { label: "Treatment Details", origKey: "treatment" },
+      has_refund: { label: "Has Refund", origKey: "has_refund" },
+      refund: { label: "Refund Amount", origKey: "refund" },
+    };
+
+    Object.keys(fieldMapping).forEach(key => {
+      const mapping = fieldMapping[key];
+      const origVal = original[mapping.origKey] !== undefined && original[mapping.origKey] !== null ? original[mapping.origKey].toString().trim() : "";
+      const currVal = currentPayload[key] !== undefined && currentPayload[key] !== null ? currentPayload[key].toString().trim() : "";
+      
+      if (origVal !== currVal) {
+        changes.push({
+          field: mapping.label,
+          before: origVal || "Empty",
+          after: currVal || "Empty"
+        });
+      }
+    });
+
+    // Compare payment details
+    const origPayments = original.payment_details || [];
+    const currPayments = currentPayload.payment_details || [];
+    
+    const normalizePayment = (p) => ({
+      amount: Number(p.amount) || 0,
+      payment_method: (p.payment_method || "").toString().trim(),
+      upi_details: (p.payment_method || "").toString().trim() === "UPI" ? (p.upi_details || "").toString().trim() : "",
+      date: (p.date || "").toString().trim()
+    });
+
+    const origNormalized = origPayments.map(normalizePayment);
+    const currNormalized = currPayments.map(normalizePayment);
+
+    if (JSON.stringify(origNormalized) !== JSON.stringify(currNormalized)) {
+      changes.push({
+        field: "Payment Details",
+        before: origPayments.length ? `${origPayments.length} payment(s)` : "Empty",
+        after: currPayments.length ? `${currPayments.length} payment(s)` : "Empty"
+      });
+    }
+
+    return changes;
+  };
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
@@ -597,8 +656,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const executeSubmit = async (historyData = []) => {
     setLoading(true)
 
     const loadingToast = toast.loading("Processing your request...", {
@@ -673,6 +731,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
           }
         }
         payload.id = recordId
+        payload.editHistory = historyData
         response = await apiRequest(`${Insurancebaseurl}other_records/`, "PUT", payload)
       } else {
         response = await apiRequest(`${Insurancebaseurl}other_records/`, "POST", payload)
@@ -727,6 +786,85 @@ const OtherForm = ({ editData = null, onSuccess }) => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    const isEditMode =
+      editDataFromNav &&
+      (editDataFromNav.id || editDataFromNav._id || (editDataFromNav._id && editDataFromNav._id.$oid))
+
+    if (isEditMode) {
+      // Calculate current payload to compare with original
+      const paymentDetailsForBackend = paymentEntries
+        .filter((entry) => entry.amount || entry.payment_method || entry.upi_details || entry.date)
+        .map((entry) => ({
+          amount: entry.amount ? Number.parseFloat(entry.amount) : 0,
+          payment_method: entry.payment_method || "",
+          upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
+          date: entry.date || "",
+        }))
+
+      const payload = {
+        date: formData.date,
+        patient_name: formData.patientName,
+        patient_uhid: formData.patientUhid,
+        mobile_number: formData.mobileNumber,
+        ip_op_type: formData.ipOpType,
+        doctor_name: formData.doctorName,
+        company_name: formData.companyName,
+        specificInsuranceCompany: formData.specificInsuranceCompany,
+        treatment: formData.treatment,
+        has_refund: formData.hasRefund,
+        refund: formData.refundAmount || "0",
+        payment_details: paymentDetailsForBackend,
+      }
+
+      const changes = getChangedFields(editDataFromNav, payload)
+      if (changes.length > 0) {
+        setShowEditModal(true)
+        return
+      }
+    }
+    await executeSubmit(editDataFromNav ? (editDataFromNav.editHistory || []) : [])
+  }
+
+  const handleModalConfirm = async (reason) => {
+    setShowEditModal(false)
+    const paymentDetailsForBackend = paymentEntries
+      .filter((entry) => entry.amount || entry.payment_method || entry.upi_details || entry.date)
+      .map((entry) => ({
+        amount: entry.amount ? Number.parseFloat(entry.amount) : 0,
+        payment_method: entry.payment_method || "",
+        upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
+        date: entry.date || "",
+      }))
+
+    const payload = {
+      date: formData.date,
+      patient_name: formData.patientName,
+      patient_uhid: formData.patientUhid,
+      mobile_number: formData.mobileNumber,
+      ip_op_type: formData.ipOpType,
+      doctor_name: formData.doctorName,
+      company_name: formData.companyName,
+      specificInsuranceCompany: formData.specificInsuranceCompany,
+      treatment: formData.treatment,
+      has_refund: formData.hasRefund,
+      refund: formData.refundAmount || "0",
+      payment_details: paymentDetailsForBackend,
+    }
+
+    const changes = getChangedFields(editDataFromNav, payload)
+    const newHistoryItem = {
+      edited_by: localStorage.getItem("employeeId") || localStorage.getItem("name") || "system",
+      edited_date: new Date().toISOString(),
+      edited_reason: reason,
+      changes: changes
+    }
+    const updatedHistory = [...((editDataFromNav && editDataFromNav.editHistory) || []), newHistoryItem]
+    await executeSubmit(updatedHistory)
   }
 
   const handleCancel = () => {
@@ -1179,6 +1317,95 @@ const OtherForm = ({ editData = null, onSuccess }) => {
           </ButtonWrapper>
         </Form>
       </FormContainer>
+
+      {showEditModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            width: "90%",
+            maxWidth: "500px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px"
+          }}>
+            <h4 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>Reason for Modification</h4>
+            <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>Please provide a brief reason for editing this record to keep the audit history updated.</p>
+            <textarea
+              style={{
+                width: "100%",
+                minHeight: "80px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "14px",
+                outline: "none",
+                resize: "vertical"
+              }}
+              placeholder="e.g. Corrected gross amount typo, updated claim status"
+              value={tempReason}
+              onChange={(e) => setTempReason(e.target.value)}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: "white",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setTempReason("")
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#4f46e5",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500"
+                }}
+                onClick={() => {
+                  if (!tempReason.trim()) {
+                    toast.error("Please enter an edit reason!")
+                    return
+                  }
+                  handleModalConfirm(tempReason)
+                  setTempReason("")
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes modalSlideIn {

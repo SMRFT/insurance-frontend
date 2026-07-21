@@ -259,7 +259,7 @@ const OtherUpdate = () => {
 
   return (
     <ReportContainer>
-      <Toaster position="top-right" />
+      
       <Container>
         <Title>Other Records - All Statuses</Title>
 

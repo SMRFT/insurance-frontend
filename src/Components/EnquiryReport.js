@@ -167,7 +167,7 @@ function EnquiryDetailPage() {
 
   return (
     <ReportContainer>
-      <Toaster position="top-right" />
+      
       <Container>
         <Title>Enquiry Detail — Follow Up History</Title>
 

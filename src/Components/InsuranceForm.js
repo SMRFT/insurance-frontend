@@ -469,41 +469,7 @@ function InsuranceForm() {
         <Title>{formDataFromUpdate.opNumber ? "Update Insurance Form" : "Insurance Form"}</Title>
 
         {/* Toast Container */}
-        <Toaster
-          position="top-right"
-          reverseOrder={false}
-          gutter={8}
-          containerClassName=""
-          containerStyle={{}}
-          toastOptions={{
-            className: '',
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
-              duration: 3000,
-              theme: {
-                primary: '#4aed88',
-                secondary: 'black',
-              },
-            },
-            error: {
-              duration: 5000,
-              theme: {
-                primary: '#ff6b6b',
-                secondary: 'white',
-              },
-            },
-            loading: {
-              theme: {
-                primary: '#4f46e5',
-                secondary: 'white',
-              },
-            },
-          }}
-        />
+        
 
         <Form onSubmit={handleSubmit}>
           {formData.companyName === "Railway CTSE" ? (

@@ -325,7 +325,7 @@ const RTReport = () => {
 
   return (
     <ReportContainer>
-      <Toaster position="top-right" />
+      
       <Container>
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexShrink: 0, flexWrap: 'wrap', gap: '10px' }}>
@@ -450,7 +450,7 @@ const RTReport = () => {
                       </StatusBadge>
                     </TableCell>
                     <ActionCell>
-                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance Testing") && (
+                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance AVP") && (
                         <EditButton onClick={() => handleEdit(record)}>
                           Edit
                         </EditButton>

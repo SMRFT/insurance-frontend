@@ -431,7 +431,7 @@ function EnquiryList() {
 
   return (
     <ReportContainer>
-      <Toaster position="top-right" />
+      
 
       {followUpTarget && (
         <FollowUpModal

@@ -353,23 +353,23 @@ const LogoutButton = styled.button`
 // Icon background colours per item type
 const ICON_COLORS = {
   // Forms
-  insuranceForm:  'rgba(100,180,255,0.35)',
-  otherForm:      'rgba(130,200,140,0.35)',
+  insuranceForm: 'rgba(100,180,255,0.35)',
+  otherForm: 'rgba(130,200,140,0.35)',
   // Updates
-  formUpdate:     'rgba(255,180,80,0.35)',
-  otherUpdate:    'rgba(255,140,100,0.35)',
-  gatePass:       'rgba(180,140,255,0.35)',
+  formUpdate: 'rgba(255,180,80,0.35)',
+  otherUpdate: 'rgba(255,140,100,0.35)',
+  gatePass: 'rgba(180,140,255,0.35)',
   // Reports
-  insuranceReport:'rgba(80,200,200,0.35)',
-  otherReport:    'rgba(100,210,160,0.35)',
-  radiotherapy:   'rgba(255,120,160,0.35)',
+  insuranceReport: 'rgba(80,200,200,0.35)',
+  otherReport: 'rgba(100,210,160,0.35)',
+  radiotherapy: 'rgba(255,120,160,0.35)',
   // Approvals
-  overall:        'rgba(100,220,120,0.35)',
-  refund:         'rgba(255,200,80,0.35)',
+  overall: 'rgba(100,220,120,0.35)',
+  refund: 'rgba(255,200,80,0.35)',
   // Enquiry
-  enquiryForm:    'rgba(255,160,220,0.35)',
-  enquiryList:    'rgba(160,180,255,0.35)',
-  enquiryDetail:  'rgba(255,220,120,0.35)',
+  enquiryForm: 'rgba(255,160,220,0.35)',
+  enquiryList: 'rgba(160,180,255,0.35)',
+  enquiryDetail: 'rgba(255,220,120,0.35)',
 };
 
 function Sidebar({ userRole }) {
@@ -418,9 +418,10 @@ function Sidebar({ userRole }) {
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    ["user_payload","selected_branch","access_token","user","role","name","employeeId","userEmail"]
+    ["user_payload", "selected_branch", "access_token", "user", "role", "name", "employeeId", "userEmail"]
       .forEach(k => localStorage.removeItem(k));
-    window.location.href = "/secure";
+    setIsSidebarOpen(false);
+    window.location.href = "/Secure";
   };
 
   const getNavigationGroups = () => {
@@ -430,8 +431,8 @@ function Sidebar({ userRole }) {
           {
             id: "insurance", label: "Insurance Forms",
             items: [
-              { path: "/",          label: "Insurance Form", icon: <FilePlus size={15} />,    color: ICON_COLORS.insuranceForm },
-              { path: "/OtherForm", label: "Other Form",     icon: <PlusSquare size={15} />,  color: ICON_COLORS.otherForm },
+              { path: "/", label: "Insurance Form", icon: <FilePlus size={15} />, color: ICON_COLORS.insuranceForm },
+              { path: "/OtherForm", label: "Other Form", icon: <PlusSquare size={15} />, color: ICON_COLORS.otherForm },
             ]
           },
           {
@@ -444,7 +445,7 @@ function Sidebar({ userRole }) {
             id: "reports", label: "Reports",
             items: [
               { path: "/InsuranceReport", label: "Insurance Report", icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
-              { path: "/OtherReport",     label: "Other Report",     icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
+              { path: "/OtherReport", label: "Other Report", icon: <BarChart2 size={15} />, color: ICON_COLORS.otherReport },
             ]
           },
           {
@@ -460,19 +461,19 @@ function Sidebar({ userRole }) {
           {
             id: "update", label: "Update Forms",
             items: [
-              { path: "/FormUpdate",   label: "Form Update",    icon: <FileEdit size={15} />,     color: ICON_COLORS.formUpdate },
-              { path: "/OtherUpdate",  label: "Other Update",   icon: <RefreshCw size={15} />,    color: ICON_COLORS.otherUpdate },
-              { path: "/OtherGatePass",label: "Issue Gate Pass",icon: <ClipboardList size={15} />,color: ICON_COLORS.gatePass },
+              { path: "/FormUpdate", label: "Form Update", icon: <FileEdit size={15} />, color: ICON_COLORS.formUpdate },
+              { path: "/OtherUpdate", label: "Other Update", icon: <RefreshCw size={15} />, color: ICON_COLORS.otherUpdate },
+              { path: "/OtherGatePass", label: "Issue Gate Pass", icon: <ClipboardList size={15} />, color: ICON_COLORS.gatePass },
             ]
           },
           {
             id: "reports", label: "Reports",
             items: [
-              { path: "/InsuranceReport",   label: "Insurance Report",   icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
-              { path: "/OtherReport",       label: "Other Report",       icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
-              { path: "/RadiotherapyReport",label: "Radiotherapy Report",icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
-              { path: "/RTReport",          label: "RT Report",          icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
-              { path: "/ChemoReport",       label: "Chemo Report",       icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/InsuranceReport", label: "Insurance Report", icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
+              { path: "/OtherReport", label: "Other Report", icon: <BarChart2 size={15} />, color: ICON_COLORS.otherReport },
+              { path: "/RadiotherapyReport", label: "Radiotherapy Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/RTReport", label: "RT Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/ChemoReport", label: "Chemo Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
             ]
           },
           {
@@ -490,9 +491,9 @@ function Sidebar({ userRole }) {
             id: "reports", label: "Reports",
             items: [
               { path: "/InsuranceReport", label: "Insurance Report", icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
-              { path: "/OtherReport",     label: "Other Report",     icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
-              { path: "/RTReport",        label: "RT Report",        icon: <Stethoscope size={15} />,  color: ICON_COLORS.radiotherapy },
-              { path: "/ChemoReport",     label: "Chemo Report",     icon: <Stethoscope size={15} />,  color: ICON_COLORS.radiotherapy },
+              { path: "/OtherReport", label: "Other Report", icon: <BarChart2 size={15} />, color: ICON_COLORS.otherReport },
+              { path: "/RTReport", label: "RT Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/ChemoReport", label: "Chemo Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
             ]
           },
         ];
@@ -502,7 +503,7 @@ function Sidebar({ userRole }) {
           {
             id: "update", label: "Update Forms",
             items: [
-              { path: "/FormUpdate",  label: "Form Update",  icon: <FileEdit size={15} />,  color: ICON_COLORS.formUpdate },
+              { path: "/FormUpdate", label: "Form Update", icon: <FileEdit size={15} />, color: ICON_COLORS.formUpdate },
               { path: "/OtherUpdate", label: "Other Update", icon: <RefreshCw size={15} />, color: ICON_COLORS.otherUpdate },
             ]
           },
@@ -510,23 +511,23 @@ function Sidebar({ userRole }) {
             id: "Final Approval", label: "Approve Forms",
             items: [
               { path: "/OverallApproval", label: "Overall Approval", icon: <BadgeCheck size={15} />, color: ICON_COLORS.overall },
-              { path: "/RefundApproval",  label: "Refund Approval",  icon: <Banknote size={15} />,   color: ICON_COLORS.refund },
+              { path: "/RefundApproval", label: "Refund Approval", icon: <Banknote size={15} />, color: ICON_COLORS.refund },
             ]
           },
           {
             id: "reports", label: "Reports",
             items: [
-              { path: "/InsuranceReport",   label: "Insurance Report",   icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
-              { path: "/OtherReport",       label: "Other Report",       icon: <BarChart2 size={15} />,    color: ICON_COLORS.otherReport },
-              { path: "/RadiotherapyReport",label: "Radiotherapy Report",icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
-              { path: "/RTReport",          label: "RT Report",          icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
-              { path: "/ChemoReport",       label: "Chemo Report",       icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/InsuranceReport", label: "Insurance Report", icon: <FileBarChart size={15} />, color: ICON_COLORS.insuranceReport },
+              { path: "/OtherReport", label: "Other Report", icon: <BarChart2 size={15} />, color: ICON_COLORS.otherReport },
+              { path: "/RadiotherapyReport", label: "Radiotherapy Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/RTReport", label: "RT Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
+              { path: "/ChemoReport", label: "Chemo Report", icon: <Stethoscope size={15} />, color: ICON_COLORS.radiotherapy },
             ]
           },
           {
             id: "enquiry", label: "Enquiry",
             items: [
-              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />,    color: ICON_COLORS.enquiryDetail },
+              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />, color: ICON_COLORS.enquiryDetail },
             ]
           },
         ];
@@ -536,8 +537,8 @@ function Sidebar({ userRole }) {
           {
             id: "enquiry", label: "Enquiry",
             items: [
-              { path: "/EnquiryList",       label: "Enquiry List",   icon: <List size={15} />,          color: ICON_COLORS.enquiryList },
-              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />,    color: ICON_COLORS.enquiryDetail },
+              { path: "/EnquiryList", label: "Enquiry List", icon: <List size={15} />, color: ICON_COLORS.enquiryList },
+              { path: "/EnquiryDetailPage", label: "Enquiry Detail", icon: <FileSearch size={15} />, color: ICON_COLORS.enquiryDetail },
             ]
           },
         ];
@@ -574,7 +575,7 @@ function Sidebar({ userRole }) {
           }
         ];
 
-      case "Insurance Testing":
+      case "Insurance AVP":
         return [
           {
             id: "insurance",
@@ -785,7 +786,7 @@ function Sidebar({ userRole }) {
           <LogoutContainer>
             <LogoutButton onClick={handleLogout}>
               <LogOut size={18} />
-              Logout
+              Sign Out
             </LogoutButton>
           </LogoutContainer>
         </SidebarBottom>

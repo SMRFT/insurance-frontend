@@ -741,8 +741,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
 
       if (response.status === 200 || response.status === 201) {
         toast.success(
-          isEditMode ? "✅ Record updated successfully!" : "🎉 Record created successfully!",
-          { duration: 4000, style: { background: "#10b981", color: "#fff" } }
+          isEditMode ? "✅ Record updated successfully!" : "🎉 Record created successfully!"
         )
 
         setTimeout(() => {
@@ -790,6 +789,18 @@ const OtherForm = ({ editData = null, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!formData.patientUhid) { toast.error("OP/IP Number is required"); return; }
+    if (!formData.patientName) { toast.error("Patient Name is required"); return; }
+    if (!formData.companyName) { toast.error("Insurance Company is required"); return; }
+    if (!formData.treatment) { toast.error("Treatment Details are required"); return; }
+    
+    const validPayments = paymentEntries.filter((entry) => entry.amount || entry.payment_method || entry.upi_details || entry.date);
+    if (validPayments.length === 0) {
+      toast.error("At least one Payment Detail is required");
+      return;
+    }
+
 
     const isEditMode =
       editDataFromNav &&
@@ -881,18 +892,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
       <FormContainer>
         <Title>{editDataFromNav ? "Edit Other Record" : "Other Form"}</Title>
 
-        <Toaster
-          position="top-right"
-          reverseOrder={false}
-          gutter={8}
-          toastOptions={{
-            className: "",
-            duration: 4000,
-            style: { background: "#363636", color: "#fff", fontWeight: "500" },
-            success: { duration: 3000 },
-            error: { duration: 5000 },
-          }}
-        />
+        
 
         {/* Modals */}
         {showDoctorModal && (
@@ -957,24 +957,26 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               </div>
 
               <div>
-                <Label>OP/IP Number</Label>
+                <Label>OP/IP Number <span style={{ color: "red" }}>*</span></Label>
                 <Input
                   type="text"
                   name="patientUhid"
                   value={formData.patientUhid}
                   onChange={handleChange}
                   placeholder="Enter patient op/ip number"
+                  required
                 />
               </div>
 
               <div>
-                <Label>Patient Name</Label>
+                <Label>Patient Name <span style={{ color: "red" }}>*</span></Label>
                 <Input
                   type="text"
                   name="patientName"
                   value={formData.patientName}
                   onChange={handleChange}
                   placeholder="Enter patient name"
+                  required
                 />
               </div>
 
@@ -1036,8 +1038,8 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               className="responsive-grid"
             >
               <div>
-                <Label>Company Name</Label>
-                <Select name="companyName" value={formData.companyName} onChange={handleChange}>
+                <Label>Company Name <span style={{ color: "red" }}>*</span></Label>
+                <Select name="companyName" value={formData.companyName} onChange={handleChange} required>
                   <option value="">Select Company</option>
                   <option value="General Insurance">General Insurance</option>
                   <option value="ECHS">ECHS</option>
@@ -1073,7 +1075,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
 
               {/* Treatment with + button */}
               <div>
-                <Label>Treatment</Label>
+                <Label>Treatment <span style={{ color: "red" }}>*</span></Label>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <Select
                     name="treatment"
@@ -1081,6 +1083,7 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                     onChange={handleChange}
                     disabled={loadingTreatments}
                     style={{ flex: 1 }}
+                    required
                   >
                     <option value="">
                       {loadingTreatments ? "Loading treatments..." : "Select Treatment"}

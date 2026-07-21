@@ -233,6 +233,13 @@ const ChemoForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.patient_name) { toast.error("Patient Name is required"); return; }
+    if (!formData.date_of_admission) { toast.error("Date of Admission is required"); return; }
+    if (!formData.date_of_discharge) { toast.error("Date of Discharge is required"); return; }
+    if (!formData.insurance_type) { toast.error("Insurance Type is required"); return; }
+    if (!formData.medicine_details) { toast.error("Medicine Details are required"); return; }
+
     const isUpdate = editData?.chemo_id || editData?.id;
     if (isUpdate) {
       const validPayments = paymentEntries
@@ -289,7 +296,7 @@ const ChemoForm = () => {
 
   return (
     <FormContainer>
-      <Toaster position="top-right" />
+      
       <Title>{(editData?.chemo_id || editData?.id) ? "Edit Chemo Record" : "Chemotherapy (Chemo) Form"}</Title>
       
       <Form onSubmit={handleSubmit}>
@@ -301,7 +308,7 @@ const ChemoForm = () => {
               <Input type="date" value={formatDateStr(editData?.date) || getTodayDate()} disabled style={{ backgroundColor: "#f8f9fa" }} />
             </div>
             <div>
-              <Label>Patient Name *</Label>
+              <Label>Patient Name <span style={{ color: "red" }}>*</span></Label>
               <Input
                 type="text"
                 name="patient_name"
@@ -312,7 +319,7 @@ const ChemoForm = () => {
               />
             </div>
             <div>
-              <Label>Date of Admission *</Label>
+              <Label>Date of Admission <span style={{ color: "red" }}>*</span></Label>
               <Input
                 type="date"
                 name="date_of_admission"
@@ -322,12 +329,13 @@ const ChemoForm = () => {
               />
             </div>
             <div>
-              <Label>Date of Discharge</Label>
+              <Label>Date of Discharge <span style={{ color: "red" }}>*</span></Label>
               <Input
                 type="date"
                 name="date_of_discharge"
                 value={formData.date_of_discharge}
                 onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -337,8 +345,8 @@ const ChemoForm = () => {
           <SectionTitle>Insurance & Medical Details</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
             <div>
-              <Label>Insurance Type</Label>
-              <Select name="insurance_type" value={formData.insurance_type} onChange={handleChange}>
+              <Label>Insurance Type <span style={{ color: "red" }}>*</span></Label>
+              <Select name="insurance_type" value={formData.insurance_type} onChange={handleChange} required>
                 <option value="">Select Insurance Type</option>
                 <option value="General Insurance">General Insurance</option>
                 <option value="ECHS">ECHS</option>
@@ -377,13 +385,14 @@ const ChemoForm = () => {
               />
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <Label>Medicine Details</Label>
+              <Label>Medicine Details <span style={{ color: "red" }}>*</span></Label>
               <textarea
                 name="medicine_details"
                 value={formData.medicine_details}
                 onChange={handleChange}
                 placeholder="Enter medicine details"
                 style={{ width: "100%", padding: "10px", borderRadius: "4px", border: "1px solid #ccc", minHeight: "80px" }}
+                required
               />
             </div>
           </div>

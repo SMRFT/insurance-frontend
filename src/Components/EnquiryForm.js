@@ -111,13 +111,12 @@ function EnquiryForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const isUpdate = Object.keys(formDataFromUpdate).length > 0
+    if (!formData.date) { toast.error("Date is required"); return; }
+    if (!formData.patientName) { toast.error("Patient Name is required"); return; }
+    if (!formData.phoneNumber) { toast.error("Phone Number is required"); return; }
+    if (!formData.reasonForApproach) { toast.error("Reason For Approach is required"); return; }
 
-    // Validation
-    if (!formData.patientName || !formData.phoneNumber) {
-      toast.error("Please fill out all required fields!")
-      return
-    }
+    const isUpdate = Object.keys(formDataFromUpdate).length > 0
 
     const loadingToast = toast.loading(isUpdate ? "Updating enquiry..." : "Submitting enquiry...")
 
@@ -203,17 +202,7 @@ function EnquiryForm() {
       <FormContainer>
         <Title>{isUpdate ? "Update Enquiry Form" : "Enquiry Form"}</Title>
 
-        <Toaster
-          position="top-right"
-          reverseOrder={false}
-          gutter={8}
-          toastOptions={{
-            duration: 4000,
-            style: { background: "#363636", color: "#fff" },
-            success: { duration: 3000 },
-            error: { duration: 5000 },
-          }}
-        />
+        
 
         <Form onSubmit={handleSubmit}>
 
@@ -231,13 +220,14 @@ function EnquiryForm() {
             >
               {/* Date */}
               <Col xs={12} sm={6} md={4} lg={4}>
-                <Label>Date</Label>
+                <Label>Date <span style={{ color: "red" }}>*</span></Label>
                 <Input
                   type="date"
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
                   max={getTodayDate()}
+                  required
                 />
               </Col>
 
@@ -282,7 +272,7 @@ function EnquiryForm() {
               {/* Patient Name */}
               <Col xs={12} sm={6} md={6} lg={6}>
                 <Label>
-                  Patient Name <span style={{ color: "#ef4444" }}>*</span>
+                  Patient Name <span style={{ color: "red" }}>*</span>
                 </Label>
                 <Input
                   type="text"
@@ -290,13 +280,14 @@ function EnquiryForm() {
                   value={formData.patientName}
                   onChange={handleChange}
                   placeholder="Enter Patient Name"
+                  required
                 />
               </Col>
 
               {/* Phone Number */}
               <Col xs={12} sm={6} md={6} lg={6}>
                 <Label>
-                  Phone Number <span style={{ color: "#ef4444" }}>*</span>
+                  Phone Number <span style={{ color: "red" }}>*</span>
                 </Label>
                 <Input
                   type="tel"
@@ -305,6 +296,7 @@ function EnquiryForm() {
                   onChange={handleChange}
                   placeholder="Enter Phone Number"
                   maxLength={15}
+                  required
                 />
               </Col>
             </Row>
@@ -386,7 +378,7 @@ function EnquiryForm() {
             </Row>
             <Row>
               <Col xs={12}>
-                <Label>Reason For Approach</Label>
+                <Label>Reason For Approach <span style={{ color: "red" }}>*</span></Label>
                 <textarea
                   name="reasonForApproach"
                   value={formData.reasonForApproach}
@@ -404,6 +396,7 @@ function EnquiryForm() {
                     outline: "none",
                     boxSizing: "border-box",
                   }}
+                  required
                 />
               </Col>
             </Row>

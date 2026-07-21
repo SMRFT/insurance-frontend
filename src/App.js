@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from
 import styled, { keyframes } from "styled-components";
 import Sidebar from "./Components/Sidebar";
 import { Shield, AlertCircle, Lock } from "lucide-react";
+import { Toaster } from "react-hot-toast";
 
 const InsuranceForm = lazy(() => import("./Components/InsuranceForm"));
 const InsuranceReport = lazy(() => import("./Components/InsuranceReport"));
@@ -214,8 +215,8 @@ function AppContent() {
               </>
             )}
 
-            {/* Insurance Testing - Access to all routes */}
-            {role === "Insurance Testing" && (
+            {/* Insurance AVP - Access to all routes */}
+            {role === "Insurance AVP" && (
               <>
                 {/* Default */}
                 <Route path="/" element={<OverallApproval />} />
@@ -501,9 +502,39 @@ const AccessDeniedSub = styled.p`
 
 function App() {
   return (
-    <Router basename="/insurance">
-      <AppContent />
-    </Router>
+    <>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          className: '',
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            fontWeight: '500',
+            padding: '16px',
+            borderRadius: '8px'
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#dc2626',
+              secondary: '#fff',
+            },
+          },
+        }} 
+      />
+      <Router basename="/insurance">
+        <AppContent />
+      </Router>
+    </>
   );
 }
 

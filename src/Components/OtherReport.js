@@ -35,19 +35,17 @@ const accentColor = "#9aaea9"
 const OtherReport = () => {
   const [records, setRecords] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [showHistoryModal, setShowHistoryModal] = useState(false)
-  const [activeHistory, setActiveHistory] = useState([])
-  const [activeHistoryName, setActiveHistoryName] = useState("")
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [activeRecord, setActiveRecord] = useState(null)
 
   const userPayloadStr = localStorage.getItem("user_payload");
   const userPayload = userPayloadStr ? JSON.parse(userPayloadStr) : {};
   const allowedActions = userPayload["allowed-actions"] || [];
-  const isAccounts = allowedActions.includes("SIN-R-ACC") || allowedActions.includes("SIN-R-TST");
+  const isAccounts = allowedActions.includes("SIN-R-ACC") || allowedActions.includes("SIN-R-AVP");
 
-  const handleOpenHistoryModal = (history, name) => {
-    setActiveHistory(history)
-    setActiveHistoryName(name)
-    setShowHistoryModal(true)
+  const handleOpenViewModal = (record) => {
+    setActiveRecord(record)
+    setShowViewModal(true)
   }
   const [loading, setLoading] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState("")
@@ -541,7 +539,7 @@ const OtherReport = () => {
                 <TableHeader>Refund Approved By</TableHeader>
                 <TableHeader>Refund Initiated By</TableHeader>
                 <TableHeader>Created By</TableHeader>
-                <TableHeader style={{ textAlign: "center" }}>Edit History</TableHeader>
+                <TableHeader style={{ textAlign: "center" }}>View Details</TableHeader>
                 {isAccounts && <TableHeader style={{ textAlign: "center" }}>Action</TableHeader>}
               </tr>
             </thead>
@@ -600,7 +598,7 @@ const OtherReport = () => {
                     <TableCell style={{ textAlign: "center" }}>
                       <button
                         type="button"
-                        onClick={() => handleOpenHistoryModal(record.editHistory || [], record.patient_name || "N/A")}
+                        onClick={() => handleOpenViewModal(record)}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -614,7 +612,7 @@ const OtherReport = () => {
                           cursor: "pointer"
                         }}
                       >
-                        <History size={12} /> View ({record.editHistory?.length || 0})
+                        <History size={12} /> View Details
                       </button>
                     </TableCell>
                     {isAccounts && (
@@ -659,13 +657,12 @@ const OtherReport = () => {
                   <TableCell className="frozen-col frozen-col-2"></TableCell>
                   <TableCell className="frozen-col frozen-col-3"></TableCell>
                   <TableCell className="frozen-col frozen-col-4"></TableCell>
-                  <TableCell colSpan="4" style={{ textAlign: "right" }}>
+                  <TableCell colSpan="5" style={{ textAlign: "right", paddingRight: "16px", fontWeight: "bold" }}>
                     GRAND TOTAL:
                   </TableCell>
-                  <TableCell colSpan="3"></TableCell>
-                  <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
+                  <TableCell style={{ fontWeight: "bold", color: "#16a34a" }}>₹{totalAmount.toFixed(2)}</TableCell>
                   <TableCell colSpan="2"></TableCell>
-                  <TableCell>₹{totalRefund.toFixed(2)}</TableCell>
+                  <TableCell style={{ fontWeight: "bold", color: "#16a34a" }}>₹{totalRefund.toFixed(2)}</TableCell>
                   <TableCell colSpan={isAccounts ? 9 : 8}></TableCell>
                 </tr>
               </tfoot>
@@ -691,7 +688,7 @@ const OtherReport = () => {
           .react-datepicker-popper { z-index: 9999 !important; }
           .react-datepicker { z-index: 9999 !important; }
         `}</style>
-      {showHistoryModal && (
+      {showViewModal && activeRecord && (
         <div style={{
           position: "fixed",
           top: 0,
@@ -709,24 +706,24 @@ const OtherReport = () => {
             padding: "24px",
             borderRadius: "12px",
             width: "90%",
-            maxWidth: "650px",
-            maxHeight: "80vh",
+            maxWidth: "750px",
+            maxHeight: "85vh",
             overflowY: "auto",
             boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
             display: "flex",
             flexDirection: "column",
-            gap: "16px"
+            gap: "24px"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>
-                Edit History - {activeHistoryName}
+              <h3 style={{ margin: 0, fontSize: "20px", color: "#1e293b", fontWeight: "bold" }}>
+                Record Details - {activeRecord.patient_name || "N/A"}
               </h3>
               <button
-                onClick={() => setShowHistoryModal(false)}
+                onClick={() => setShowViewModal(false)}
                 style={{
                   background: "none",
                   border: "none",
-                  fontSize: "20px",
+                  fontSize: "24px",
                   cursor: "pointer",
                   color: "#64748b",
                   fontWeight: "bold"
@@ -736,74 +733,126 @@ const OtherReport = () => {
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {activeHistory && activeHistory.length > 0 ? (
-                [...activeHistory].reverse().map((entry, idx) => (
-                  <div key={idx} style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    padding: "16px",
-                    backgroundColor: "#f8fafc"
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "500" }}>
-                      <span>👤 {entry.edited_by_name || entry.edited_by || "System"}</span>
-                      <span>📅 {entry.edited_date ? new Date(entry.edited_date).toLocaleString() : "N/A"}</span>
-                    </div>
-                    <div style={{
-                      fontSize: "14px",
-                      color: "#1e293b",
-                      marginBottom: "12px",
-                      fontStyle: "italic",
-                      background: "#f1f5f9",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      borderLeft: "3px solid #6f8b83"
+            {/* Payment Details Section */}
+            <div>
+              <h4 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#334155", borderBottom: "2px solid #e2e8f0", display: "inline-block", paddingBottom: "4px" }}>
+                Payment Details
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {activeRecord.payment_details && activeRecord.payment_details.length > 0 ? (
+                  activeRecord.payment_details.map((payment, idx) => (
+                    <div key={idx} style={{
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "8px",
+                      padding: "16px",
+                      backgroundColor: "#f8fafc",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                      gap: "16px"
                     }}>
-                      <strong>Reason: </strong> {entry.edited_reason || "No reason provided"}
+                      <div>
+                        <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Date</div>
+                        <div style={{ fontSize: "14px", color: "#0f172a", fontWeight: "500", marginTop: "4px" }}>{payment.date || "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Amount</div>
+                        <div style={{ fontSize: "14px", color: "#16a34a", fontWeight: "700", marginTop: "4px" }}>₹{Number(payment.amount || 0).toFixed(2)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>Payment Method</div>
+                        <div style={{ fontSize: "14px", color: "#0f172a", fontWeight: "500", marginTop: "4px" }}>{payment.payment_method || "-"}</div>
+                      </div>
+                      {payment.payment_method === "UPI" && (
+                        <div>
+                          <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", textTransform: "uppercase" }}>UPI Details</div>
+                          <div style={{ fontSize: "14px", color: "#0f172a", fontWeight: "500", marginTop: "4px" }}>{payment.upi_details || "-"}</div>
+                        </div>
+                      )}
                     </div>
-                    {entry.changes && entry.changes.length > 0 ? (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginTop: "8px" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#e2e8f0" }}>
-                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Field</th>
-                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Before</th>
-                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>After</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {entry.changes.map((change, cIdx) => (
-                            <tr key={cIdx} style={{ backgroundColor: "white" }}>
-                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", fontWeight: "600", color: "#475569" }}>{change.field}</td>
-                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#b91c1c", backgroundColor: "#fef2f2" }}>{change.before || "Empty"}</td>
-                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#15803d", backgroundColor: "#f0fdf4" }}>{change.after || "Empty"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>No specific field modifications tracked.</div>
-                    )}
+                  ))
+                ) : (
+                  <div style={{ color: "#64748b", fontStyle: "italic", fontSize: "14px" }}>
+                    No payment details recorded. (Legacy record: Amount ₹{activeRecord.amount}, Method {activeRecord.payment_method}, UPI {activeRecord.upi_details})
                   </div>
-                ))
-              ) : (
-                <div style={{ textAlign: "center", padding: "20px", color: "#64748b", fontStyle: "italic" }}>
-                  No edit history available for this record.
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+            {/* Edit History Section */}
+            <div>
+              <h4 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#334155", borderBottom: "2px solid #e2e8f0", display: "inline-block", paddingBottom: "4px" }}>
+                Edit History
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {activeRecord.editHistory && activeRecord.editHistory.length > 0 ? (
+                  [...activeRecord.editHistory].reverse().map((entry, idx) => (
+                    <div key={idx} style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      padding: "16px",
+                      backgroundColor: "#fff"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "12px", fontWeight: "500" }}>
+                        <span>👤 {entry.edited_by_name || entry.edited_by || "System"}</span>
+                        <span>📅 {entry.edited_date ? new Date(entry.edited_date).toLocaleString() : "N/A"}</span>
+                      </div>
+                      <div style={{
+                        fontSize: "14px",
+                        color: "#1e293b",
+                        marginBottom: "12px",
+                        fontStyle: "italic",
+                        background: "#f1f5f9",
+                        padding: "10px 14px",
+                        borderRadius: "6px",
+                        borderLeft: "4px solid #6f8b83"
+                      }}>
+                        <strong>Reason: </strong> {entry.edited_reason || "No reason provided"}
+                      </div>
+                      {entry.changes && entry.changes.length > 0 ? (
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", marginTop: "8px" }}>
+                          <thead>
+                            <tr style={{ backgroundColor: "#f8fafc" }}>
+                              <th style={{ border: "1px solid #e2e8f0", padding: "8px 12px", textAlign: "left", color: "#475569" }}>Field</th>
+                              <th style={{ border: "1px solid #e2e8f0", padding: "8px 12px", textAlign: "left", color: "#475569" }}>Before</th>
+                              <th style={{ border: "1px solid #e2e8f0", padding: "8px 12px", textAlign: "left", color: "#475569" }}>After</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {entry.changes.map((change, cIdx) => (
+                              <tr key={cIdx}>
+                                <td style={{ border: "1px solid #e2e8f0", padding: "8px 12px", fontWeight: "600", color: "#334155" }}>{change.field}</td>
+                                <td style={{ border: "1px solid #e2e8f0", padding: "8px 12px", color: "#b91c1c", backgroundColor: "#fef2f2" }}>{change.before || "Empty"}</td>
+                                <td style={{ border: "1px solid #e2e8f0", padding: "8px 12px", color: "#15803d", backgroundColor: "#f0fdf4" }}>{change.after || "Empty"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div style={{ fontSize: "13px", color: "#64748b" }}>No specific field modifications tracked.</div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8", fontStyle: "italic", background: "#f8fafc", borderRadius: "8px" }}>
+                    No edit history available for this record.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "12px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
               <button
-                onClick={() => setShowHistoryModal(false)}
+                onClick={() => setShowViewModal(false)}
                 style={{
-                  padding: "8px 16px",
+                  padding: "10px 24px",
                   borderRadius: "6px",
-                  border: "1px solid #cbd5e1",
-                  background: "white",
-                  color: "#475569",
+                  border: "none",
+                  background: "#475569",
+                  color: "white",
                   cursor: "pointer",
                   fontSize: "14px",
-                  fontWeight: "500"
+                  fontWeight: "600",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                 }}
               >
                 Close

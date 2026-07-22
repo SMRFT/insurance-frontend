@@ -168,6 +168,25 @@ const RTReport = () => {
     navigate("/RTForm", { state: record })
   }
 
+  const handleApprove = async (record) => {
+    if (window.confirm(`Are you sure you want to approve the record for ${record.patient_name}?`)) {
+      try {
+        const url = `${Insurancebaseurl}rtrecords/${record.rt_id || record.id}/`;
+        const payload = { action: 'Approve' };
+        const response = await apiRequest(url, "PUT", payload);
+        if (response.success || response.status === 200 || response.status === 201) {
+          toast.success("Record approved successfully");
+          fetchRecords();
+        } else {
+          toast.error("Failed to approve record");
+        }
+      } catch (error) {
+        console.error("Error approving record:", error);
+        toast.error("An error occurred during approval");
+      }
+    }
+  }
+
   const handleView = (record) => {
     setViewModalData(record)
   }
@@ -455,6 +474,24 @@ const RTReport = () => {
                           Edit
                         </EditButton>
                       )}
+                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance AVP") && !record.is_approved && (
+                        <button 
+                          onClick={() => handleApprove(record)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                            background: "#28a745",
+                            color: "white",
+                            border: "none",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Approve
+                        </button>
+                      )}
                       <ViewButton onClick={() => handleView(record)}>
                         View
                       </ViewButton>
@@ -471,8 +508,7 @@ const RTReport = () => {
                           background: "#eef2f6",
                           color: "#334155",
                           border: "none",
-                          cursor: "pointer",
-                          marginLeft: "6px"
+                          cursor: "pointer"
                         }}
                       >
                         <History size={12} /> History ({record.editHistory?.length || 0})

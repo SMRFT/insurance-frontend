@@ -27,6 +27,7 @@ const ChemoForm = () => {
   const editData = location.state;
 
   const [formData, setFormData] = useState({
+    patient_uhid: editData?.patient_uhid || "",
     patient_name: editData?.patient_name || "",
     date_of_admission: formatDateStr(editData?.date_of_admission),
     date_of_discharge: formatDateStr(editData?.date_of_discharge),
@@ -42,6 +43,7 @@ const ChemoForm = () => {
   const getChangedFields = (original, currentPayload) => {
     const changes = [];
     const fieldMapping = {
+      patient_uhid: "Patient UHID",
       patient_name: "Patient Name",
       date_of_admission: "Admission Date",
       date_of_discharge: "Discharge Date",
@@ -156,8 +158,8 @@ const ChemoForm = () => {
   };
 
   const executeSubmit = async (historyData = []) => {
-    if (!formData.patient_name || !formData.date_of_admission) {
-      toast.error("Please fill required fields (Patient Name, Date of Admission).");
+    if (!formData.patient_uhid || !formData.patient_name || !formData.date_of_admission) {
+      toast.error("Please fill required fields (Patient UHID, Patient Name, Date of Admission).");
       return;
     }
 
@@ -211,6 +213,7 @@ const ChemoForm = () => {
           setTimeout(() => navigate(-1), 1500);
         } else {
           setFormData({
+            patient_uhid: "",
             patient_name: "",
             date_of_admission: "",
             date_of_discharge: "",
@@ -234,6 +237,7 @@ const ChemoForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.patient_uhid) { toast.error("Patient UHID is required"); return; }
     if (!formData.patient_name) { toast.error("Patient Name is required"); return; }
     if (!formData.date_of_admission) { toast.error("Date of Admission is required"); return; }
     if (!formData.date_of_discharge) { toast.error("Date of Discharge is required"); return; }
@@ -306,6 +310,17 @@ const ChemoForm = () => {
             <div>
               <Label>Date</Label>
               <Input type="date" value={formatDateStr(editData?.date) || getTodayDate()} disabled style={{ backgroundColor: "#f8f9fa" }} />
+            </div>
+            <div>
+              <Label>Patient UHID <span style={{ color: "red" }}>*</span></Label>
+              <Input
+                type="text"
+                name="patient_uhid"
+                value={formData.patient_uhid}
+                onChange={handleChange}
+                placeholder="Enter Patient UHID"
+                required
+              />
             </div>
             <div>
               <Label>Patient Name <span style={{ color: "red" }}>*</span></Label>

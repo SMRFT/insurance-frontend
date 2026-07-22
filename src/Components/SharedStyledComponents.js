@@ -728,6 +728,7 @@ export const ActionCell = styled(TableCell)`
   padding: 7px 8px;
   min-width: 200px;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
   align-items: center;

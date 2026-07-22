@@ -418,10 +418,8 @@ function Sidebar({ userRole }) {
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    ["user_payload", "selected_branch", "access_token", "user", "role", "name", "employeeId", "userEmail"]
-      .forEach(k => localStorage.removeItem(k));
     setIsSidebarOpen(false);
-    window.location.href = "/Secure";
+    window.location.href = "/secure";
   };
 
   const getNavigationGroups = () => {

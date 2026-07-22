@@ -27,10 +27,11 @@ const RTForm = () => {
   const editData = location.state;
 
   const [formData, setFormData] = useState({
+    patient_uhid: editData?.patient_uhid || "",
+    patient_ip_number: editData?.patient_ip_number || "",
     patient_name: editData?.patient_name || "",
     date_of_admission: formatDateStr(editData?.date_of_admission),
     date_of_discharge: formatDateStr(editData?.date_of_discharge),
-    insurance_type: editData?.insurance_type || "",
     insurance_type: editData?.insurance_type || "",
     specificInsuranceCompany: editData?.specificInsuranceCompany || "",
     amount_to_be_paid: editData?.amount_to_be_paid || "",
@@ -42,6 +43,8 @@ const RTForm = () => {
   const getChangedFields = (original, currentPayload) => {
     const changes = [];
     const fieldMapping = {
+      patient_uhid: "Patient UHID",
+      patient_ip_number: "Patient IP Number",
       patient_name: "Patient Name",
       date_of_admission: "Admission Date",
       date_of_discharge: "Discharge Date",
@@ -155,8 +158,8 @@ const RTForm = () => {
   };
 
   const executeSubmit = async (historyData = []) => {
-    if (!formData.patient_name || !formData.date_of_admission) {
-      toast.error("Please fill required fields (Patient Name, Date of Admission).");
+    if (!formData.patient_uhid || !formData.patient_ip_number || !formData.patient_name || !formData.date_of_admission) {
+      toast.error("Please fill required fields (Patient UHID, Patient IP Number, Patient Name, Date of Admission).");
       return;
     }
 
@@ -210,6 +213,8 @@ const RTForm = () => {
           setTimeout(() => navigate(-1), 1500);
         } else {
           setFormData({
+            patient_uhid: "",
+            patient_ip_number: "",
             patient_name: "",
             date_of_admission: "",
             date_of_discharge: "",
@@ -232,6 +237,8 @@ const RTForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.patient_uhid) { toast.error("Patient UHID is required"); return; }
+    if (!formData.patient_ip_number) { toast.error("Patient IP Number is required"); return; }
     if (!formData.patient_name) { toast.error("Patient Name is required"); return; }
     if (!formData.date_of_admission) { toast.error("Date of Admission is required"); return; }
     if (!formData.date_of_discharge) { toast.error("Date of Discharge is required"); return; }
@@ -306,6 +313,28 @@ const RTForm = () => {
               <Input type="date" value={formatDateStr(editData?.date) || getTodayDate()} disabled style={{ backgroundColor: "#f8f9fa" }} />
             </div>
             <div>
+              <Label>Patient UHID <span style={{ color: "red" }}>*</span></Label>
+              <Input
+                type="text"
+                name="patient_uhid"
+                value={formData.patient_uhid}
+                onChange={handleChange}
+                placeholder="Enter Patient UHID"
+                required
+              />
+            </div>
+            <div>
+              <Label>Patient IP Number <span style={{ color: "red" }}>*</span></Label>
+              <Input
+                type="text"
+                name="patient_ip_number"
+                value={formData.patient_ip_number}
+                onChange={handleChange}
+                placeholder="Enter Patient IP Number"
+                required
+              />
+            </div>
+            <div>
               <Label>Patient Name <span style={{ color: "red" }}>*</span></Label>
               <Input
                 type="text"
@@ -351,6 +380,7 @@ const RTForm = () => {
                 <option value="ESI">ESI</option>
                 <option value="ESIC">ESIC</option>
                 <option value="Railway CTSE">Railway CTSE</option>
+                <option value="Pay Patient">Pay Patient</option>
               </Select>
             </div>
             {formData.insurance_type === "General Insurance" && (

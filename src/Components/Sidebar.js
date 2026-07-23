@@ -299,7 +299,7 @@ const IconPill = styled.div`
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  background: ${props => props.bg || 'rgba(255,255,255,0.18)'};
+  background: ${props => props.$bg || 'rgba(255,255,255,0.18)'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -418,10 +418,8 @@ function Sidebar({ userRole }) {
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    ["user_payload", "selected_branch", "access_token", "user", "role", "name", "employeeId", "userEmail"]
-      .forEach(k => localStorage.removeItem(k));
     setIsSidebarOpen(false);
-    window.location.href = "/Secure";
+    window.location.href = "/secure";
   };
 
   const getNavigationGroups = () => {
@@ -770,7 +768,7 @@ function Sidebar({ userRole }) {
                       active={isActive(item.path) ? "true" : undefined}
                     >
                       <ActiveIndicator active={isActive(item.path)} />
-                      <IconPill bg={item.color}>
+                      <IconPill $bg={item.color}>
                         {item.icon}
                       </IconPill>
                       {item.label}

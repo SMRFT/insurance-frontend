@@ -728,9 +728,11 @@ export const ActionCell = styled(TableCell)`
   padding: 7px 8px;
   min-width: 200px;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
   align-items: center;
+  overflow: visible;
 
   @media (max-width: 1024px) { min-width: 170px; }
   @media (max-width: 768px)  { min-width: 150px; }

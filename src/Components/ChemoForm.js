@@ -28,6 +28,7 @@ const ChemoForm = () => {
 
   const [formData, setFormData] = useState({
     patient_uhid: editData?.patient_uhid || "",
+    patient_ip_number: editData?.patient_ip_number || "",
     patient_name: editData?.patient_name || "",
     date_of_admission: formatDateStr(editData?.date_of_admission),
     date_of_discharge: formatDateStr(editData?.date_of_discharge),
@@ -37,6 +38,10 @@ const ChemoForm = () => {
     medicine_details: editData?.medicine_details || "",
   });
 
+  const [hasAmountToBePaid, setHasAmountToBePaid] = useState(
+    editData?.amount_to_be_paid && parseFloat(editData.amount_to_be_paid) > 0 ? "yes" : "no"
+  );
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [tempReason, setTempReason] = useState("");
 
@@ -44,6 +49,7 @@ const ChemoForm = () => {
     const changes = [];
     const fieldMapping = {
       patient_uhid: "Patient UHID",
+      patient_ip_number: "Patient IP Number",
       patient_name: "Patient Name",
       date_of_admission: "Admission Date",
       date_of_discharge: "Discharge Date",
@@ -75,27 +81,6 @@ const ChemoForm = () => {
         });
       }
     });
-
-    const origPayments = original.payment_details || [];
-    const currPayments = currentPayload.payment_details || [];
-    
-    const normalizePayment = (p) => ({
-      amount: Number(p.amount) || 0,
-      payment_method: (p.payment_method || "").toString().trim(),
-      upi_details: (p.payment_method || "").toString().trim() === "UPI" ? (p.upi_details || "").toString().trim() : "",
-      date: (p.date || "").toString().trim()
-    });
-
-    const origNormalized = origPayments.map(normalizePayment);
-    const currNormalized = currPayments.map(normalizePayment);
-
-    if (JSON.stringify(origNormalized) !== JSON.stringify(currNormalized)) {
-      changes.push({
-        field: "Payment Details",
-        before: origPayments.length ? `${origPayments.length} payment(s)` : "Empty",
-        after: currPayments.length ? `${currPayments.length} payment(s)` : "Empty"
-      });
-    }
 
     return changes;
   };
@@ -166,28 +151,9 @@ const ChemoForm = () => {
     setLoading(true);
 
     try {
-      const validPayments = paymentEntries
-        .filter((entry) => entry.amount && entry.payment_method && entry.date)
-        .map((entry) => ({
-          amount: parseFloat(entry.amount),
-          payment_method: entry.payment_method,
-          upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
-          date: entry.date,
-        }));
-
-      const totalAmount = parseFloat(formData.amount_to_be_paid) || 0;
-      const totalPaid = validPayments.reduce((sum, p) => sum + p.amount, 0);
-
-      if (totalPaid > totalAmount) {
-        toast.error(`Total payments (₹${totalPaid}) cannot exceed expected amount (₹${totalAmount}).`);
-        setLoading(false);
-        return;
-      }
-
       const payload = {
         ...formData,
         date: editData?.date || getTodayDate(),
-        payment_details: validPayments,
       };
 
       const isUpdate = editData?.chemo_id || editData?.id;
@@ -214,6 +180,7 @@ const ChemoForm = () => {
         } else {
           setFormData({
             patient_uhid: "",
+            patient_ip_number: "",
             patient_name: "",
             date_of_admission: "",
             date_of_discharge: "",
@@ -221,7 +188,7 @@ const ChemoForm = () => {
             amount_to_be_paid: "",
             medicine_details: "",
           });
-          setPaymentEntries([{ id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "" }]);
+          setHasAmountToBePaid("no");
         }
       } else {
         toast.error("Failed to submit form.");
@@ -242,23 +209,12 @@ const ChemoForm = () => {
     if (!formData.date_of_admission) { toast.error("Date of Admission is required"); return; }
     if (!formData.date_of_discharge) { toast.error("Date of Discharge is required"); return; }
     if (!formData.insurance_type) { toast.error("Insurance Type is required"); return; }
-    if (!formData.medicine_details) { toast.error("Medicine Details are required"); return; }
 
     const isUpdate = editData?.chemo_id || editData?.id;
     if (isUpdate) {
-      const validPayments = paymentEntries
-        .filter((entry) => entry.amount && entry.payment_method && entry.date)
-        .map((entry) => ({
-          amount: parseFloat(entry.amount),
-          payment_method: entry.payment_method,
-          upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
-          date: entry.date,
-        }));
-
       const payload = {
         ...formData,
         date: editData?.date || getTodayDate(),
-        payment_details: validPayments,
       };
 
       const changes = getChangedFields(editData, payload);
@@ -272,19 +228,10 @@ const ChemoForm = () => {
 
   const handleModalConfirm = async (reason) => {
     setShowEditModal(false);
-    const validPayments = paymentEntries
-      .filter((entry) => entry.amount && entry.payment_method && entry.date)
-      .map((entry) => ({
-        amount: parseFloat(entry.amount),
-        payment_method: entry.payment_method,
-        upi_details: entry.payment_method === "UPI" ? entry.upi_details : "",
-        date: entry.date,
-      }));
 
     const payload = {
       ...formData,
       date: editData?.date || getTodayDate(),
-      payment_details: validPayments,
     };
 
     const changes = getChangedFields(editData, payload);
@@ -319,6 +266,17 @@ const ChemoForm = () => {
                 value={formData.patient_uhid}
                 onChange={handleChange}
                 placeholder="Enter Patient UHID"
+                required
+              />
+            </div>
+            <div>
+              <Label>Patient IP Number <span style={{ color: "red" }}>*</span></Label>
+              <Input
+                type="text"
+                name="patient_ip_number"
+                value={formData.patient_ip_number}
+                onChange={handleChange}
+                placeholder="Enter Patient IP Number"
                 required
               />
             </div>
@@ -368,6 +326,7 @@ const ChemoForm = () => {
                 <option value="ESI">ESI</option>
                 <option value="ESIC">ESIC</option>
                 <option value="Railway CTSE">Railway CTSE</option>
+                <option value="Pay Patient">Pay Patient</option>
               </Select>
             </div>
             {formData.insurance_type === "General Insurance" && (
@@ -388,107 +347,56 @@ const ChemoForm = () => {
               </div>
             )}
             <div>
-              <Label>Amount to be Paid</Label>
-              <Input
-                type="number"
-                name="amount_to_be_paid"
-                value={formData.amount_to_be_paid}
-                onChange={handleChange}
-                placeholder="Enter total amount"
-                min="0"
-                disabled={!!(editData?.chemo_id || editData?.id)}
-              />
+              <Label>Amount to be Paid <span style={{ color: "red" }}>*</span></Label>
+              <div style={{ display: "flex", gap: "15px", marginBottom: "10px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <input
+                    type="radio"
+                    name="hasAmountToBePaid"
+                    value="yes"
+                    checked={hasAmountToBePaid === "yes"}
+                    onChange={(e) => setHasAmountToBePaid(e.target.value)}
+                  /> Yes
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <input
+                    type="radio"
+                    name="hasAmountToBePaid"
+                    value="no"
+                    checked={hasAmountToBePaid === "no"}
+                    onChange={(e) => {
+                      setHasAmountToBePaid(e.target.value);
+                      setFormData(prev => ({ ...prev, amount_to_be_paid: "" }));
+                    }}
+                  /> No
+                </label>
+              </div>
+              {hasAmountToBePaid === "yes" && (
+                <Input
+                  type="number"
+                  name="amount_to_be_paid"
+                  value={formData.amount_to_be_paid}
+                  onChange={handleChange}
+                  placeholder="Enter total amount"
+                  min="0"
+                  required
+                />
+              )}
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
-              <Label>Medicine Details <span style={{ color: "red" }}>*</span></Label>
+              <Label>Medicine Details</Label>
               <textarea
                 name="medicine_details"
                 value={formData.medicine_details}
                 onChange={handleChange}
                 placeholder="Enter medicine details"
                 style={{ width: "100%", padding: "10px", borderRadius: "4px", border: "1px solid #ccc", minHeight: "80px" }}
-                required
               />
             </div>
           </div>
         </FormSection>
 
-        <FormSection>
-          <SectionTitle style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>Payment Details</span>
-            <span style={{ fontSize: "16px", color: "#28a745" }}>
-              Remaining Amount: {calculateRemainingAmount()}
-            </span>
-            <Button
-              type="button"
-              onClick={addPaymentEntry}
-              style={{ padding: "5px 15px", width: "auto" }}
-            >
-              + Add Payment
-            </Button>
-          </SectionTitle>
 
-          <div style={{ backgroundColor: "#f9f9f9", padding: "15px", borderRadius: "8px" }}>
-            {paymentEntries.map((entry, index) => (
-              <div key={entry.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "15px", marginBottom: "15px", alignItems: "end" }}>
-                <div>
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    value={entry.amount}
-                    onChange={(e) => handlePaymentEntryChange(entry.id, "amount", e.target.value)}
-                    placeholder="Amount"
-                    disabled={entry.isExisting}
-                  />
-                </div>
-                <div>
-                  <Label>Payment Method</Label>
-                  <Select
-                    value={entry.payment_method}
-                    onChange={(e) => handlePaymentEntryChange(entry.id, "payment_method", e.target.value)}
-                    required={!!entry.amount}
-                    disabled={entry.isExisting}
-                  >
-                    <option value="">Select Method</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Cheque">Cheque</option>
-                  </Select>
-                </div>
-                {entry.payment_method === "UPI" && (
-                  <div>
-                    <Label>UPI Details</Label>
-                    <Input
-                      type="text"
-                      value={entry.upi_details || ""}
-                      onChange={(e) => handlePaymentEntryChange(entry.id, "upi_details", e.target.value)}
-                      placeholder="UPI Transaction ID"
-                      disabled={entry.isExisting}
-                      required
-                    />
-                  </div>
-                )}
-                <div>
-                  <Label>Date</Label>
-                  <Input
-                    type="date"
-                    value={entry.date}
-                    onChange={(e) => handlePaymentEntryChange(entry.id, "date", e.target.value)}
-                    max={getTodayDate()}
-                    required={!!entry.amount}
-                    disabled={entry.isExisting}
-                  />
-                </div>
-                {!entry.isExisting && paymentEntries.length > 1 && (
-                  <Button type="button" onClick={() => removePaymentEntry(entry.id)} style={{ backgroundColor: "#dc3545", width: "auto" }}>
-                    Remove
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </FormSection>
 
         <ButtonWrapper>
           <Button type="submit" disabled={loading}>

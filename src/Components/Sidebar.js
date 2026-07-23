@@ -299,7 +299,7 @@ const IconPill = styled.div`
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  background: ${props => props.bg || 'rgba(255,255,255,0.18)'};
+  background: ${props => props.$bg || 'rgba(255,255,255,0.18)'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -768,7 +768,7 @@ function Sidebar({ userRole }) {
                       active={isActive(item.path) ? "true" : undefined}
                     >
                       <ActiveIndicator active={isActive(item.path)} />
-                      <IconPill bg={item.color}>
+                      <IconPill $bg={item.color}>
                         {item.icon}
                       </IconPill>
                       {item.label}

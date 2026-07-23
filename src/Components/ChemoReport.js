@@ -11,6 +11,7 @@ import {
   TableCell,
   FilterContainer,
   Label,
+  Input,
   FormControl,
   Select,
   Button,
@@ -32,7 +33,7 @@ import {
 
 import apiRequest from "./ApiRequest"
 import toast, { Toaster } from "react-hot-toast";
-import { History, FileDown, Search, Filter } from "lucide-react"
+import { History, FileDown, Search, Filter, MoreVertical } from "lucide-react"
 const formatDateStr = (val) => {
   if (!val) return "";
   if (val.$date) return val.$date.split("T")[0];
@@ -67,6 +68,32 @@ const ChemoReport = () => {
   const [fromDate, setFromDate] = useState(new Date())
   const [toDate, setToDate] = useState(new Date())
   const [viewModalData, setViewModalData] = useState(null)
+  
+  const [activeDropdown, setActiveDropdown] = useState(null)
+  const [combinedModalData, setCombinedModalData] = useState(null)
+  const [activeTab, setActiveTab] = useState("edit_history")
+  const [paymentModalData, setPaymentModalData] = useState(null)
+  const [newPayment, setNewPayment] = useState({
+    amount: "",
+    payment_method: "",
+    upi_details: "",
+    date: new Date().toISOString().split("T")[0]
+  })
+
+  const toggleDropdown = (id) => {
+    setActiveDropdown(activeDropdown === id ? null : id)
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.action-dropdown-container')) {
+        setActiveDropdown(null)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   const navigate = useNavigate()
   const role = localStorage.getItem("role")
@@ -163,11 +190,80 @@ const ChemoReport = () => {
     setViewModalData(record)
   }
 
+  const handleCombinedViewDetails = (record) => {
+    setCombinedModalData(record);
+    setActiveTab("edit_history");
+  }
+
+  const handleAddPayment = async () => {
+    if (!newPayment.amount || !newPayment.date || !newPayment.payment_method) {
+      toast.error("Please fill all payment fields");
+      return;
+    }
+    if (newPayment.payment_method === 'UPI' && !newPayment.upi_details) {
+      toast.error("Please enter UPI details");
+      return;
+    }
+    
+    const currentTotalPaid = paymentModalData.totalPaid || 0;
+    const newAmount = Number.parseFloat(newPayment.amount);
+    const expectedAmount = Number.parseFloat(paymentModalData.amount_to_be_paid || 0);
+
+    if (currentTotalPaid + newAmount > expectedAmount) {
+      const exceededBy = (currentTotalPaid + newAmount) - expectedAmount;
+      toast.error(`Cannot exceed expected amount (₹${expectedAmount.toFixed(2)}). Already paid: ₹${currentTotalPaid.toFixed(2)}. Exceeds by: ₹${exceededBy.toFixed(2)}.`);
+      return;
+    }
+
+    let newStatus = paymentModalData.status;
+    if (currentTotalPaid + newAmount >= expectedAmount) {
+      newStatus = "Paid";
+    } else if (currentTotalPaid + newAmount > 0) {
+      newStatus = "Partially Paid";
+    }
+    
+    try {
+      const updatedPaymentDetails = [...(paymentModalData.payment_details || []), {
+        amount: newAmount,
+        payment_method: newPayment.payment_method,
+        upi_details: newPayment.payment_method === 'UPI' ? newPayment.upi_details : "",
+        date: newPayment.date
+      }];
+      
+      const payload = { 
+        payment_details: updatedPaymentDetails,
+        status: newStatus 
+      };
+      
+      const url = `${Insurancebaseurl}chemorecords/${paymentModalData.chemo_id || paymentModalData.id}/`;
+      const response = await apiRequest(url, "PUT", payload);
+      
+      if (response.success || response.status === 200 || response.status === 201) {
+        toast.success("Payment added successfully");
+        setPaymentModalData(null);
+        setNewPayment({
+          amount: "",
+          payment_method: "",
+          upi_details: "",
+          date: new Date().toISOString().split("T")[0]
+        });
+        fetchRecords();
+      } else {
+        toast.error("Failed to add payment");
+      }
+    } catch (error) {
+      console.error("Error adding payment:", error);
+      toast.error("An error occurred while adding payment");
+    }
+  }
+
   const exportToCSV = () => {
     const headers = [
       "S.No",
       "Date",
       "Patient Name",
+      "UHID",
+      "IP Number",
       "Admission Date",
       "Discharge Date",
       "Company Name",
@@ -176,6 +272,7 @@ const ChemoReport = () => {
       "Expected Amount",
       "Total Paid",
       "Status",
+      "Created By",
     ]
 
     const { totalAmount, totalExpectedAmount } = calculateTotals()
@@ -185,6 +282,8 @@ const ChemoReport = () => {
         index + 1,
         record.date || "",
         record.patient_name || "",
+        record.patient_uhid || "",
+        record.patient_ip_number || "",
         record.date_of_admission || "",
         record.date_of_discharge || "",
         record.insurance_type || "",
@@ -193,16 +292,17 @@ const ChemoReport = () => {
         Number.parseFloat(record.amount_to_be_paid || 0).toFixed(2),
         record.totalPaid || 0,
         record.status || "Pending",
+        record.created_by_name || record.created_by || "",
       ]
         .map((field) => `"${String(field).replace(/"/g, '""')}"`)
         .join(","),
     )
 
     const grandTotalRow = [
-      "", "", "", "", "", "GRAND TOTAL",
+      "", "", "", "", "", "", "", "", "", "GRAND TOTAL",
       `"${totalExpectedAmount.toFixed(2)}"`,
       `"${totalAmount.toFixed(2)}"`,
-      "",
+      "", "",
     ].join(",")
 
     const csvContent = [headers.join(","), ...dataRows, "", grandTotalRow].join("\n")
@@ -261,8 +361,10 @@ const ChemoReport = () => {
           <thead>
             <tr>
               <th>S.No</th><th>Date</th>
-              <th>Patient Name</th><th>Admission</th><th>Discharge</th><th>Company</th>
+              <th>Patient Name</th><th>UHID</th><th>IP Number</th>
+              <th>Admission</th><th>Discharge</th><th>Company</th>
               <th>Expected Amount</th><th>Total Paid</th><th>Status</th>
+              <th>Created By</th>
             </tr>
           </thead>
           <tbody>
@@ -273,6 +375,8 @@ const ChemoReport = () => {
                 <td>${index + 1}</td>
                 <td>${formatDateStr(record.date)}</td>
                 <td>${record.patient_name || ""}</td>
+                <td>${record.patient_uhid || ""}</td>
+                <td>${record.patient_ip_number || ""}</td>
                 <td>${formatDateStr(record.date_of_admission)}</td>
                 <td>${formatDateStr(record.date_of_discharge)}</td>
                 <td>${record.insurance_type || ""}</td>
@@ -283,6 +387,7 @@ const ChemoReport = () => {
                     ${record.status || "Pending"}
                   </span>
                 </td>
+                <td>${record.created_by_name || record.created_by || "-"}</td>
               </tr>
             `,
         )
@@ -290,10 +395,10 @@ const ChemoReport = () => {
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="6" style="text-align: right;"><strong>GRAND TOTAL:</strong></td>
-              <td><strong>₹${totalExpectedAmount.toFixed(2)}</strong></td>
-              <td><strong>₹${totalAmount.toFixed(2)}</strong></td>
-              <td></td>
+              <td colspan="8" style="text-align: right;">GRAND TOTAL</td>
+              <td>₹${totalExpectedAmount.toFixed(2)}</td>
+              <td>₹${totalAmount.toFixed(2)}</td>
+              <td colspan="2"></td>
             </tr>
           </tfoot>
         </table>
@@ -401,6 +506,8 @@ const ChemoReport = () => {
                 <TableHeader className="frozen-col frozen-col-0">S.No</TableHeader>
                 <TableHeader className="frozen-col frozen-col-1">Date</TableHeader>
                 <TableHeader className="frozen-col frozen-col-2">Patient Name</TableHeader>
+                <TableHeader>UHID</TableHeader>
+                <TableHeader>IP Number</TableHeader>
                 <TableHeader>Admission</TableHeader>
                 <TableHeader>Discharge</TableHeader>
                 <TableHeader>Company</TableHeader>
@@ -408,13 +515,14 @@ const ChemoReport = () => {
                 <TableHeader>Expected Amount</TableHeader>
                 <TableHeader>Total Paid</TableHeader>
                 <TableHeader>Status</TableHeader>
+                <TableHeader>Created By</TableHeader>
                 <TableHeader>Actions</TableHeader>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="14" style={{ textAlign: "center", padding: "20px" }}>
                     <LoadingSpinnerContainer>
                       <Spinner />
                       <span>Loading records...</span>
@@ -431,6 +539,8 @@ const ChemoReport = () => {
                       {formatDateStr(record.date)}
                     </TableCell>
                     <TableCell className="frozen-col frozen-col-2">{record.patient_name}</TableCell>
+                    <TableCell>{record.patient_uhid || "-"}</TableCell>
+                    <TableCell>{record.patient_ip_number || "-"}</TableCell>
                     <TableCell>{formatDateStr(record.date_of_admission)}</TableCell>
                     <TableCell>{formatDateStr(record.date_of_discharge) || "N/A"}</TableCell>
                     <TableCell>{record.insurance_type}</TableCell>
@@ -442,34 +552,45 @@ const ChemoReport = () => {
                         {record.status || "Pending"}
                       </StatusBadge>
                     </TableCell>
+                    <TableCell>{record.created_by_name || record.created_by || "-"}</TableCell>
                     <ActionCell>
-                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance AVP") && (
-                        <EditButton onClick={() => handleEdit(record)}>
-                          Edit
-                        </EditButton>
+                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance AVP" || role === "Chemo Staff") ? (
+                        <div style={{ position: "relative" }} className="action-dropdown-container">
+                          <button onClick={() => toggleDropdown(record.chemo_id || record.id)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: "16px", padding: "4px 8px" }}>
+                            <MoreVertical size={16} />
+                          </button>
+                          {activeDropdown === (record.chemo_id || record.id) && (
+                            <div style={{ position: "absolute", right: "0", top: "100%", background: "white", border: "1px solid #ccc", borderRadius: "4px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)", zIndex: 100, minWidth: "120px", textAlign: "left" }}>
+                              <div 
+                                style={{ 
+                                  padding: "8px 12px", 
+                                  cursor: record.status === "Paid" ? "not-allowed" : "pointer", 
+                                  borderBottom: "1px solid #eee", 
+                                  fontSize: "13px",
+                                  color: record.status === "Paid" ? "#9ca3af" : "inherit"
+                                }} 
+                                onClick={() => { 
+                                  if (record.status !== "Paid") {
+                                    setPaymentModalData(record); 
+                                    setActiveDropdown(null); 
+                                  }
+                                }}>
+                                Payment Details
+                              </div>
+                              <div style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "13px" }} onClick={() => { handleEdit(record); setActiveDropdown(null); }}>
+                                Edit
+                              </div>
+                              <div style={{ padding: "8px 12px", cursor: "pointer", fontSize: "13px" }} onClick={() => { handleCombinedViewDetails(record); setActiveDropdown(null); }}>
+                                View Details
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <ViewButton onClick={() => handleCombinedViewDetails(record)}>
+                          View Details
+                        </ViewButton>
                       )}
-                      <ViewButton onClick={() => handleView(record)}>
-                        View
-                      </ViewButton>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenHistoryModal(record.editHistory || [], record.patient_name || "N/A")}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          background: "#eef2f6",
-                          color: "#334155",
-                          border: "none",
-                          cursor: "pointer",
-                          marginLeft: "6px"
-                        }}
-                      >
-                        <History size={12} /> History ({record.editHistory?.length || 0})
-                      </button>
                     </ActionCell>
                   </TableRow>
                 ))
@@ -487,7 +608,7 @@ const ChemoReport = () => {
                   <TableCell className="frozen-col frozen-col-0"></TableCell>
                   <TableCell className="frozen-col frozen-col-1"></TableCell>
                   <TableCell className="frozen-col frozen-col-2"></TableCell>
-                  <TableCell colSpan="4" style={{ textAlign: "right" }}>
+                  <TableCell colSpan="6" style={{ textAlign: "right" }}>
                     GRAND TOTAL:
                   </TableCell>
                   <TableCell>₹{totalExpectedAmount.toFixed(2)}</TableCell>
@@ -499,37 +620,148 @@ const ChemoReport = () => {
           </Table>
         </ScrollableTableContainer>
 
-        {viewModalData && (
-          <ModalOverlay onClose={() => setViewModalData(null)}>
+        {paymentModalData && (
+          <ModalOverlay onClose={() => setPaymentModalData(null)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, color: '#1f2937' }}>Payment History</h3>
-              <button onClick={() => setViewModalData(null)} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+              <h3 style={{ margin: 0, color: '#1f2937' }}>Add Payment Details</h3>
+              <button onClick={() => setPaymentModalData(null)} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
             </div>
-            <p><strong>Patient:</strong> {viewModalData.patient_name}</p>
-            <Table>
-              <thead>
-                <tr>
-                  <TableHeader>Date</TableHeader>
-                  <TableHeader>Method</TableHeader>
-                  <TableHeader>Amount</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {viewModalData.payment_details && viewModalData.payment_details.length > 0 ? (
-                  viewModalData.payment_details.map((p, i) => (
-                    <tr key={i}>
-                      <TableCell>{p.date}</TableCell>
-                      <TableCell>{p.payment_method}</TableCell>
-                      <TableCell>₹{Number.parseFloat(p.amount || 0).toFixed(2)}</TableCell>
-                    </tr>
+            <p><strong>Patient:</strong> {paymentModalData.patient_name}</p>
+            <p><strong>Expected Amount:</strong> ₹{Number.parseFloat(paymentModalData.amount_to_be_paid || 0).toFixed(2)}</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+              <div>
+                <Label>Date</Label>
+                <Input type="date" value={newPayment.date} onChange={(e) => setNewPayment({...newPayment, date: e.target.value})} />
+              </div>
+              <div>
+                <Label>Amount</Label>
+                <Input type="number" placeholder="Enter amount" value={newPayment.amount} onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})} />
+              </div>
+              <div>
+                <Label>Payment Method</Label>
+                <Select value={newPayment.payment_method} onChange={(e) => setNewPayment({...newPayment, payment_method: e.target.value})}>
+                  <option value="">Select Method</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="UPI">UPI</option>
+                </Select>
+              </div>
+              {newPayment.payment_method === 'UPI' && (
+                <div>
+                  <Label>UPI Transaction ID</Label>
+                  <Input type="text" placeholder="Enter UPI details" value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({...newPayment, upi_details: e.target.value})} />
+                </div>
+              )}
+              <Button onClick={handleAddPayment} style={{ marginTop: '10px', background: primaryColor }}>Save Payment</Button>
+            </div>
+          </ModalOverlay>
+        )}
+
+        {combinedModalData && (
+          <ModalOverlay onClose={() => setCombinedModalData(null)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, color: '#1f2937' }}>Details: {combinedModalData.patient_name}</h3>
+              <button onClick={() => setCombinedModalData(null)} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+            </div>
+
+            {combinedModalData.medicine_details && (
+              <div style={{ marginBottom: "15px", padding: "10px", backgroundColor: "#f9fafb", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+                <strong style={{ color: "#374151" }}>Medicine Details:</strong>
+                <p style={{ margin: "5px 0 0 0", color: "#4b5563", fontSize: "14px", whiteSpace: "pre-wrap" }}>
+                  {combinedModalData.medicine_details}
+                </p>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+              <button 
+                onClick={() => setActiveTab("edit_history")}
+                style={{ background: activeTab === "edit_history" ? primaryColor : "transparent", color: activeTab === "edit_history" ? "white" : "#666", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                Edit History
+              </button>
+              <button 
+                onClick={() => setActiveTab("payment_history")}
+                style={{ background: activeTab === "payment_history" ? primaryColor : "transparent", color: activeTab === "payment_history" ? "white" : "#666", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                Payment History
+              </button>
+            </div>
+
+            {activeTab === "edit_history" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxHeight: "60vh", overflowY: "auto" }}>
+                {combinedModalData.editHistory && combinedModalData.editHistory.length > 0 ? (
+                  combinedModalData.editHistory.map((history, index) => (
+                    <div key={index} style={{ padding: "16px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                        <span style={{ fontWeight: "bold", color: "#334155" }}>
+                          {new Date(history.edited_date).toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: "14px", color: "#64748b" }}>
+                          By: {history.edited_by_name || history.edited_by || "Unknown"}
+                        </span>
+                      </div>
+                      {history.reason && (
+                        <div style={{ marginBottom: "12px", padding: "8px", background: "#fff", borderRadius: "4px", fontSize: "14px", color: "#475569" }}>
+                          <strong>Reason:</strong> {history.reason}
+                        </div>
+                      )}
+                      {history.changes && history.changes.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {history.changes.map((change, i) => (
+                            <div key={i} style={{ fontSize: "13px", padding: "8px", background: "#fff", borderRadius: "4px", border: "1px solid #f1f5f9" }}>
+                              <strong style={{ color: "#0f172a" }}>{change.field}:</strong>{" "}
+                              <span style={{ color: "#ef4444", textDecoration: "line-through" }}>{change.before || "Empty"}</span>
+                              {" ➔ "}
+                              <span style={{ color: "#22c55e", fontWeight: "500" }}>{change.after || "Empty"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: "13px", color: "#64748b", fontStyle: "italic" }}>
+                          No specific field changes recorded
+                        </div>
+                      )}
+                    </div>
                   ))
                 ) : (
-                  <tr>
-                    <TableCell colSpan="3" style={{ textAlign: 'center' }}>No payments found.</TableCell>
-                  </tr>
+                  <div style={{ textAlign: "center", color: "#64748b", padding: "20px" }}>
+                    No edit history available for this record.
+                  </div>
                 )}
-              </tbody>
-            </Table>
+              </div>
+            )}
+
+            {activeTab === "payment_history" && (
+              <Table>
+                <thead>
+                  <tr>
+                    <TableHeader>Date</TableHeader>
+                    <TableHeader>Method</TableHeader>
+                    <TableHeader>UPI Details</TableHeader>
+                    <TableHeader>Amount</TableHeader>
+                  </tr>
+                </thead>
+                <tbody>
+                  {combinedModalData.payment_details && combinedModalData.payment_details.length > 0 ? (
+                    combinedModalData.payment_details.map((p, i) => (
+                      <tr key={i}>
+                        <TableCell>{p.date}</TableCell>
+                        <TableCell>{p.payment_method}</TableCell>
+                        <TableCell>{p.payment_method === 'UPI' ? (p.upi_details || '-') : '-'}</TableCell>
+                        <TableCell>₹{Number.parseFloat(p.amount || 0).toFixed(2)}</TableCell>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <TableCell colSpan="4" style={{ textAlign: 'center' }}>No payments found.</TableCell>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            )}
           </ModalOverlay>
         )}
 
@@ -546,128 +778,6 @@ const ChemoReport = () => {
           tbody tr:nth-child(odd) .frozen-col { background-color: #ffffff; }
           tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
         `}</style>
-        {showHistoryModal && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 99999
-          }}>
-            <div style={{
-              background: "white",
-              padding: "24px",
-              borderRadius: "12px",
-              width: "90%",
-              maxWidth: "650px",
-              maxHeight: "80vh",
-              overflowY: "auto",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
-                <h3 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>
-                  Edit History - {activeHistoryName}
-                </h3>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    fontSize: "20px",
-                    cursor: "pointer",
-                    color: "#64748b",
-                    fontWeight: "bold"
-                  }}
-                >
-                  &times;
-                </button>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {activeHistory && activeHistory.length > 0 ? (
-                  [...activeHistory].reverse().map((entry, idx) => (
-                    <div key={idx} style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      padding: "16px",
-                      backgroundColor: "#f8fafc"
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "500" }}>
-                        <span>👤 {entry.edited_by_name || entry.edited_by || "System"}</span>
-                        <span>📅 {entry.edited_date ? new Date(entry.edited_date).toLocaleString() : "N/A"}</span>
-                      </div>
-                      <div style={{
-                        fontSize: "14px",
-                        color: "#1e293b",
-                        marginBottom: "12px",
-                        fontStyle: "italic",
-                        background: "#f1f5f9",
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        borderLeft: "3px solid #6f8b83"
-                      }}>
-                        <strong>Reason: </strong> {entry.edited_reason || "No reason provided"}
-                      </div>
-                      {entry.changes && entry.changes.length > 0 ? (
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginTop: "8px" }}>
-                          <thead>
-                            <tr style={{ backgroundColor: "#e2e8f0" }}>
-                              <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Field</th>
-                              <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Before</th>
-                              <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>After</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {entry.changes.map((change, cIdx) => (
-                              <tr key={cIdx} style={{ backgroundColor: "white" }}>
-                                <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", fontWeight: "600", color: "#475569" }}>{change.field}</td>
-                                <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#b91c1c", backgroundColor: "#fef2f2" }}>{change.before || "Empty"}</td>
-                                <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#15803d", backgroundColor: "#f0fdf4" }}>{change.after || "Empty"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div style={{ fontSize: "12px", color: "#64748b" }}>No specific field modifications tracked.</div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ textAlign: "center", padding: "20px", color: "#64748b", fontStyle: "italic" }}>
-                    No edit history available for this record.
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "6px",
-                    border: "1px solid #cbd5e1",
-                    background: "white",
-                    color: "#475569",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "500"
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </Container>
     </ReportContainer>
   )

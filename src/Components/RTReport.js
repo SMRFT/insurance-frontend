@@ -65,7 +65,7 @@ const RTReport = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(false)
   const [viewModalData, setViewModalData] = useState(null)
-  
+
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [paymentModalData, setPaymentModalData] = useState(null)
   const [newPayment, setNewPayment] = useState({ date: new Date().toISOString().split('T')[0], amount: '', payment_method: 'Cash' })
@@ -209,7 +209,7 @@ const RTReport = () => {
       toast.error("Please enter UPI details");
       return;
     }
-    
+
     const currentTotalPaid = paymentModalData.totalPaid || 0;
     const newAmount = Number.parseFloat(newPayment.amount);
     const expectedAmount = Number.parseFloat(paymentModalData.amount_to_be_paid || 0);
@@ -226,15 +226,15 @@ const RTReport = () => {
     } else if (currentTotalPaid + newAmount > 0) {
       newStatus = "Partially Paid";
     }
-    
+
     try {
       const updatedPaymentDetails = [...(paymentModalData.payment_details || []), newPayment];
       const url = `${Insurancebaseurl}rtrecords/${paymentModalData.rt_id || paymentModalData.id}/`;
-      const payload = { 
+      const payload = {
         payment_details: updatedPaymentDetails,
-        status: newStatus 
+        status: newStatus
       };
-      
+
       const response = await apiRequest(url, "PUT", payload);
       if (response.success || response.status === 200 || response.status === 201) {
         toast.success("Payment added successfully");
@@ -425,7 +425,7 @@ const RTReport = () => {
 
   return (
     <ReportContainer>
-      
+
       <Container>
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexShrink: 0, flexWrap: 'wrap', gap: '10px' }}>
@@ -469,6 +469,10 @@ const RTReport = () => {
               <option value="ESI">ESI</option>
               <option value="ESIC">ESIC</option>
               <option value="Railway CTSE">Railway CTSE</option>
+              <option value="TKT">TKT</option>
+              <option value="FCI">FCI</option>
+              <option value="Airport">Airport</option>
+              <option value="Pay Patient">Pay Patient</option>
             </FormControl>
           </FilterWrapper>
 
@@ -560,31 +564,31 @@ const RTReport = () => {
                     <TableCell>{record.is_approved ? "Yes" : "No"}</TableCell>
                     <TableCell>{record.approved_by_name || record.approved_by || "-"}</TableCell>
                     <ActionCell>
-                      {(role === "Insurance Admin" || role === "RT Staff") ? (
+                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "RT Staff") ? (
                         <div style={{ position: "relative" }} className="action-dropdown-container">
                           <button onClick={() => toggleDropdown(record.rt_id || record.id)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: "16px", padding: "4px 8px" }}>
                             <MoreVertical size={16} />
                           </button>
                           {activeDropdown === (record.rt_id || record.id) && (
                             <div style={{ position: "absolute", right: "0", top: "100%", background: "white", border: "1px solid #ccc", borderRadius: "4px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)", zIndex: 100, minWidth: "120px", textAlign: "left" }}>
-                              {role === "Insurance Admin" && !record.is_approved && (
+                              {(role === "Insurance Admin" || role === "Insurance Super Admin") && !record.is_approved && (
                                 <div style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "13px", color: "#28a745", fontWeight: "bold" }} onClick={() => { handleApprove(record); setActiveDropdown(null); }}>
                                   Approve
                                 </div>
                               )}
-                              {role === "Insurance Admin" && record.is_approved && (
-                                <div 
-                                  style={{ 
-                                    padding: "8px 12px", 
-                                    cursor: record.status === "Paid" ? "not-allowed" : "pointer", 
-                                    borderBottom: "1px solid #eee", 
+                              {(role === "Insurance Admin" || role === "Insurance Super Admin") && (
+                                <div
+                                  style={{
+                                    padding: "8px 12px",
+                                    cursor: record.status === "Paid" ? "not-allowed" : "pointer",
+                                    borderBottom: "1px solid #eee",
                                     fontSize: "13px",
                                     color: record.status === "Paid" ? "#9ca3af" : "inherit"
-                                  }} 
-                                  onClick={() => { 
+                                  }}
+                                  onClick={() => {
                                     if (record.status !== "Paid") {
-                                      setPaymentModalData(record); 
-                                      setActiveDropdown(null); 
+                                      setPaymentModalData(record);
+                                      setActiveDropdown(null);
                                     }
                                   }}>
                                   Payment Details
@@ -641,19 +645,19 @@ const RTReport = () => {
             </div>
             <p><strong>Patient:</strong> {paymentModalData.patient_name}</p>
             <p><strong>Expected Amount:</strong> ₹{Number.parseFloat(paymentModalData.amount_to_be_paid || 0).toFixed(2)}</p>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
               <div>
                 <Label>Date</Label>
-                <Input type="date" value={newPayment.date} onChange={(e) => setNewPayment({...newPayment, date: e.target.value})} />
+                <Input type="date" value={newPayment.date} onChange={(e) => setNewPayment({ ...newPayment, date: e.target.value })} />
               </div>
               <div>
                 <Label>Amount</Label>
-                <Input type="number" placeholder="Enter amount" value={newPayment.amount} onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})} />
+                <Input type="text" inputMode="decimal" placeholder="Enter amount" value={newPayment.amount} onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })} />
               </div>
               <div>
                 <Label>Payment Method</Label>
-                <Select value={newPayment.payment_method} onChange={(e) => setNewPayment({...newPayment, payment_method: e.target.value})}>
+                <Select value={newPayment.payment_method} onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}>
                   <option value="">Select Method</option>
                   <option value="Cash">Cash</option>
                   <option value="Card">Card</option>
@@ -664,7 +668,7 @@ const RTReport = () => {
               {newPayment.payment_method === 'UPI' && (
                 <div>
                   <Label>UPI Transaction ID</Label>
-                  <Input type="text" placeholder="Enter UPI details" value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({...newPayment, upi_details: e.target.value})} />
+                  <Input type="text" placeholder="Enter UPI details" value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({ ...newPayment, upi_details: e.target.value })} />
                 </div>
               )}
               <Button onClick={handleAddPayment} style={{ marginTop: '10px', background: primaryColor }}>Save Payment</Button>
@@ -678,15 +682,15 @@ const RTReport = () => {
               <h3 style={{ margin: 0, color: '#1f2937' }}>Details: {combinedModalData.patient_name}</h3>
               <button onClick={() => setCombinedModalData(null)} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-              <button 
+              <button
                 onClick={() => setActiveTab("edit_history")}
                 style={{ background: activeTab === "edit_history" ? primaryColor : "transparent", color: activeTab === "edit_history" ? "white" : "#666", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
               >
                 Edit History
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("payment_history")}
                 style={{ background: activeTab === "payment_history" ? primaryColor : "transparent", color: activeTab === "payment_history" ? "white" : "#666", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
               >
@@ -782,127 +786,127 @@ const RTReport = () => {
           tbody tr:nth-child(odd) .frozen-col { background-color: #ffffff; }
           tbody tr:hover .frozen-col { background-color: #e8f0ee !important; }
         `}</style>
-      {showHistoryModal && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.6)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 99999
-        }}>
+        {showHistoryModal && (
           <div style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "12px",
-            width: "90%",
-            maxWidth: "650px",
-            maxHeight: "80vh",
-            overflowY: "auto",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             display: "flex",
-            flexDirection: "column",
-            gap: "16px"
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 99999
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>
-                Edit History - {activeHistoryName}
-              </h3>
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "20px",
-                  cursor: "pointer",
-                  color: "#64748b",
-                  fontWeight: "bold"
-                }}
-              >
-                &times;
-              </button>
-            </div>
+            <div style={{
+              background: "white",
+              padding: "24px",
+              borderRadius: "12px",
+              width: "90%",
+              maxWidth: "650px",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+                <h3 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "bold" }}>
+                  Edit History - {activeHistoryName}
+                </h3>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "20px",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    fontWeight: "bold"
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {activeHistory && activeHistory.length > 0 ? (
-                [...activeHistory].reverse().map((entry, idx) => (
-                  <div key={idx} style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    padding: "16px",
-                    backgroundColor: "#f8fafc"
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "500" }}>
-                      <span>👤 {entry.edited_by_name || entry.edited_by || "System"}</span>
-                      <span>📅 {entry.edited_date ? new Date(entry.edited_date).toLocaleString() : "N/A"}</span>
-                    </div>
-                    <div style={{
-                      fontSize: "14px",
-                      color: "#1e293b",
-                      marginBottom: "12px",
-                      fontStyle: "italic",
-                      background: "#f1f5f9",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      borderLeft: "3px solid #6f8b83"
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {activeHistory && activeHistory.length > 0 ? (
+                  [...activeHistory].reverse().map((entry, idx) => (
+                    <div key={idx} style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      padding: "16px",
+                      backgroundColor: "#f8fafc"
                     }}>
-                      <strong>Reason: </strong> {entry.edited_reason || "No reason provided"}
-                    </div>
-                    {entry.changes && entry.changes.length > 0 ? (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginTop: "8px" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#e2e8f0" }}>
-                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Field</th>
-                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Before</th>
-                            <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>After</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {entry.changes.map((change, cIdx) => (
-                            <tr key={cIdx} style={{ backgroundColor: "white" }}>
-                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", fontWeight: "600", color: "#475569" }}>{change.field}</td>
-                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#b91c1c", backgroundColor: "#fef2f2" }}>{change.before || "Empty"}</td>
-                              <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#15803d", backgroundColor: "#f0fdf4" }}>{change.after || "Empty"}</td>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "500" }}>
+                        <span>👤 {entry.edited_by_name || entry.edited_by || "System"}</span>
+                        <span>📅 {entry.edited_date ? new Date(entry.edited_date).toLocaleString() : "N/A"}</span>
+                      </div>
+                      <div style={{
+                        fontSize: "14px",
+                        color: "#1e293b",
+                        marginBottom: "12px",
+                        fontStyle: "italic",
+                        background: "#f1f5f9",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        borderLeft: "3px solid #6f8b83"
+                      }}>
+                        <strong>Reason: </strong> {entry.edited_reason || "No reason provided"}
+                      </div>
+                      {entry.changes && entry.changes.length > 0 ? (
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginTop: "8px" }}>
+                          <thead>
+                            <tr style={{ backgroundColor: "#e2e8f0" }}>
+                              <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Field</th>
+                              <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>Before</th>
+                              <th style={{ border: "1px solid #cbd5e1", padding: "6px 8px", textAlign: "left" }}>After</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div style={{ fontSize: "12px", color: "#64748b" }}>No specific field modifications tracked.</div>
-                    )}
+                          </thead>
+                          <tbody>
+                            {entry.changes.map((change, cIdx) => (
+                              <tr key={cIdx} style={{ backgroundColor: "white" }}>
+                                <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", fontWeight: "600", color: "#475569" }}>{change.field}</td>
+                                <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#b91c1c", backgroundColor: "#fef2f2" }}>{change.before || "Empty"}</td>
+                                <td style={{ border: "1px solid #e2e8f0", padding: "6px 8px", color: "#15803d", backgroundColor: "#f0fdf4" }}>{change.after || "Empty"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div style={{ fontSize: "12px", color: "#64748b" }}>No specific field modifications tracked.</div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: "center", padding: "20px", color: "#64748b", fontStyle: "italic" }}>
+                    No edit history available for this record.
                   </div>
-                ))
-              ) : (
-                <div style={{ textAlign: "center", padding: "20px", color: "#64748b", fontStyle: "italic" }}>
-                  No edit history available for this record.
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  border: "1px solid #cbd5e1",
-                  background: "white",
-                  color: "#475569",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500"
-                }}
-              >
-                Close
-              </button>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    border: "1px solid #cbd5e1",
+                    background: "white",
+                    color: "#475569",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500"
+                  }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       </Container>
     </ReportContainer>

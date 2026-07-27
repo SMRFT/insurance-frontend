@@ -34,13 +34,8 @@ const ChemoForm = () => {
     date_of_discharge: formatDateStr(editData?.date_of_discharge),
     insurance_type: editData?.insurance_type || "",
     specificInsuranceCompany: editData?.specificInsuranceCompany || "",
-    amount_to_be_paid: editData?.amount_to_be_paid || "",
     medicine_details: editData?.medicine_details || "",
   });
-
-  const [hasAmountToBePaid, setHasAmountToBePaid] = useState(
-    editData?.amount_to_be_paid && parseFloat(editData.amount_to_be_paid) > 0 ? "yes" : "no"
-  );
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [tempReason, setTempReason] = useState("");
@@ -55,14 +50,13 @@ const ChemoForm = () => {
       date_of_discharge: "Discharge Date",
       insurance_type: "Insurance Type",
       specificInsuranceCompany: "Insurance Provider",
-      amount_to_be_paid: "Amount to be Paid",
       medicine_details: "Medicine Details",
     };
 
     Object.keys(fieldMapping).forEach(key => {
       let origVal = original[key] !== undefined && original[key] !== null ? original[key] : "";
       let currVal = currentPayload[key] !== undefined && currentPayload[key] !== null ? currentPayload[key] : "";
-      
+
       if (key.startsWith("date_of_") && origVal) {
         origVal = formatDateStr(origVal);
       }
@@ -72,7 +66,7 @@ const ChemoForm = () => {
 
       const origStr = origVal.toString().trim();
       const currStr = currVal.toString().trim();
-      
+
       if (origStr !== currStr) {
         changes.push({
           field: fieldMapping[key],
@@ -102,12 +96,6 @@ const ChemoForm = () => {
     fetchInsuranceCompanies();
   }, [Insurancebaseurl]);
 
-  const initialPayments = editData?.payment_details?.length > 0
-    ? editData.payment_details.map((p, i) => ({ ...p, upi_details: p.upi_details || "", id: Date.now() + i, isExisting: true }))
-    : [{ id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "" }];
-
-  const [paymentEntries, setPaymentEntries] = useState(initialPayments);
-
   const [loading, setLoading] = useState(false);
 
   const getTodayDate = () => {
@@ -117,29 +105,6 @@ const ChemoForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePaymentEntryChange = (id, field, value) => {
-    setPaymentEntries((prev) =>
-      prev.map((entry) => (entry.id === id ? { ...entry, [field]: value } : entry))
-    );
-  };
-
-  const addPaymentEntry = () => {
-    setPaymentEntries((prev) => [
-      ...prev,
-      { id: Date.now(), amount: "", payment_method: "", upi_details: "", date: "" },
-    ]);
-  };
-
-  const removePaymentEntry = (id) => {
-    setPaymentEntries((prev) => prev.filter((entry) => entry.id !== id));
-  };
-
-  const calculateRemainingAmount = () => {
-    const totalAmount = parseFloat(formData.amount_to_be_paid) || 0;
-    const paidAmount = paymentEntries.reduce((sum, entry) => sum + (parseFloat(entry.amount) || 0), 0);
-    return Math.max(0, totalAmount - paidAmount);
   };
 
   const executeSubmit = async (historyData = []) => {
@@ -165,14 +130,14 @@ const ChemoForm = () => {
       const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL;
       let url = `${Insurancebaseurl}chemo_records/`;
       let method = "POST";
-      
+
       if (isUpdate) {
         url = `${Insurancebaseurl}chemorecords/${editData.chemo_id || editData.id}/`;
         method = "PUT";
       }
-      
+
       const response = await apiRequest(url, method, payload);
-      
+
       if (response.success || response.status === 200 || response.status === 201) {
         toast.success(`Chemo Record ${method === "PUT" ? "updated" : "submitted"} successfully!`);
         if (method === "PUT") {
@@ -185,10 +150,8 @@ const ChemoForm = () => {
             date_of_admission: "",
             date_of_discharge: "",
             insurance_type: "",
-            amount_to_be_paid: "",
             medicine_details: "",
           });
-          setHasAmountToBePaid("no");
         }
       } else {
         toast.error("Failed to submit form.");
@@ -247,9 +210,9 @@ const ChemoForm = () => {
 
   return (
     <FormContainer>
-      
+
       <Title>{(editData?.chemo_id || editData?.id) ? "Edit Chemo Record" : "Chemotherapy (Chemo) Form"}</Title>
-      
+
       <Form onSubmit={handleSubmit}>
         <FormSection>
           <SectionTitle>Patient Details</SectionTitle>
@@ -326,6 +289,9 @@ const ChemoForm = () => {
                 <option value="ESI">ESI</option>
                 <option value="ESIC">ESIC</option>
                 <option value="Railway CTSE">Railway CTSE</option>
+                <option value="TKT">TKT</option>
+                <option value="FCI">FCI</option>
+                <option value="Airport">Airport</option>
                 <option value="Pay Patient">Pay Patient</option>
               </Select>
             </div>
@@ -346,43 +312,6 @@ const ChemoForm = () => {
                 </Select>
               </div>
             )}
-            <div>
-              <Label>Amount to be Paid <span style={{ color: "red" }}>*</span></Label>
-              <div style={{ display: "flex", gap: "15px", marginBottom: "10px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <input
-                    type="radio"
-                    name="hasAmountToBePaid"
-                    value="yes"
-                    checked={hasAmountToBePaid === "yes"}
-                    onChange={(e) => setHasAmountToBePaid(e.target.value)}
-                  /> Yes
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <input
-                    type="radio"
-                    name="hasAmountToBePaid"
-                    value="no"
-                    checked={hasAmountToBePaid === "no"}
-                    onChange={(e) => {
-                      setHasAmountToBePaid(e.target.value);
-                      setFormData(prev => ({ ...prev, amount_to_be_paid: "" }));
-                    }}
-                  /> No
-                </label>
-              </div>
-              {hasAmountToBePaid === "yes" && (
-                <Input
-                  type="number"
-                  name="amount_to_be_paid"
-                  value={formData.amount_to_be_paid}
-                  onChange={handleChange}
-                  placeholder="Enter total amount"
-                  min="0"
-                  required
-                />
-              )}
-            </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <Label>Medicine Details</Label>
               <textarea
@@ -395,8 +324,6 @@ const ChemoForm = () => {
             </div>
           </div>
         </FormSection>
-
-
 
         <ButtonWrapper>
           <Button type="submit" disabled={loading}>

@@ -476,13 +476,13 @@ const RadiotherapyReport = () => {
                   {editingRow === item.billNumber ? (
                     <>
                       <TableCell>
-                        <Input type="number" name="billAmount" value={editValues.billAmount} onChange={handleInputChange} />
+                        <Input type="text" inputMode="decimal" name="billAmount" value={editValues.billAmount} onChange={handleInputChange} />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" name="claimedAmount" value={editValues.claimedAmount} onChange={handleInputChange} />
+                        <Input type="text" inputMode="decimal" name="claimedAmount" value={editValues.claimedAmount} onChange={handleInputChange} />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" name="pendingAmount" value={editValues.pendingAmount} onChange={handleInputChange} />
+                        <Input type="text" inputMode="decimal" name="pendingAmount" value={editValues.pendingAmount} onChange={handleInputChange} />
                         <div style={{ marginTop: "10px" }}>
                           <Label>Payment Type:</Label>
                           <Select name="paymentType" value={editValues.paymentType} onChange={handleInputChange} style={{ width: "100%", marginBottom: "10px" }}>
@@ -492,7 +492,7 @@ const RadiotherapyReport = () => {
                             <option value="Refund">Refund</option>
                           </Select>
                           <Label>Payment Amount:</Label>
-                          <Input type="number" name="paymentAmount" value={editValues.paymentAmount} onChange={handleInputChange} placeholder="Enter amount paid" />
+                          <Input type="text" inputMode="decimal" name="paymentAmount" value={editValues.paymentAmount} onChange={handleInputChange} placeholder="Enter amount paid" />
                         </div>
                       </TableCell>
                       <TableCell>
@@ -569,7 +569,7 @@ const RadiotherapyReport = () => {
               </ModalRow>
               <ModalRow>
                 <ModalLabel>Payment Amount:</ModalLabel>
-                <Input type="number" name="paymentAmount" value={editValues.paymentAmount} onChange={handleInputChange} placeholder="Enter amount" style={{ width: "60%" }} />
+                <Input type="text" inputMode="decimal" name="paymentAmount" value={editValues.paymentAmount} onChange={handleInputChange} placeholder="Enter amount" style={{ width: "60%" }} />
               </ModalRow>
               {editValues.paymentAmount && (
                 <ModalRow>

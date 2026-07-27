@@ -313,6 +313,9 @@ const RTForm = () => {
                 <option value="ESI">ESI</option>
                 <option value="ESIC">ESIC</option>
                 <option value="Railway CTSE">Railway CTSE</option>
+                <option value="TKT">TKT</option>
+                <option value="FCI">FCI</option>
+                <option value="Airport">Airport</option>
                 <option value="Pay Patient">Pay Patient</option>
               </Select>
             </div>
@@ -336,12 +339,12 @@ const RTForm = () => {
             <div>
               <Label>Amount to be Paid <span style={{ color: "red" }}>*</span></Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 name="amount_to_be_paid"
                 value={formData.amount_to_be_paid}
                 onChange={handleChange}
                 placeholder="Enter total amount"
-                min="0"
                 required
                 disabled={!!(editData?.rt_id || editData?.id)}
               />

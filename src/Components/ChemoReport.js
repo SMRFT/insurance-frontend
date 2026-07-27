@@ -68,7 +68,7 @@ const ChemoReport = () => {
   const [fromDate, setFromDate] = useState(new Date())
   const [toDate, setToDate] = useState(new Date())
   const [viewModalData, setViewModalData] = useState(null)
-  
+
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [combinedModalData, setCombinedModalData] = useState(null)
   const [activeTab, setActiveTab] = useState("edit_history")
@@ -196,50 +196,72 @@ const ChemoReport = () => {
   }
 
   const handleAddPayment = async () => {
-    if (!newPayment.amount || !newPayment.date || !newPayment.payment_method) {
-      toast.error("Please fill all payment fields");
-      return;
-    }
-    if (newPayment.payment_method === 'UPI' && !newPayment.upi_details) {
-      toast.error("Please enter UPI details");
-      return;
-    }
-    
-    const currentTotalPaid = paymentModalData.totalPaid || 0;
-    const newAmount = Number.parseFloat(newPayment.amount);
-    const expectedAmount = Number.parseFloat(paymentModalData.amount_to_be_paid || 0);
+    const isAmountToBePaidYes = (
+      paymentModalData.hasAmountToBePaid ||
+      (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")
+    ) === "yes";
 
-    if (currentTotalPaid + newAmount > expectedAmount) {
+    if (isAmountToBePaidYes && (!paymentModalData.amount_to_be_paid || Number.parseFloat(paymentModalData.amount_to_be_paid) <= 0)) {
+      toast.error("Please enter a valid Amount to be Paid");
+      return;
+    }
+
+    const hasNewPayment = isAmountToBePaidYes && newPayment.amount && Number.parseFloat(newPayment.amount) > 0;
+
+    if (hasNewPayment) {
+      if (!newPayment.date || !newPayment.payment_method) {
+        toast.error("Please fill all required payment fields (Date, Amount, Payment Method)");
+        return;
+      }
+      if (newPayment.payment_method === 'UPI' && !newPayment.upi_details) {
+        toast.error("Please enter UPI details");
+        return;
+      }
+    }
+
+    const currentTotalPaid = paymentModalData.totalPaid || 0;
+    const newAmount = hasNewPayment ? Number.parseFloat(newPayment.amount) : 0;
+    const expectedAmount = isAmountToBePaidYes ? Number.parseFloat(paymentModalData.amount_to_be_paid || 0) : 0;
+
+    if (expectedAmount > 0 && (currentTotalPaid + newAmount > expectedAmount)) {
       const exceededBy = (currentTotalPaid + newAmount) - expectedAmount;
       toast.error(`Cannot exceed expected amount (₹${expectedAmount.toFixed(2)}). Already paid: ₹${currentTotalPaid.toFixed(2)}. Exceeds by: ₹${exceededBy.toFixed(2)}.`);
       return;
     }
 
-    let newStatus = paymentModalData.status;
-    if (currentTotalPaid + newAmount >= expectedAmount) {
-      newStatus = "Paid";
-    } else if (currentTotalPaid + newAmount > 0) {
-      newStatus = "Partially Paid";
-    }
-    
-    try {
-      const updatedPaymentDetails = [...(paymentModalData.payment_details || []), {
+    let updatedPaymentDetails = paymentModalData.payment_details || [];
+    if (hasNewPayment) {
+      updatedPaymentDetails = [...updatedPaymentDetails, {
         amount: newAmount,
         payment_method: newPayment.payment_method,
         upi_details: newPayment.payment_method === 'UPI' ? newPayment.upi_details : "",
         date: newPayment.date
       }];
-      
-      const payload = { 
+    }
+
+    const totalPaid = updatedPaymentDetails.reduce((sum, p) => sum + Number.parseFloat(p.amount || 0), 0);
+
+    let newStatus = paymentModalData.status;
+    if (totalPaid === 0) {
+      newStatus = "Pending";
+    } else if (expectedAmount > 0 && totalPaid >= expectedAmount) {
+      newStatus = "Paid";
+    } else if (totalPaid > 0) {
+      newStatus = "Partially Paid";
+    }
+
+    try {
+      const payload = {
+        amount_to_be_paid: isAmountToBePaidYes ? (paymentModalData.amount_to_be_paid || "") : "",
         payment_details: updatedPaymentDetails,
-        status: newStatus 
+        status: newStatus
       };
-      
+
       const url = `${Insurancebaseurl}chemorecords/${paymentModalData.chemo_id || paymentModalData.id}/`;
       const response = await apiRequest(url, "PUT", payload);
-      
+
       if (response.success || response.status === 200 || response.status === 201) {
-        toast.success("Payment added successfully");
+        toast.success("Payment details saved successfully");
         setPaymentModalData(null);
         setNewPayment({
           amount: "",
@@ -249,11 +271,11 @@ const ChemoReport = () => {
         });
         fetchRecords();
       } else {
-        toast.error("Failed to add payment");
+        toast.error("Failed to save payment details");
       }
     } catch (error) {
-      console.error("Error adding payment:", error);
-      toast.error("An error occurred while adding payment");
+      console.error("Error saving payment details:", error);
+      toast.error("An error occurred while saving payment details");
     }
   }
 
@@ -423,7 +445,7 @@ const ChemoReport = () => {
 
   return (
     <ReportContainer>
-      
+
       <Container>
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexShrink: 0, flexWrap: 'wrap', gap: '10px' }}>
@@ -467,6 +489,10 @@ const ChemoReport = () => {
               <option value="ESI">ESI</option>
               <option value="ESIC">ESIC</option>
               <option value="Railway CTSE">Railway CTSE</option>
+              <option value="TKT">TKT</option>
+              <option value="FCI">FCI</option>
+              <option value="Airport">Airport</option>
+              <option value="Pay Patient">Pay Patient</option>
             </FormControl>
           </FilterWrapper>
 
@@ -554,29 +580,31 @@ const ChemoReport = () => {
                     </TableCell>
                     <TableCell>{record.created_by_name || record.created_by || "-"}</TableCell>
                     <ActionCell>
-                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Insurance AVP" || role === "Chemo Staff") ? (
+                      {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Chemo Staff") ? (
                         <div style={{ position: "relative" }} className="action-dropdown-container">
                           <button onClick={() => toggleDropdown(record.chemo_id || record.id)} style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: "16px", padding: "4px 8px" }}>
                             <MoreVertical size={16} />
                           </button>
                           {activeDropdown === (record.chemo_id || record.id) && (
                             <div style={{ position: "absolute", right: "0", top: "100%", background: "white", border: "1px solid #ccc", borderRadius: "4px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)", zIndex: 100, minWidth: "120px", textAlign: "left" }}>
-                              <div 
-                                style={{ 
-                                  padding: "8px 12px", 
-                                  cursor: record.status === "Paid" ? "not-allowed" : "pointer", 
-                                  borderBottom: "1px solid #eee", 
-                                  fontSize: "13px",
-                                  color: record.status === "Paid" ? "#9ca3af" : "inherit"
-                                }} 
-                                onClick={() => { 
-                                  if (record.status !== "Paid") {
-                                    setPaymentModalData(record); 
-                                    setActiveDropdown(null); 
-                                  }
-                                }}>
-                                Payment Details
-                              </div>
+                              {(role === "Insurance Admin" || role === "Insurance Super Admin") && (
+                                <div
+                                  style={{
+                                    padding: "8px 12px",
+                                    cursor: record.status === "Paid" ? "not-allowed" : "pointer",
+                                    borderBottom: "1px solid #eee",
+                                    fontSize: "13px",
+                                    color: record.status === "Paid" ? "#9ca3af" : "inherit"
+                                  }}
+                                  onClick={() => {
+                                    if (record.status !== "Paid") {
+                                      setPaymentModalData(record);
+                                      setActiveDropdown(null);
+                                    }
+                                  }}>
+                                  Payment Details
+                                </div>
+                              )}
                               <div style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "13px" }} onClick={() => { handleEdit(record); setActiveDropdown(null); }}>
                                 Edit
                               </div>
@@ -623,38 +651,93 @@ const ChemoReport = () => {
         {paymentModalData && (
           <ModalOverlay onClose={() => setPaymentModalData(null)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, color: '#1f2937' }}>Add Payment Details</h3>
+              <h3 style={{ margin: 0, color: '#1f2937' }}>Payment & Billing Details</h3>
               <button onClick={() => setPaymentModalData(null)} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
             </div>
-            <p><strong>Patient:</strong> {paymentModalData.patient_name}</p>
-            <p><strong>Expected Amount:</strong> ₹{Number.parseFloat(paymentModalData.amount_to_be_paid || 0).toFixed(2)}</p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+
+            <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}><strong>Patient:</strong> {paymentModalData.patient_name} ({paymentModalData.patient_uhid || 'N/A'})</p>
+              <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>
+                <strong>Total Paid:</strong> ₹{(paymentModalData.totalPaid || 0).toFixed(2)} |
+                <strong> Balance Due:</strong> ₹{Math.max(0, (parseFloat(paymentModalData.amount_to_be_paid) || 0) - (paymentModalData.totalPaid || 0)).toFixed(2)}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
-                <Label>Date</Label>
-                <Input type="date" value={newPayment.date} onChange={(e) => setNewPayment({...newPayment, date: e.target.value})} />
-              </div>
-              <div>
-                <Label>Amount</Label>
-                <Input type="number" placeholder="Enter amount" value={newPayment.amount} onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})} />
-              </div>
-              <div>
-                <Label>Payment Method</Label>
-                <Select value={newPayment.payment_method} onChange={(e) => setNewPayment({...newPayment, payment_method: e.target.value})}>
-                  <option value="">Select Method</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Card">Card</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="UPI">UPI</option>
-                </Select>
-              </div>
-              {newPayment.payment_method === 'UPI' && (
-                <div>
-                  <Label>UPI Transaction ID</Label>
-                  <Input type="text" placeholder="Enter UPI details" value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({...newPayment, upi_details: e.target.value})} />
+                <Label style={{ fontWeight: 'bold' }}>Amount to be Paid</Label>
+                <div style={{ display: "flex", gap: "15px", marginBottom: "10px", marginTop: "5px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="hasAmountToBePaidModal"
+                      value="yes"
+                      checked={(paymentModalData.hasAmountToBePaid || (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")) === "yes"}
+                      onChange={() => setPaymentModalData({ ...paymentModalData, hasAmountToBePaid: "yes" })}
+                    /> Yes
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="hasAmountToBePaidModal"
+                      value="no"
+                      checked={(paymentModalData.hasAmountToBePaid || (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")) === "no"}
+                      onChange={() => setPaymentModalData({ ...paymentModalData, hasAmountToBePaid: "no", amount_to_be_paid: "" })}
+                    /> No
+                  </label>
                 </div>
-              )}
-              <Button onClick={handleAddPayment} style={{ marginTop: '10px', background: primaryColor }}>Save Payment</Button>
+                {(paymentModalData.hasAmountToBePaid || (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")) === "yes" && (
+                  <Input 
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Enter Amount to be Paid" 
+                    value={paymentModalData.amount_to_be_paid || ""} 
+                    onChange={(e) => setPaymentModalData({ ...paymentModalData, amount_to_be_paid: e.target.value })} 
+                  />
+                )}
+              </div>
+
+              {/* Add Payment Entry Section */}
+              {(() => {
+                const isYes = (paymentModalData.hasAmountToBePaid || (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")) === "yes";
+                return (
+                  <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '15px', opacity: isYes ? 1 : 0.5 }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: isYes ? '#374151' : '#9ca3af' }}>
+                      Add Payment Entry {!isYes && <span style={{ fontSize: "12px", color: "#ef4444", fontWeight: "normal" }}>(Disabled - Select "Yes" for Amount to be Paid)</span>}
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div>
+                        <Label>Date</Label>
+                        <Input type="date" value={newPayment.date} disabled={!isYes} onChange={(e) => setNewPayment({ ...newPayment, date: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Amount (₹)</Label>
+                        <Input type="text" inputMode="decimal" placeholder="Enter amount" disabled={!isYes} value={newPayment.amount} onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Payment Method</Label>
+                        <Select value={newPayment.payment_method} disabled={!isYes} onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}>
+                          <option value="">Select Method</option>
+                          <option value="Cash">Cash</option>
+                          <option value="Card">Card</option>
+                          <option value="Bank Transfer">Bank Transfer</option>
+                          <option value="UPI">UPI</option>
+                        </Select>
+                      </div>
+                      {newPayment.payment_method === 'UPI' && (
+                        <div>
+                          <Label>UPI Transaction ID</Label>
+                          <Input type="text" placeholder="Enter UPI details" disabled={!isYes} value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({ ...newPayment, upi_details: e.target.value })} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Save Details Button */}
+
+              <Button onClick={handleAddPayment} style={{ marginTop: '10px', background: primaryColor }}>Save Details</Button>
             </div>
           </ModalOverlay>
         )}
@@ -674,15 +757,15 @@ const ChemoReport = () => {
                 </p>
               </div>
             )}
-            
+
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-              <button 
+              <button
                 onClick={() => setActiveTab("edit_history")}
                 style={{ background: activeTab === "edit_history" ? primaryColor : "transparent", color: activeTab === "edit_history" ? "white" : "#666", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
               >
                 Edit History
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("payment_history")}
                 style={{ background: activeTab === "payment_history" ? primaryColor : "transparent", color: activeTab === "payment_history" ? "white" : "#666", border: "none", padding: "8px 16px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
               >

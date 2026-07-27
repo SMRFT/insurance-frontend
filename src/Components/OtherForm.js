@@ -1133,12 +1133,11 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               <div>
                 <Label>Refund Amount</Label>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   name="refundAmount"
                   value={formData.refundAmount}
                   onChange={handleChange}
-                  min="0"
-                  step="0.01"
                   placeholder="Enter refund amount (if any)"
                 />
               </div>
@@ -1216,11 +1215,10 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                   <div>
                     <Label>Amount</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={entry.amount}
                       onChange={(e) => handlePaymentEntryChange(entry.id, "amount", e.target.value)}
-                      min="0"
-                      step="0.01"
                       placeholder="Enter amount"
                       readOnly={entry.isExisting}
                       style={{ backgroundColor: entry.isExisting ? "#f8f9fa" : "white" }}

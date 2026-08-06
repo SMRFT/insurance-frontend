@@ -21,11 +21,14 @@ import {
   CenteredContainer,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest"
+import SearchableSelect from "./SearchableSelect"
 
 function InsuranceForm() {
   const location = useLocation()
   const formDataFromUpdate = location.state || {}
   const [insuranceCompanies, setInsuranceCompanies] = useState([])
+  const [doctorsList, setDoctorsList] = useState([])
+  const [loadingDoctors, setLoadingDoctors] = useState(false)
   const [opIpNumberManuallyChanged, setOpIpNumberManuallyChanged] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [tempReason, setTempReason] = useState("")
@@ -35,7 +38,7 @@ function InsuranceForm() {
     const fieldsToCompare = Object.keys(current);
 
     fieldsToCompare.forEach(key => {
-      if (["editHistory", "billingFile", "queryUpload", "queryResponse", "opIpSelection", "opIpNumber"].includes(key)) return;
+      if (["editHistory", "billingFile", "queryUpload", "queryResponse", "preauthFile", "opIpSelection", "opIpNumber"].includes(key)) return;
 
       const beforeVal = original[key] !== undefined && original[key] !== null ? original[key].toString().trim() : "";
       const afterVal = current[key] !== undefined && current[key] !== null ? current[key].toString().trim() : "";
@@ -44,6 +47,7 @@ function InsuranceForm() {
         const fieldLabels = {
           patient_uhid: "Patient UHID",
           patient_name: "Patient Name",
+          doctorName: "Doctor Name",
           billNumber: "Bill Number",
           date: "Date",
           dateOfDischarge: "Discharge Date",
@@ -64,9 +68,12 @@ function InsuranceForm() {
           fileSubmissionDate: "File Submission Date",
           queryDate: "Query Date",
           approvalDate: "Approval Date",
+          preauthRequestedDate: "Preauth Requested Date",
+          preauthApprovedDate: "Preauth Approved Date",
           remarks: "Remarks",
           treatmentType: "Treatment Type",
           radiotherapyCycles: "Radiotherapy Cycles",
+          otherTreatmentDetails: "Other Treatment Details",
           claimId: "Claim ID",
           voucherNumber: "Voucher Number",
           referral: "Referral Details",
@@ -101,6 +108,7 @@ function InsuranceForm() {
   const [formData, setFormData] = useState({
     patient_uhid: "",
     patient_name: "",
+    doctorName: "",
     billNumber: "",
     ctseType: "",
     date: "",
@@ -110,6 +118,9 @@ function InsuranceForm() {
     billingFile: null,
     queryUpload: null,
     queryResponse: null,
+    preauthRequestedDate: "",
+    preauthApprovedDate: "",
+    preauthFile: null,
     submissionStatus: "Online",
     approvalAmount: "",
     claimedAmount: "",
@@ -130,6 +141,7 @@ function InsuranceForm() {
     remarks: "",
     treatmentType: "",
     radiotherapyCycles: "",
+    otherTreatmentDetails: "",
     claimId: "",
     voucherNumber: "",
     referral: "",
@@ -160,11 +172,42 @@ function InsuranceForm() {
   }, [])
 
   useEffect(() => {
+    const fetchDoctors = async () => {
+      setLoadingDoctors(true)
+      try {
+        const response = await apiRequest(`${Insurancebaseurl}get_doctor_list/`, "GET")
+        let doctorsData = []
+        if (Array.isArray(response)) {
+          doctorsData = response
+        } else if (response?.data && Array.isArray(response.data)) {
+          doctorsData = response.data
+        } else if (response?.doctors && Array.isArray(response.doctors)) {
+          doctorsData = response.doctors
+        } else {
+          doctorsData = []
+        }
+        const activeDoctors = doctorsData.filter((d) => d.is_active !== false)
+        const sortedDoctors = activeDoctors.sort((a, b) =>
+          (a.doctor_name || "").trim().localeCompare((b.doctor_name || "").trim())
+        )
+        setDoctorsList(sortedDoctors)
+      } catch (error) {
+        console.error("Error fetching doctors:", error)
+        setDoctorsList([])
+      } finally {
+        setLoadingDoctors(false)
+      }
+    }
+
+    if (Insurancebaseurl) fetchDoctors()
+  }, [Insurancebaseurl])
+
+  useEffect(() => {
     if (Object.keys(formDataFromUpdate).length > 0) {
       const newFormData = { ...formData }
       Object.keys(formDataFromUpdate).forEach((key) => {
         if (key in newFormData) {
-          if (key !== "billingFile" && key !== "queryUpload" && key !== "queryResponse") {
+          if (key !== "billingFile" && key !== "queryUpload" && key !== "queryResponse" && key !== "preauthFile") {
             newFormData[key] = formDataFromUpdate[key]
           }
         }
@@ -274,6 +317,7 @@ function InsuranceForm() {
           key !== "billingFile" &&
           key !== "queryUpload" &&
           key !== "queryResponse" &&
+          key !== "preauthFile" &&
           key !== "opIpSelection" &&
           key !== "opIpNumber" &&
           key !== "editHistory" &&
@@ -308,6 +352,11 @@ function InsuranceForm() {
       if (formData.queryResponse && formData.queryResponse instanceof File) {
         formDataToSend.append("queryResponse", formData.queryResponse)
         toast.success(`📎 Response file "${formData.queryResponse.name}" attached`)
+      }
+
+      if (formData.preauthFile && formData.preauthFile instanceof File) {
+        formDataToSend.append("preauthFile", formData.preauthFile)
+        toast.success(`📎 Preauth file "${formData.preauthFile.name}" attached`)
       }
 
       let apiResult
@@ -371,6 +420,9 @@ function InsuranceForm() {
             billingFile: null,
             queryUpload: null,
             queryResponse: null,
+            preauthRequestedDate: "",
+            preauthApprovedDate: "",
+            preauthFile: null,
             submissionStatus: "Online",
             approvalAmount: "",
             claimedAmount: "",
@@ -488,17 +540,22 @@ function InsuranceForm() {
                 >
                   <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>Company Name</Label>
-                    <Select name="companyName" value={formData.companyName} onChange={handleChange}>
-                      <option value="">Select Company</option>
-                      <option value="General Insurance">General Insurance</option>
-                      <option value="ECHS">ECHS</option>
-                      <option value="ESI">ESI</option>
-                      <option value="ESIC">ESIC</option>
-                      <option value="Railway CTSE">Railway CTSE</option>
-                      <option value="TKT">TKT</option>
-                      <option value="FCI">FCI</option>
-                      <option value="Airport">Airport</option>
-                    </Select>
+                    <SearchableSelect
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      placeholder="Select Company"
+                      options={[
+                        "General Insurance",
+                        "ECHS",
+                        "ESI",
+                        "ESIC",
+                        "Railway CTSE",
+                        "TKT",
+                        "FCI",
+                        "Airport"
+                      ]}
+                    />
                   </Col>
                   <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>CTSE Type</Label>
@@ -565,9 +622,9 @@ function InsuranceForm() {
             </>
           ) : (
             <>
-              {/* Patient Information Section */}
+              {/* 1. Patient Information Section */}
               <FormSection>
-                <SectionTitle>Patient Information</SectionTitle>
+                <SectionTitle>1. Patient Information</SectionTitle>
                 <Row
                   style={{
                     display: "grid",
@@ -588,6 +645,17 @@ function InsuranceForm() {
                   <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>Patient Name</Label>
                     <Input type="text" name="patient_name" value={formData.patient_name} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={6} lg={3}>
+                    <Label>Doctor Name</Label>
+                    <SearchableSelect
+                      name="doctorName"
+                      value={formData.doctorName}
+                      onChange={handleChange}
+                      disabled={loadingDoctors}
+                      placeholder={loadingDoctors ? "Loading doctors..." : "Select Doctor"}
+                      options={doctorsList.map((d) => d.doctor_name)}
+                    />
                   </Col>
                   <Col xs={12} sm={6} md={6} lg={3}>
                     <Label>OP or IP</Label>
@@ -629,70 +697,9 @@ function InsuranceForm() {
                 </Row>
               </FormSection>
 
-              {/* Billing Information Section */}
+              {/* 2. Insurance Details Section */}
               <FormSection>
-                <SectionTitle>Billing Information</SectionTitle>
-                <Row
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "20px",
-                    alignItems: "center",
-                  }}
-                  className="responsive-row"
-                >
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Bill Number</Label>
-                    <Input type="text" name="billNumber" value={formData.billNumber} onChange={handleChange} />
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Bill Date</Label>
-                    <Input
-                      type="date"
-                      name="billDate"
-                      value={formData.billDate}
-                      onChange={handleChange}
-                      max={getTodayDate()}
-                    />
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Bill Amount</Label>
-                    <Input type="text" name="billAmount" value={formData.billAmount} onChange={handleChange} />
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Billing Done</Label>
-                    <Input
-                      type="file"
-                      name="billingFile"
-                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                      onChange={handleChange}
-                    />
-                    {formData.billingFile && (
-                      <small style={{ color: '#10b981', fontSize: '12px' }}>
-                        ✅ Selected: {formData.billingFile.name}
-                      </small>
-                    )}
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Date Of Discharge</Label>
-                    <Input
-                      type="date"
-                      name="dateOfDischarge"
-                      value={formData.dateOfDischarge}
-                      onChange={handleChange}
-                      max={getTodayDate()}
-                    />
-                  </Col>
-                  <Col xs={12} sm={6} md={6} lg={3}>
-                    <Label>Claim Id</Label>
-                    <Input type="text" name="claimId" value={formData.claimId} onChange={handleChange} />
-                  </Col>
-                </Row>
-              </FormSection>
-
-              {/* Insurance Company Section */}
-              <FormSection>
-                <SectionTitle>Insurance Company Details</SectionTitle>
+                <SectionTitle>2. Insurance Details</SectionTitle>
                 <Row
                   style={{
                     display: "grid",
@@ -704,41 +711,41 @@ function InsuranceForm() {
                 >
                   <Col xs={12} sm={12} md={6} lg={6}>
                     <Label>Company Name</Label>
-                    <Select name="companyName" value={formData.companyName} onChange={handleChange}>
-                      <option value="">Select Company</option>
-                      <option value="General Insurance">General Insurance</option>
-                      <option value="ECHS">ECHS</option>
-                      <option value="ESI">ESI</option>
-                      <option value="ESIC">ESIC</option>
-                      <option value="Railway CTSE">Railway CTSE</option>
-                      <option value="TKT">TKT</option>
-                      <option value="FCI">FCI</option>
-                      <option value="Airport">Airport</option>
-                    </Select>
+                    <SearchableSelect
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      placeholder="Select Company"
+                      options={[
+                        "General Insurance",
+                        "ECHS",
+                        "ESI",
+                        "ESIC",
+                        "Railway CTSE",
+                        "TKT",
+                        "FCI",
+                        "Airport"
+                      ]}
+                    />
                   </Col>
                   {formData.companyName === "General Insurance" && (
                     <Col xs={12} sm={12} md={6} lg={6}>
                       <Label>Select Insurance Provider</Label>
-                      <Select
+                      <SearchableSelect
                         name="specificInsuranceCompany"
                         value={formData.specificInsuranceCompany}
                         onChange={handleChange}
-                      >
-                        <option value="">Select Insurance Provider</option>
-                        {insuranceCompanies.map((company, index) => (
-                          <option key={index} value={company.name}>
-                            {company.name}
-                          </option>
-                        ))}
-                      </Select>
+                        placeholder="Select Insurance Provider"
+                        options={insuranceCompanies.map((c) => c.name)}
+                      />
                     </Col>
                   )}
                 </Row>
               </FormSection>
 
-              {/* Treatment Information Section */}
+              {/* 3. Treatment Information Section */}
               <FormSection>
-                <SectionTitle>Treatment Information</SectionTitle>
+                <SectionTitle>3. Treatment Information</SectionTitle>
                 <Row
                   style={{
                     display: "grid",
@@ -795,12 +802,24 @@ function InsuranceForm() {
                       />
                     </Col>
                   )}
+                  {formData.treatmentType === "Other" && (
+                    <Col xs={12} sm={12} md={6} lg={6}>
+                      <Label>Specify Other Treatment</Label>
+                      <Input
+                        type="text"
+                        name="otherTreatmentDetails"
+                        value={formData.otherTreatmentDetails}
+                        onChange={handleChange}
+                        placeholder="Enter treatment details"
+                      />
+                    </Col>
+                  )}
                 </Row>
               </FormSection>
 
-              {/* Submission Details Section */}
+              {/* 4. Preauth Information Section */}
               <FormSection>
-                <SectionTitle>Submission Details</SectionTitle>
+                <SectionTitle>4. Preauth Information</SectionTitle>
                 <Row
                   style={{
                     display: "grid",
@@ -811,6 +830,116 @@ function InsuranceForm() {
                   className="responsive-row"
                 >
                   <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Requested Date</Label>
+                    <Input
+                      type="date"
+                      name="preauthRequestedDate"
+                      value={formData.preauthRequestedDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Approved Date</Label>
+                    <Input
+                      type="date"
+                      name="preauthApprovedDate"
+                      value={formData.preauthApprovedDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Preauth File Upload</Label>
+                    <Input
+                      type="file"
+                      name="preauthFile"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                      onChange={handleChange}
+                    />
+                    {formData.preauthFile && (
+                      <small style={{ color: '#10b981', fontSize: '12px' }}>
+                        ✅ Selected: {formData.preauthFile.name}
+                      </small>
+                    )}
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* 5. Discharge and Billing Information Section */}
+              <FormSection>
+                <SectionTitle>5. Discharge and Billing Information</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Bill Number</Label>
+                    <Input type="text" name="billNumber" value={formData.billNumber} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Bill Date</Label>
+                    <Input
+                      type="date"
+                      name="billDate"
+                      value={formData.billDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Bill Amount</Label>
+                    <Input type="text" name="billAmount" value={formData.billAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Billing Done</Label>
+                    <Input
+                      type="file"
+                      name="billingFile"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                      onChange={handleChange}
+                    />
+                    {formData.billingFile && (
+                      <small style={{ color: '#10b981', fontSize: '12px' }}>
+                        ✅ Selected: {formData.billingFile.name}
+                      </small>
+                    )}
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Date Of Discharge</Label>
+                    <Input
+                      type="date"
+                      name="dateOfDischarge"
+                      value={formData.dateOfDischarge}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Claim Id</Label>
+                    <Input type="text" name="claimId" value={formData.claimId} onChange={handleChange} />
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* 6. Submission Details Section */}
+              <FormSection>
+                <SectionTitle>6. Submission Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={6} lg={6}>
                     <Label>File Submission Date</Label>
                     <Input
                       type="date"
@@ -820,7 +949,7 @@ function InsuranceForm() {
                       max={getTodayDate()}
                     />
                   </Col>
-                  <Col xs={12} sm={6} md={4} lg={4}>
+                  <Col xs={12} sm={6} md={6} lg={6}>
                     <Label>Submission Status</Label>
                     <RadioGroup>
                       <RadioLabel>
@@ -845,22 +974,12 @@ function InsuranceForm() {
                       </RadioLabel>
                     </RadioGroup>
                   </Col>
-                  <Col xs={12} sm={6} md={4} lg={4}>
-                    <Label>Approval Date</Label>
-                    <Input
-                      type="date"
-                      name="approvalDate"
-                      value={formData.approvalDate}
-                      onChange={handleChange}
-                      max={getTodayDate()}
-                    />
-                  </Col>
                 </Row>
               </FormSection>
 
-              {/* Query Information Section */}
+              {/* 7. Query Information Section */}
               <FormSection>
-                <SectionTitle>Query Information</SectionTitle>
+                <SectionTitle>7. Query Information</SectionTitle>
                 <Row
                   style={{
                     display: "grid",
@@ -911,9 +1030,72 @@ function InsuranceForm() {
                 </Row>
               </FormSection>
 
-              {/* Financial Details Section */}
+              {/* 8. Claim Details Section */}
               <FormSection>
-                <SectionTitle>Financial Details</SectionTitle>
+                <SectionTitle>8. Claim Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Claimed Amount</Label>
+                    <Input type="text" name="claimedAmount" value={formData.claimedAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    <Label>Claim Option</Label>
+                    <RadioGroup>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="claimOption"
+                          value="Claim"
+                          checked={formData.claimOption === "Claim"}
+                          onChange={handleChange}
+                        />
+                        Claim
+                      </RadioLabel>
+                      <RadioLabel>
+                        <input
+                          type="radio"
+                          name="claimOption"
+                          value="Not Claim"
+                          checked={formData.claimOption === "Not Claim"}
+                          onChange={handleChange}
+                        />
+                        Not Claim
+                      </RadioLabel>
+                    </RadioGroup>
+                  </Col>
+                  <Col xs={12} sm={6} md={4} lg={4}>
+                    {formData.claimOption === "Claim" && (
+                      <>
+                        <Label>Claim Details</Label>
+                        <Input type="text" name="claimDetails" value={formData.claimDetails} onChange={handleChange} />
+                      </>
+                    )}
+                    {formData.claimOption === "Not Claim" && (
+                      <>
+                        <Label>Reason for Not Claim</Label>
+                        <Input
+                          type="text"
+                          name="notClaimReason"
+                          value={formData.notClaimReason}
+                          onChange={handleChange}
+                        />
+                      </>
+                    )}
+                  </Col>
+                </Row>
+              </FormSection>
+
+              {/* 9. Approved Details Section */}
+              <FormSection>
+                <SectionTitle>9. Approved Details</SectionTitle>
                 <Row
                   style={{
                     display: "grid",
@@ -928,106 +1110,64 @@ function InsuranceForm() {
                     <Input type="text" name="approvalAmount" value={formData.approvalAmount} onChange={handleChange} />
                   </Col>
                   <Col xs={12} sm={6} md={4} lg={4}>
-                    <Label>Claimed Amount</Label>
-                    <Input type="text" name="claimedAmount" value={formData.claimedAmount} onChange={handleChange} />
+                    <Label>Approval Date</Label>
+                    <Input
+                      type="date"
+                      name="approvalDate"
+                      value={formData.approvalDate}
+                      onChange={handleChange}
+                      max={getTodayDate()}
+                    />
                   </Col>
                   <Col xs={12} sm={6} md={4} lg={4}>
-                    <Label>Settled Amount</Label>
-                    <Input type="text" name="settledAmount" value={formData.settledAmount} onChange={handleChange} />
+                    <Label>Approval Norms</Label>
+                    <SearchableSelect
+                      name="approval"
+                      value={formData.approval}
+                      onChange={handleChange}
+                      placeholder="Select Approval Norms"
+                      options={["As per norm", "Not per norms"]}
+                    />
                   </Col>
+                  {formData.approval === "Not per norms" && (
+                    <>
+                      <Col xs={12} sm={6} md={4} lg={4}>
+                        <Label>Follow Up</Label>
+                        <Input type="text" name="followUp" value={formData.followUp} onChange={handleChange} />
+                      </Col>
+                      <Col xs={12} sm={6} md={4} lg={4}>
+                        <Label>Reason for Not Match</Label>
+                        <Input type="text" name="reasonNotMatch" value={formData.reasonNotMatch} onChange={handleChange} />
+                      </Col>
+                    </>
+                  )}
                 </Row>
               </FormSection>
 
-              {/* Approval Section */}
-              <CenteredContainer>
-                <Label>Approval</Label>
-                <Select name="approval" value={formData.approval} onChange={handleChange}>
-                  <option value="As per norm">As per norm</option>
-                  <option value="Not per norms">Not per norms</option>
-                </Select>
-              </CenteredContainer>
-
-              {/* Conditional fields for "Not per norms" */}
-              {formData.approval === "Not per norms" && (
-                <FormSection>
-                  <SectionTitle>Additional Information</SectionTitle>
-                  <Row
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "20px",
-                      alignItems: "center",
-                    }}
-                    className="responsive-row"
-                  >
-                    <Col xs={12} sm={6} md={6} lg={3}>
-                      <Label>Follow Up</Label>
-                      <Input type="text" name="followUp" value={formData.followUp} onChange={handleChange} />
-                    </Col>
-                    <Col xs={12} sm={6} md={6} lg={3}>
-                      <Label>Reason for Not Match</Label>
-                      <Input type="text" name="reasonNotMatch" value={formData.reasonNotMatch} onChange={handleChange} />
-                    </Col>
-                    <Col xs={12} sm={6} md={6} lg={3}>
-                      <Label>Claim Option</Label>
-                      <RadioGroup>
-                        <RadioLabel>
-                          <input
-                            type="radio"
-                            name="claimOption"
-                            value="Claim"
-                            checked={formData.claimOption === "Claim"}
-                            onChange={handleChange}
-                          />
-                          Claim
-                        </RadioLabel>
-                        <RadioLabel>
-                          <input
-                            type="radio"
-                            name="claimOption"
-                            value="Not Claim"
-                            checked={formData.claimOption === "Not Claim"}
-                            onChange={handleChange}
-                          />
-                          Not Claim
-                        </RadioLabel>
-                      </RadioGroup>
-                    </Col>
-                    <Col xs={12} sm={6} md={6} lg={3}>
-                      {formData.claimOption === "Claim" && (
-                        <>
-                          <Label>Claim Details</Label>
-                          <Input type="text" name="claimDetails" value={formData.claimDetails} onChange={handleChange} />
-                        </>
-                      )}
-                      {formData.claimOption === "Not Claim" && (
-                        <>
-                          <Label>Reason for Not Claim</Label>
-                          <Input
-                            type="text"
-                            name="notClaimReason"
-                            value={formData.notClaimReason}
-                            onChange={handleChange}
-                          />
-                        </>
-                      )}
-                    </Col>
-                  </Row>
-                </FormSection>
-              )}
-
-              {/* Remarks Section */}
+              {/* 10. Settled Details Section */}
               <FormSection>
-                <SectionTitle>Remarks</SectionTitle>
-                <Row>
-                  <Col xs={12}>
+                <SectionTitle>10. Settled Details</SectionTitle>
+                <Row
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: "20px",
+                    alignItems: "center",
+                  }}
+                  className="responsive-row"
+                >
+                  <Col xs={12} sm={6} md={6} lg={6}>
+                    <Label>Settled Amount</Label>
+                    <Input type="text" name="settledAmount" value={formData.settledAmount} onChange={handleChange} />
+                  </Col>
+                  <Col xs={12} sm={12} md={12} lg={12} style={{ gridColumn: "span 2" }}>
                     <Label>Remarks</Label>
                     <Input
                       type="textarea"
                       name="remarks"
                       value={formData.remarks}
                       onChange={handleChange}
-                      style={{ minHeight: "100px" }}
+                      style={{ minHeight: "80px" }}
                     />
                   </Col>
                 </Row>

@@ -14,6 +14,7 @@ import {
   ButtonWrapper,
 } from "./SharedStyledComponents";
 import apiRequest from "./ApiRequest";
+import SearchableSelect from "./SearchableSelect";
 
 const formatDateStr = (val) => {
   if (!val) return "";
@@ -305,34 +306,34 @@ const RTForm = () => {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
             <div>
               <Label>Insurance Type <span style={{ color: "red" }}>*</span></Label>
-              <Select name="insurance_type" value={formData.insurance_type} onChange={handleChange} required>
-                <option value="">Select Insurance Type</option>
-                <option value="General Insurance">General Insurance</option>
-                <option value="ECHS">ECHS</option>
-                <option value="ESI">ESI</option>
-                <option value="ESIC">ESIC</option>
-                <option value="Railway CTSE">Railway CTSE</option>
-                <option value="TKT">TKT</option>
-                <option value="FCI">FCI</option>
-                <option value="Airport">Airport</option>
-                <option value="Pay Patient">Pay Patient</option>
-              </Select>
+              <SearchableSelect
+                name="insurance_type"
+                value={formData.insurance_type}
+                onChange={handleChange}
+                placeholder="Select Insurance Type"
+                options={[
+                  "General Insurance",
+                  "ECHS",
+                  "ESI",
+                  "ESIC",
+                  "Railway CTSE",
+                  "TKT",
+                  "FCI",
+                  "Airport",
+                  "Pay Patient"
+                ]}
+              />
             </div>
             {formData.insurance_type === "General Insurance" && (
               <div>
                 <Label>Select Insurance Provider</Label>
-                <Select
+                <SearchableSelect
                   name="specificInsuranceCompany"
                   value={formData.specificInsuranceCompany}
                   onChange={handleChange}
-                >
-                  <option value="">Select Insurance Provider</option>
-                  {insuranceCompanies.map((company, index) => (
-                    <option key={index} value={company.name}>
-                      {company.name}
-                    </option>
-                  ))}
-                </Select>
+                  placeholder="Select Insurance Provider"
+                  options={insuranceCompanies.map((c) => c.name)}
+                />
               </div>
             )}
             <div>

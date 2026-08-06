@@ -16,6 +16,7 @@ import {
   ButtonWrapper,
 } from "./SharedStyledComponents"
 import apiRequest from "./ApiRequest";
+import SearchableSelect from "./SearchableSelect";
 
 const primaryColor = "#6F8B83"
 const accentColor = "#9aaea9"
@@ -997,22 +998,14 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               <div>
                 <Label>Doctor Name</Label>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Select
+                  <SearchableSelect
                     name="doctorName"
                     value={formData.doctorName}
                     onChange={handleChange}
                     disabled={loadingDoctors}
-                    style={{ flex: 1 }}
-                  >
-                    <option value="">
-                      {loadingDoctors ? "Loading doctors..." : "Select Doctor"}
-                    </option>
-                    {doctorsList.map((doctor, index) => (
-                      <option key={index} value={doctor.doctor_name}>
-                        {doctor.doctor_name}
-                      </option>
-                    ))}
-                  </Select>
+                    placeholder={loadingDoctors ? "Loading doctors..." : "Select Doctor"}
+                    options={doctorsList.map((d) => d.doctor_name)}
+                  />
                   <button
                     type="button"
                     onClick={() => setShowDoctorModal(true)}
@@ -1039,17 +1032,22 @@ const OtherForm = ({ editData = null, onSuccess }) => {
             >
               <div>
                 <Label>Company Name <span style={{ color: "red" }}>*</span></Label>
-                <Select name="companyName" value={formData.companyName} onChange={handleChange} required>
-                  <option value="">Select Company</option>
-                  <option value="General Insurance">General Insurance</option>
-                  <option value="ECHS">ECHS</option>
-                  <option value="ESI">ESI</option>
-                  <option value="ESIC">ESIC</option>
-                  <option value="Railway CTSE">Railway CTSE</option>
-                  <option value="TKT">TKT</option>
-                  <option value="FCI">FCI</option>
-                  <option value="Airport">Airport</option>
-                </Select>
+                <SearchableSelect
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  placeholder="Select Company"
+                  options={[
+                    "General Insurance",
+                    "ECHS",
+                    "ESI",
+                    "ESIC",
+                    "Railway CTSE",
+                    "TKT",
+                    "FCI",
+                    "Airport"
+                  ]}
+                />
               </div>
 
               {formData.companyName === "General Insurance" && (
@@ -1057,19 +1055,13 @@ const OtherForm = ({ editData = null, onSuccess }) => {
                   <Label>
                     Insurance Provider <span style={{ color: "#ef4444" }}>*</span>
                   </Label>
-                  <Select
+                  <SearchableSelect
                     name="specificInsuranceCompany"
                     value={formData.specificInsuranceCompany}
                     onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select Insurance Provider</option>
-                    {insuranceCompanies.map((company, index) => (
-                      <option key={index} value={company.name}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </Select>
+                    placeholder="Select Insurance Provider"
+                    options={insuranceCompanies.map((c) => c.name)}
+                  />
                 </div>
               )}
 
@@ -1077,23 +1069,14 @@ const OtherForm = ({ editData = null, onSuccess }) => {
               <div>
                 <Label>Treatment <span style={{ color: "red" }}>*</span></Label>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Select
+                  <SearchableSelect
                     name="treatment"
                     value={formData.treatment}
                     onChange={handleChange}
                     disabled={loadingTreatments}
-                    style={{ flex: 1 }}
-                    required
-                  >
-                    <option value="">
-                      {loadingTreatments ? "Loading treatments..." : "Select Treatment"}
-                    </option>
-                    {treatmentsList.map((t, index) => (
-                      <option key={index} value={t.name}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </Select>
+                    placeholder={loadingTreatments ? "Loading treatments..." : "Select Treatment"}
+                    options={treatmentsList.map((t) => t.name)}
+                  />
                   <button
                     type="button"
                     onClick={() => setShowTreatmentModal(true)}

@@ -66,6 +66,7 @@ const InsuranceReport = () => {
   const [toDate, setToDate] = useState(new Date())
   const [searchField, setSearchField] = useState("")
   const [searchValue, setSearchValue] = useState("")
+  const [colorFilter, setColorFilter] = useState("")
 
   const Insurancebaseurl = process.env.REACT_APP_BACKEND_INSURANCE_BASE_URL
 
@@ -105,21 +106,54 @@ const InsuranceReport = () => {
       result = result.filter(item => item.ctseType === ctseTypeFilter)
     }
 
-    if (!searchField || !searchValue) return result
-    return result.filter((item) => {
-      const fieldValue = item[searchField]
-      if (searchValue.toLowerCase() === "n/a") {
-        return !fieldValue || fieldValue === "" || fieldValue === "N/A"
-      }
-      if (searchField === "dateOfDischarge" && fieldValue) {
-        return fieldValue.includes(searchValue)
-      }
-      if (fieldValue) {
-        return fieldValue.toString().toLowerCase().includes(searchValue.toLowerCase())
-      }
-      return false
-    })
-  }, [insuranceData, searchField, searchValue, selectedCompany, ctseTypeFilter])
+    if (searchField && searchValue) {
+      result = result.filter((item) => {
+        const fieldValue = item[searchField]
+        if (searchValue.toLowerCase() === "n/a") {
+          return !fieldValue || fieldValue === "" || fieldValue === "N/A"
+        }
+        if (searchField === "dateOfDischarge" && fieldValue) {
+          return fieldValue.includes(searchValue)
+        }
+        if (fieldValue) {
+          return fieldValue.toString().toLowerCase().includes(searchValue.toLowerCase())
+        }
+        return false
+      })
+    }
+
+    if (colorFilter) {
+      result = result.filter((item) => {
+        const claimedVal = parseFloat((item.claimedAmount || "").toString().replace(/,/g, "")) || 0;
+        const isHighClaim = claimedVal >= 100000;
+
+        const subDateStr = item.fileSubmissionDate || item.date;
+        const isApproved = Boolean(item.approvalDate && item.approvalDate.trim() !== "" && item.approvalDate !== "N/A");
+        let delayStatus = null;
+
+        if (!isApproved && subDateStr) {
+          const subDate = new Date(subDateStr);
+          if (!isNaN(subDate.getTime())) {
+            const today = new Date();
+            const diffTime = today.getTime() - subDate.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+            if (diffDays > 90) {
+              delayStatus = "pending_90";
+            } else if (diffDays > 60) {
+              delayStatus = "pending_60";
+            }
+          }
+        }
+
+        if (colorFilter === "high_claim") return isHighClaim;
+        if (colorFilter === "pending_60") return delayStatus === "pending_60" || delayStatus === "pending_90";
+        if (colorFilter === "pending_90") return delayStatus === "pending_90";
+        return true;
+      })
+    }
+
+    return result
+  }, [insuranceData, searchField, searchValue, selectedCompany, ctseTypeFilter, colorFilter])
 
   const totals = useMemo(() => {
     let gross = 0
@@ -169,27 +203,39 @@ const InsuranceReport = () => {
         "Patient Name": item.patient_name || "N/A",
         Date: item.date || "N/A",
         "IP/OP Number": item.opNumber || item.ipNumber || "N/A",
+        "Doctor Name": item.doctorName || "N/A",
         "Company Name": item.companyName || "N/A",
-        "CTSE Type": item.ctseType || "N/A",
+        "Insurance Provider": item.specificInsuranceCompany || "N/A",
+        "Treatment Type": item.treatmentType || "N/A",
+        "Cycles / Details": item.treatmentType === "Radiotherapy" ? (item.radiotherapyCycles || "N/A") : (item.treatmentType === "Other" ? (item.otherTreatmentDetails || "N/A") : "N/A"),
+        "Preauth Requested Date": item.preauthRequestedDate || "N/A",
+        "Preauth Approved Date": item.preauthApprovedDate || "N/A",
         "Bill Number": item.billNumber || "N/A",
+        "Bill Date": item.billDate || "N/A",
         "Bill Amount": item.billAmount || "N/A",
+        "Date of Discharge": item.dateOfDischarge || "N/A",
+        "Claim ID": item.claimId || "N/A",
+        "File Submission Date": item.fileSubmissionDate || "N/A",
+        "Submission Status": item.submissionStatus || "N/A",
+        "Query Date": item.queryDate || "N/A",
+        "Claimed Amount": item.claimedAmount || "N/A",
+        "Claim Option": item.claimOption || "N/A",
+        "Claim Details": item.claimDetails || item.notClaimReason || "N/A",
+        "Approval Amount": item.approvalAmount || "N/A",
+        "Approval Date": item.approvalDate || "N/A",
+        "Approval Norms": item.approval || "N/A",
+        "Follow-Up": item.followUp || "N/A",
+        "Reason Not Match": item.reasonNotMatch || "N/A",
+        "Settled Amount": item.settledAmount || "N/A",
+        "Remarks": item.remarks || "N/A",
         "Voucher Number": sortVoucherNumbers(item.voucherNumber) || "N/A",
         Referral: item.referral || "N/A",
         "Gross Amount": item.grossAmount || "N/A",
         "Tax Amount": item.taxAmount || "N/A",
         "Net Amount": item.netAmount || "N/A",
         GST: item.gst || "N/A",
-        "Date of Discharge": item.dateOfDischarge || "N/A",
-        "Submission Status": item.submissionStatus || "N/A",
-        "Approval Amount": item.approvalAmount || "N/A",
-        "Claimed Amount": item.claimedAmount || "N/A",
-        "Settled Amount": item.settledAmount || "N/A",
-        Approval: item.approval || "N/A",
-        "Follow-Up": item.followUp || "N/A",
-        "Reason Not Match": item.reasonNotMatch || "N/A",
-        "Claim Option": item.claimOption || "N/A",
-        "Claim Details": item.claimDetails || "N/A",
-        "Not Claim Reason": item.notClaimReason || "N/A",
+        "CTSE Type": item.ctseType || "N/A",
+        "Created By": item.created_by_name || item.created_by || "N/A",
       }
     })
 
@@ -346,10 +392,103 @@ const InsuranceReport = () => {
           )}
         </FilterContainer>
 
-        {/* ── Results count ── */}
-        <ResultsInfo>
-          Showing <strong>{filteredData.length}</strong> record{filteredData.length !== 1 ? 's' : ''}
-        </ResultsInfo>
+        {/* ── Results count & Color Legend ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '10px' }}>
+          <ResultsInfo style={{ margin: 0 }}>
+            Showing <strong>{filteredData.length}</strong> record{filteredData.length !== 1 ? 's' : ''}
+            {colorFilter && <span style={{ marginLeft: '8px', color: '#0284c7', fontWeight: 'bold' }}>(Filtered by Color)</span>}
+          </ResultsInfo>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setColorFilter(colorFilter === "high_claim" ? "" : "high_claim")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '16px',
+                border: colorFilter === "high_claim" ? '2px solid #0284c7' : '1px solid #bae6fd',
+                backgroundColor: colorFilter === "high_claim" ? '#bae6fd' : '#f0f9ff',
+                color: '#0369a1',
+                fontWeight: colorFilter === "high_claim" ? 'bold' : '500',
+                cursor: 'pointer',
+                boxShadow: colorFilter === "high_claim" ? '0 2px 4px rgba(2,132,199,0.2)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+              title="Click to filter records with Claimed Amount >= ₹1,00,000"
+            >
+              <span style={{ width: '10px', height: '10px', backgroundColor: '#0284c7', borderRadius: '50%', display: 'inline-block' }}></span>
+              <span>Claimed Amount &ge; ₹1,00,000</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setColorFilter(colorFilter === "pending_60" ? "" : "pending_60")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '16px',
+                border: colorFilter === "pending_60" ? '2px solid #ea580c' : '1px solid #fed7aa',
+                backgroundColor: colorFilter === "pending_60" ? '#fed7aa' : '#fff7ed',
+                color: '#c2410c',
+                fontWeight: colorFilter === "pending_60" ? 'bold' : '500',
+                cursor: 'pointer',
+                boxShadow: colorFilter === "pending_60" ? '0 2px 4px rgba(234,88,12,0.2)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+              title="Click to filter records pending approval > 60 days"
+            >
+              <span style={{ width: '10px', height: '10px', backgroundColor: '#ea580c', borderRadius: '50%', display: 'inline-block' }}></span>
+              <span>Pending &gt; 60 Days</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setColorFilter(colorFilter === "pending_90" ? "" : "pending_90")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '16px',
+                border: colorFilter === "pending_90" ? '2px solid #dc2626' : '1px solid #fca5a5',
+                backgroundColor: colorFilter === "pending_90" ? '#fca5a5' : '#fef2f2',
+                color: '#991b1b',
+                fontWeight: colorFilter === "pending_90" ? 'bold' : '500',
+                cursor: 'pointer',
+                boxShadow: colorFilter === "pending_90" ? '0 2px 4px rgba(220,38,38,0.2)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+              title="Click to filter records pending approval > 90 days"
+            >
+              <span style={{ width: '10px', height: '10px', backgroundColor: '#dc2626', borderRadius: '50%', display: 'inline-block' }}></span>
+              <span>Pending &gt; 90 Days</span>
+            </button>
+
+            {colorFilter && (
+              <button
+                type="button"
+                onClick={() => setColorFilter("")}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  marginLeft: '4px'
+                }}
+              >
+                Clear Filter ✕
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* ── Table ── */}
         <ScrollableTableContainer style={{ flex: 1, minHeight: 0 }}>
@@ -363,8 +502,36 @@ const InsuranceReport = () => {
                 {/* ── Scrollable cols ── */}
                 <TableHeader>Date</TableHeader>
                 <TableHeader>IP / OP Number</TableHeader>
+                <TableHeader>Doctor Name</TableHeader>
                 <TableHeader>Company Name</TableHeader>
                 <TableHeader>Provider</TableHeader>
+                <TableHeader>Treatment Type</TableHeader>
+                <TableHeader>Cycles / Details</TableHeader>
+                <TableHeader>Preauth Req Date</TableHeader>
+                <TableHeader>Preauth Appr Date</TableHeader>
+                <TableHeader>Preauth File</TableHeader>
+                <TableHeader>Bill Number</TableHeader>
+                <TableHeader>Bill Date</TableHeader>
+                <TableHeader>Bill Amount</TableHeader>
+                <TableHeader>Billing File</TableHeader>
+                <TableHeader>Date of Discharge</TableHeader>
+                <TableHeader>Claim ID</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader>File Submission Date</TableHeader>
+                <TableHeader>Submission Status</TableHeader>
+                <TableHeader>Query Date</TableHeader>
+                <TableHeader>Query File</TableHeader>
+                <TableHeader>Query Response</TableHeader>
+                <TableHeader>Claimed Amount</TableHeader>
+                <TableHeader>Claim Option</TableHeader>
+                <TableHeader>Claim Details / Reason</TableHeader>
+                <TableHeader>Approval Amount</TableHeader>
+                <TableHeader>Approval Date</TableHeader>
+                <TableHeader>Approval Norms</TableHeader>
+                <TableHeader>Follow-Up</TableHeader>
+                <TableHeader>Reason Not Match</TableHeader>
+                <TableHeader>Settled Amount</TableHeader>
+                <TableHeader>Remarks</TableHeader>
                 <TableHeader>Voucher Number</TableHeader>
                 <TableHeader>Referral</TableHeader>
                 <TableHeader>Gross Amount</TableHeader>
@@ -372,30 +539,14 @@ const InsuranceReport = () => {
                 <TableHeader>Net Amount</TableHeader>
                 <TableHeader>GST</TableHeader>
                 <TableHeader>CTSE Type</TableHeader>
-                <TableHeader>Bill Number</TableHeader>
-                <TableHeader>Bill Amount</TableHeader>
-                <TableHeader>Billing File</TableHeader>
-                <TableHeader>Date of Discharge</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader>Submission Status</TableHeader>
-                <TableHeader>Query File</TableHeader>
-                <TableHeader>Approval Amount</TableHeader>
-                <TableHeader>Claim ID</TableHeader>
-                <TableHeader>Claimed Amount</TableHeader>
-                <TableHeader>Settled Amount</TableHeader>
-                <TableHeader>Approval</TableHeader>
-                <TableHeader>Follow-Up</TableHeader>
-                <TableHeader>Reason Not Match</TableHeader>
-                <TableHeader>Claim Option</TableHeader>
-                <TableHeader>Claim Details</TableHeader>
-                <TableHeader>Not Claim Reason</TableHeader>
                 <TableHeader style={{ textAlign: "center" }}>Edit History</TableHeader>
+                <TableHeader>Created By</TableHeader>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="32" style={{ padding: 0 }}>
+                  <td colSpan="45" style={{ padding: 0 }}>
                     <LoadingSpinnerContainer>
                       <Spinner />
                       <span>Loading report data...</span>
@@ -404,77 +555,157 @@ const InsuranceReport = () => {
                 </tr>
               ) : filteredData.length > 0 ? (
                 <>
-                  {filteredData.map((item, index) => (
-                    <TableRow key={index}>
-                      {/* ── Frozen cols ── */}
-                      <TableCell className="frozen-col frozen-col-0">{index + 1}</TableCell>
-                      <TableCell className="frozen-col frozen-col-1">{item.patient_uhid || "N/A"}</TableCell>
-                      <TableCell className="frozen-col frozen-col-2">{item.patient_name || "N/A"}</TableCell>
-                      {/* ── Scrollable cols ── */}
-                      <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
-                      <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
-                      <TableCell>{item.companyName || "N/A"}</TableCell>
-                      <TableCell>{item.specificInsuranceCompany || "N/A"}</TableCell>
-                      <TableCell>{sortVoucherNumbers(item.voucherNumber) || "N/A"}</TableCell>
-                      <TableCell>{item.referral || "N/A"}</TableCell>
-                      <TableCell>{item.grossAmount || "N/A"}</TableCell>
-                      <TableCell>{item.taxAmount || "N/A"}</TableCell>
-                      <TableCell>{item.netAmount || "N/A"}</TableCell>
-                      <TableCell>{item.gst || "N/A"}</TableCell>
-                      <TableCell>{item.ctseType || "N/A"}</TableCell>
-                      <TableCell>{item.billNumber || "N/A"}</TableCell>
-                      <TableCell>{item.billAmount || "N/A"}</TableCell>
-                      <TableCell>
-                        {item.billingFile ? (
-                          <IconButton onClick={() => handleViewFile(item.billingFile)}>
-                            <Eye size={13} /> View
-                          </IconButton>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
-                      <TableCell>
-                        {item.submissionStatus === "Physical" && <BlinkingLight />}
-                      </TableCell>
-                      <TableCell>{item.submissionStatus || "N/A"}</TableCell>
-                      <TableCell>
-                        {item.queryUpload ? (
-                          <IconButton onClick={() => handleViewFile(item.queryUpload)}>
-                            <Eye size={13} /> View
-                          </IconButton>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell>{item.approvalAmount || "N/A"}</TableCell>
-                      <TableCell>{item.claimId || "N/A"}</TableCell>
-                      <TableCell>{item.claimedAmount || "N/A"}</TableCell>
-                      <TableCell>{item.settledAmount || "N/A"}</TableCell>
-                      <TableCell>{item.approval || "N/A"}</TableCell>
-                      <TableCell>{item.followUp || "N/A"}</TableCell>
-                      <TableCell>{item.reasonNotMatch || "N/A"}</TableCell>
-                      <TableCell>{item.claimOption || "N/A"}</TableCell>
-                      <TableCell>{item.claimDetails || "N/A"}</TableCell>
-                      <TableCell>{item.notClaimReason || "N/A"}</TableCell>
-                      <TableCell style={{ textAlign: "center" }}>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenHistoryModal(item.editHistory || [], item.patient_name || "N/A")}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            fontSize: "12px",
-                            background: "#eef2f6",
-                            color: "#334155",
-                            border: "none",
-                            cursor: "pointer"
-                          }}
-                        >
-                          <History size={12} /> View ({item.editHistory?.length || 0})
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredData.map((item, index) => {
+                    const claimedVal = parseFloat((item.claimedAmount || "").toString().replace(/,/g, "")) || 0;
+                    const isHighClaim = claimedVal >= 100000;
+
+                    const subDateStr = item.fileSubmissionDate || item.date;
+                    const isApproved = Boolean(item.approvalDate && item.approvalDate.trim() !== "" && item.approvalDate !== "N/A");
+                    let delayStatus = null;
+
+                    if (!isApproved && subDateStr) {
+                      const subDate = new Date(subDateStr);
+                      if (!isNaN(subDate.getTime())) {
+                        const today = new Date();
+                        const diffTime = today.getTime() - subDate.getTime();
+                        const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+                        if (diffDays > 90) {
+                          delayStatus = "red";
+                        } else if (diffDays > 60) {
+                          delayStatus = "orange";
+                        }
+                      }
+                    }
+
+                    let rowBg = "inherit";
+                    let frozenBg = undefined;
+
+                    if (delayStatus === "red") {
+                      rowBg = "#fee2e2";
+                      frozenBg = "#fee2e2";
+                    } else if (delayStatus === "orange") {
+                      rowBg = "#ffedd5";
+                      frozenBg = "#ffedd5";
+                    }
+
+                    return (
+                      <TableRow key={index} style={{ backgroundColor: rowBg }}>
+                        {/* ── Frozen cols ── */}
+                        <TableCell className="frozen-col frozen-col-0" style={{ backgroundColor: frozenBg }}>{index + 1}</TableCell>
+                        <TableCell className="frozen-col frozen-col-1" style={{ backgroundColor: frozenBg }}>{item.patient_uhid || "N/A"}</TableCell>
+                        <TableCell className="frozen-col frozen-col-2" style={{ backgroundColor: frozenBg }}>{item.patient_name || "N/A"}</TableCell>
+                        {/* ── Scrollable cols ── */}
+                        <TableCell style={{ whiteSpace: "nowrap" }}>{item.date || "N/A"}</TableCell>
+                        <TableCell>{item.opNumber || item.ipNumber || "N/A"}</TableCell>
+                        <TableCell>{item.doctorName || "N/A"}</TableCell>
+                        <TableCell>{item.companyName || "N/A"}</TableCell>
+                        <TableCell>{item.specificInsuranceCompany || "N/A"}</TableCell>
+                        <TableCell>{item.treatmentType || "N/A"}</TableCell>
+                        <TableCell>
+                          {item.treatmentType === "Radiotherapy"
+                            ? (item.radiotherapyCycles || "N/A")
+                            : item.treatmentType === "Other"
+                            ? (item.otherTreatmentDetails || "N/A")
+                            : "—"}
+                        </TableCell>
+                        <TableCell>{item.preauthRequestedDate || "N/A"}</TableCell>
+                        <TableCell>{item.preauthApprovedDate || "N/A"}</TableCell>
+                        <TableCell>
+                          {item.preauthFile ? (
+                            <IconButton onClick={() => handleViewFile(item.preauthFile)}>
+                              <Eye size={13} /> View
+                            </IconButton>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>{item.billNumber || "N/A"}</TableCell>
+                        <TableCell>{item.billDate || "N/A"}</TableCell>
+                        <TableCell>{item.billAmount || "N/A"}</TableCell>
+                        <TableCell>
+                          {item.billingFile ? (
+                            <IconButton onClick={() => handleViewFile(item.billingFile)}>
+                              <Eye size={13} /> View
+                            </IconButton>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>{item.dateOfDischarge || "N/A"}</TableCell>
+                        <TableCell>{item.claimId || "N/A"}</TableCell>
+                        <TableCell>
+                          {item.submissionStatus === "Physical" && <BlinkingLight />}
+                          {delayStatus === "red" && (
+                            <span style={{ background: "#ef4444", color: "white", padding: "2px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold", marginLeft: "4px" }}>
+                              &gt;90 Days
+                            </span>
+                          )}
+                          {delayStatus === "orange" && (
+                            <span style={{ background: "#f97316", color: "white", padding: "2px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold", marginLeft: "4px" }}>
+                              &gt;60 Days
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{item.fileSubmissionDate || "N/A"}</TableCell>
+                        <TableCell>{item.submissionStatus || "N/A"}</TableCell>
+                        <TableCell>{item.queryDate || "N/A"}</TableCell>
+                        <TableCell>
+                          {item.queryUpload ? (
+                            <IconButton onClick={() => handleViewFile(item.queryUpload)}>
+                              <Eye size={13} /> View
+                            </IconButton>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {item.queryResponse ? (
+                            <IconButton onClick={() => handleViewFile(item.queryResponse)}>
+                              <Eye size={13} /> View
+                            </IconButton>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell style={{
+                          backgroundColor: isHighClaim ? "#bae6fd" : "transparent",
+                          color: isHighClaim ? "#0369a1" : "inherit",
+                          fontWeight: isHighClaim ? "bold" : "normal"
+                        }}>
+                          {item.claimedAmount || "N/A"}
+                        </TableCell>
+                        <TableCell>{item.claimOption || "N/A"}</TableCell>
+                        <TableCell>{item.claimDetails || item.notClaimReason || "N/A"}</TableCell>
+                        <TableCell>{item.approvalAmount || "N/A"}</TableCell>
+                        <TableCell>{item.approvalDate || "N/A"}</TableCell>
+                        <TableCell>{item.approval || "N/A"}</TableCell>
+                        <TableCell>{item.followUp || "N/A"}</TableCell>
+                        <TableCell>{item.reasonNotMatch || "N/A"}</TableCell>
+                        <TableCell>{item.settledAmount || "N/A"}</TableCell>
+                        <TableCell>{item.remarks || "N/A"}</TableCell>
+                        <TableCell>{sortVoucherNumbers(item.voucherNumber) || "N/A"}</TableCell>
+                        <TableCell>{item.referral || "N/A"}</TableCell>
+                        <TableCell>{item.grossAmount || "N/A"}</TableCell>
+                        <TableCell>{item.taxAmount || "N/A"}</TableCell>
+                        <TableCell>{item.netAmount || "N/A"}</TableCell>
+                        <TableCell>{item.gst || "N/A"}</TableCell>
+                        <TableCell>{item.ctseType || "N/A"}</TableCell>
+                        <TableCell style={{ textAlign: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenHistoryModal(item.editHistory || [], item.patient_name || "N/A")}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              fontSize: "12px",
+                              background: "#eef2f6",
+                              color: "#334155",
+                              border: "none",
+                              cursor: "pointer"
+                            }}
+                          >
+                            <History size={12} /> View ({item.editHistory?.length || 0})
+                          </button>
+                        </TableCell>
+                        <TableCell>{item.created_by_name || item.created_by || "N/A"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {selectedCompany === "Railway CTSE" && (
                     <TableRow style={{ fontWeight: "bold", backgroundColor: "#f3f4f6" }}>
                       <TableCell className="frozen-col frozen-col-0" style={{ fontWeight: "bold" }}>Total</TableCell>

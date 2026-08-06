@@ -127,10 +127,16 @@ const ChemoReport = () => {
           let totalPaid = 0;
           payments.forEach(p => totalPaid += Number.parseFloat(p.amount || 0));
 
+          const adjustedAmount = Number.parseFloat(record.adjusted_amount || 0);
+          const expectedAmount = Number.parseFloat(record.amount_to_be_paid || 0);
+          const remainingBalance = Math.max(0, expectedAmount - totalPaid - adjustedAmount);
+
           return {
             ...record,
             payment_details: payments,
             totalPaid: totalPaid,
+            adjustedAmount: adjustedAmount,
+            remainingBalance: remainingBalance,
           }
         })
         setRecords(processedRecords)
@@ -173,17 +179,40 @@ const ChemoReport = () => {
   const calculateTotals = () => {
     let totalAmount = 0
     let totalExpectedAmount = 0
+    let totalAdjustedAmount = 0
+    let totalRemaining = 0
 
     filteredRecords.forEach((record) => {
       totalExpectedAmount += Number.parseFloat(record.amount_to_be_paid || 0)
       totalAmount += record.totalPaid || 0
+      totalAdjustedAmount += record.adjustedAmount || 0
+      totalRemaining += record.remainingBalance || 0
     })
 
-    return { totalAmount, totalExpectedAmount }
+    return { totalAmount, totalExpectedAmount, totalAdjustedAmount, totalRemaining }
   }
 
   const handleEdit = (record) => {
     navigate("/ChemoForm", { state: record })
+  }
+
+  const handleApprove = async (record) => {
+    if (window.confirm(`Are you sure you want to approve the chemo record for ${record.patient_name}?`)) {
+      try {
+        const url = `${Insurancebaseurl}chemorecords/${record.chemo_id || record.id}/`;
+        const payload = { action: 'Approve' };
+        const response = await apiRequest(url, "PUT", payload);
+        if (response.success || response.status === 200 || response.status === 201) {
+          toast.success("Record approved successfully");
+          fetchRecords();
+        } else {
+          toast.error("Failed to approve record");
+        }
+      } catch (error) {
+        console.error("Error approving record:", error);
+        toast.error("An error occurred during approval");
+      }
+    }
   }
 
   const handleView = (record) => {
@@ -206,6 +235,7 @@ const ChemoReport = () => {
       return;
     }
 
+    const adjustedAmtVal = isAmountToBePaidYes ? Number.parseFloat(paymentModalData.adjusted_amount || 0) : 0;
     const hasNewPayment = isAmountToBePaidYes && newPayment.amount && Number.parseFloat(newPayment.amount) > 0;
 
     if (hasNewPayment) {
@@ -223,9 +253,11 @@ const ChemoReport = () => {
     const newAmount = hasNewPayment ? Number.parseFloat(newPayment.amount) : 0;
     const expectedAmount = isAmountToBePaidYes ? Number.parseFloat(paymentModalData.amount_to_be_paid || 0) : 0;
 
-    if (expectedAmount > 0 && (currentTotalPaid + newAmount > expectedAmount)) {
-      const exceededBy = (currentTotalPaid + newAmount) - expectedAmount;
-      toast.error(`Cannot exceed expected amount (₹${expectedAmount.toFixed(2)}). Already paid: ₹${currentTotalPaid.toFixed(2)}. Exceeds by: ₹${exceededBy.toFixed(2)}.`);
+    const totalSettled = currentTotalPaid + newAmount + adjustedAmtVal;
+
+    if (expectedAmount > 0 && totalSettled > expectedAmount) {
+      const exceededBy = totalSettled - expectedAmount;
+      toast.error(`Total Settled (Paid: ₹${(currentTotalPaid + newAmount).toFixed(2)} + Adjusted: ₹${adjustedAmtVal.toFixed(2)}) cannot exceed Expected Amount (₹${expectedAmount.toFixed(2)}). Exceeds by: ₹${exceededBy.toFixed(2)}.`);
       return;
     }
 
@@ -242,17 +274,18 @@ const ChemoReport = () => {
     const totalPaid = updatedPaymentDetails.reduce((sum, p) => sum + Number.parseFloat(p.amount || 0), 0);
 
     let newStatus = paymentModalData.status;
-    if (totalPaid === 0) {
+    if ((totalPaid + adjustedAmtVal) === 0) {
       newStatus = "Pending";
-    } else if (expectedAmount > 0 && totalPaid >= expectedAmount) {
+    } else if (expectedAmount > 0 && (totalPaid + adjustedAmtVal) >= expectedAmount) {
       newStatus = "Paid";
-    } else if (totalPaid > 0) {
+    } else if ((totalPaid + adjustedAmtVal) > 0) {
       newStatus = "Partially Paid";
     }
 
     try {
       const payload = {
         amount_to_be_paid: isAmountToBePaidYes ? (paymentModalData.amount_to_be_paid || "") : "",
+        adjusted_amount: isAmountToBePaidYes ? (paymentModalData.adjusted_amount || "0") : "0",
         payment_details: updatedPaymentDetails,
         status: newStatus
       };
@@ -293,11 +326,14 @@ const ChemoReport = () => {
       "Medicine Details",
       "Expected Amount",
       "Total Paid",
+      "Adjusted Amount",
+      "Remaining Balance",
       "Status",
       "Created By",
+      "Approved By",
     ]
 
-    const { totalAmount, totalExpectedAmount } = calculateTotals()
+    const { totalAmount, totalExpectedAmount, totalAdjustedAmount, totalRemaining } = calculateTotals()
 
     const dataRows = filteredRecords.map((record, index) =>
       [
@@ -313,8 +349,11 @@ const ChemoReport = () => {
         record.medicine_details || "",
         Number.parseFloat(record.amount_to_be_paid || 0).toFixed(2),
         record.totalPaid || 0,
+        record.adjustedAmount || 0,
+        record.remainingBalance || 0,
         record.status || "Pending",
         record.created_by_name || record.created_by || "",
+        record.approved_by_name || record.approved_by || "",
       ]
         .map((field) => `"${String(field).replace(/"/g, '""')}"`)
         .join(","),
@@ -324,6 +363,8 @@ const ChemoReport = () => {
       "", "", "", "", "", "", "", "", "", "GRAND TOTAL",
       `"${totalExpectedAmount.toFixed(2)}"`,
       `"${totalAmount.toFixed(2)}"`,
+      `"${totalAdjustedAmount.toFixed(2)}"`,
+      `"${totalRemaining.toFixed(2)}"`,
       "", "",
     ].join(",")
 
@@ -441,7 +482,7 @@ const ChemoReport = () => {
     }
   }
 
-  const { totalAmount, totalExpectedAmount } = calculateTotals()
+  const { totalAmount, totalExpectedAmount, totalAdjustedAmount, totalRemaining } = calculateTotals()
 
   return (
     <ReportContainer>
@@ -540,15 +581,19 @@ const ChemoReport = () => {
                 <TableHeader>Provider</TableHeader>
                 <TableHeader>Expected Amount</TableHeader>
                 <TableHeader>Total Paid</TableHeader>
+                <TableHeader>Adjusted Amount</TableHeader>
+                <TableHeader>Remaining</TableHeader>
                 <TableHeader>Status</TableHeader>
                 <TableHeader>Created By</TableHeader>
+                <TableHeader>Approved</TableHeader>
+                <TableHeader>Approved By</TableHeader>
                 <TableHeader>Actions</TableHeader>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan="14" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
                     <LoadingSpinnerContainer>
                       <Spinner />
                       <span>Loading records...</span>
@@ -573,12 +618,18 @@ const ChemoReport = () => {
                     <TableCell>{record.specificInsuranceCompany || "-"}</TableCell>
                     <TableCell>₹{Number.parseFloat(record.amount_to_be_paid || 0).toFixed(2)}</TableCell>
                     <TableCell>₹{record.totalPaid.toFixed(2)}</TableCell>
+                    <TableCell>₹{(record.adjustedAmount || 0).toFixed(2)}</TableCell>
+                    <TableCell style={{ fontWeight: record.remainingBalance > 0 ? "bold" : "normal", color: record.remainingBalance > 0 ? "#dc2626" : "inherit" }}>
+                      ₹{(record.remainingBalance || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell>
                       <StatusBadge color={getStatusColor(record.status)}>
                         {record.status || "Pending"}
                       </StatusBadge>
                     </TableCell>
                     <TableCell>{record.created_by_name || record.created_by || "-"}</TableCell>
+                    <TableCell>{record.is_approved ? "Yes" : "No"}</TableCell>
+                    <TableCell>{record.approved_by_name || record.approved_by || "-"}</TableCell>
                     <ActionCell>
                       {(role === "Insurance Admin" || role === "Insurance Super Admin" || role === "Chemo Staff") ? (
                         <div style={{ position: "relative" }} className="action-dropdown-container">
@@ -587,22 +638,31 @@ const ChemoReport = () => {
                           </button>
                           {activeDropdown === (record.chemo_id || record.id) && (
                             <div style={{ position: "absolute", right: "0", top: "100%", background: "white", border: "1px solid #ccc", borderRadius: "4px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)", zIndex: 100, minWidth: "120px", textAlign: "left" }}>
+                              {(role === "Insurance Admin" || role === "Insurance Super Admin") && !record.is_approved && (
+                                <div style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "13px", color: "#28a745", fontWeight: "bold" }} onClick={() => { handleApprove(record); setActiveDropdown(null); }}>
+                                  Approve
+                                </div>
+                              )}
                               {(role === "Insurance Admin" || role === "Insurance Super Admin") && (
                                 <div
                                   style={{
                                     padding: "8px 12px",
-                                    cursor: record.status === "Paid" ? "not-allowed" : "pointer",
+                                    cursor: (!record.is_approved || record.status === "Paid") ? "not-allowed" : "pointer",
                                     borderBottom: "1px solid #eee",
                                     fontSize: "13px",
-                                    color: record.status === "Paid" ? "#9ca3af" : "inherit"
+                                    color: (!record.is_approved || record.status === "Paid") ? "#9ca3af" : "inherit"
                                   }}
                                   onClick={() => {
+                                    if (!record.is_approved) {
+                                      toast.error("Record must be approved before entering payment details");
+                                      return;
+                                    }
                                     if (record.status !== "Paid") {
                                       setPaymentModalData(record);
                                       setActiveDropdown(null);
                                     }
                                   }}>
-                                  Payment Details
+                                  Payment Details {!record.is_approved && <span style={{ fontSize: "11px", color: "#ef4444" }}>(Requires Approval)</span>}
                                 </div>
                               )}
                               <div style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "13px" }} onClick={() => { handleEdit(record); setActiveDropdown(null); }}>
@@ -624,7 +684,7 @@ const ChemoReport = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="18" style={{ textAlign: "center", padding: "20px" }}>
                     No records found matching the current filters
                   </TableCell>
                 </TableRow>
@@ -641,7 +701,9 @@ const ChemoReport = () => {
                   </TableCell>
                   <TableCell>₹{totalExpectedAmount.toFixed(2)}</TableCell>
                   <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                  <TableCell colSpan="2"></TableCell>
+                  <TableCell>₹{totalAdjustedAmount.toFixed(2)}</TableCell>
+                  <TableCell>₹{totalRemaining.toFixed(2)}</TableCell>
+                  <TableCell colSpan="4"></TableCell>
                 </tr>
               </tfoot>
             )}
@@ -658,8 +720,11 @@ const ChemoReport = () => {
             <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
               <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}><strong>Patient:</strong> {paymentModalData.patient_name} ({paymentModalData.patient_uhid || 'N/A'})</p>
               <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>
-                <strong>Total Paid:</strong> ₹{(paymentModalData.totalPaid || 0).toFixed(2)} |
-                <strong> Balance Due:</strong> ₹{Math.max(0, (parseFloat(paymentModalData.amount_to_be_paid) || 0) - (paymentModalData.totalPaid || 0)).toFixed(2)}
+                <strong>Expected Amount:</strong> ₹{Number.parseFloat(paymentModalData.amount_to_be_paid || 0).toFixed(2)} | 
+                <strong> Total Paid:</strong> ₹{(paymentModalData.totalPaid || 0).toFixed(2)}
+              </p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#0284c7', fontWeight: 'bold' }}>
+                Balance Due: ₹{Math.max(0, (parseFloat(paymentModalData.amount_to_be_paid) || 0) - (paymentModalData.totalPaid || 0) - (parseFloat(paymentModalData.adjusted_amount) || 0)).toFixed(2)}
               </p>
             </div>
 
@@ -682,18 +747,31 @@ const ChemoReport = () => {
                       name="hasAmountToBePaidModal"
                       value="no"
                       checked={(paymentModalData.hasAmountToBePaid || (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")) === "no"}
-                      onChange={() => setPaymentModalData({ ...paymentModalData, hasAmountToBePaid: "no", amount_to_be_paid: "" })}
+                      onChange={() => setPaymentModalData({ ...paymentModalData, hasAmountToBePaid: "no", amount_to_be_paid: "", adjusted_amount: "0" })}
                     /> No
                   </label>
                 </div>
                 {(paymentModalData.hasAmountToBePaid || (paymentModalData.amount_to_be_paid && parseFloat(paymentModalData.amount_to_be_paid) > 0 ? "yes" : "no")) === "yes" && (
-                  <Input 
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Enter Amount to be Paid" 
-                    value={paymentModalData.amount_to_be_paid || ""} 
-                    onChange={(e) => setPaymentModalData({ ...paymentModalData, amount_to_be_paid: e.target.value })} 
-                  />
+                  <>
+                    <Input 
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Enter Amount to be Paid" 
+                      value={paymentModalData.amount_to_be_paid || ""} 
+                      onChange={(e) => setPaymentModalData({ ...paymentModalData, amount_to_be_paid: e.target.value })} 
+                    />
+                    <div style={{ marginTop: '12px' }}>
+                      <Label style={{ fontWeight: 'bold' }}>Adjusted Amount (₹)</Label>
+                      <Input 
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Enter Adjusted Amount" 
+                        value={paymentModalData.adjusted_amount || ""} 
+                        onChange={(e) => setPaymentModalData({ ...paymentModalData, adjusted_amount: e.target.value })} 
+                      />
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Amount patient shouldn't have to pay (discount / waiver)</span>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -818,32 +896,44 @@ const ChemoReport = () => {
             )}
 
             {activeTab === "payment_history" && (
-              <Table>
-                <thead>
-                  <tr>
-                    <TableHeader>Date</TableHeader>
-                    <TableHeader>Method</TableHeader>
-                    <TableHeader>UPI Details</TableHeader>
-                    <TableHeader>Amount</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {combinedModalData.payment_details && combinedModalData.payment_details.length > 0 ? (
-                    combinedModalData.payment_details.map((p, i) => (
-                      <tr key={i}>
-                        <TableCell>{p.date}</TableCell>
-                        <TableCell>{p.payment_method}</TableCell>
-                        <TableCell>{p.payment_method === 'UPI' ? (p.upi_details || '-') : '-'}</TableCell>
-                        <TableCell>₹{Number.parseFloat(p.amount || 0).toFixed(2)}</TableCell>
-                      </tr>
-                    ))
-                  ) : (
+              <>
+                <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>
+                    <strong>Expected Amount:</strong> ₹{Number.parseFloat(combinedModalData.amount_to_be_paid || 0).toFixed(2)} | 
+                    <strong> Total Paid:</strong> ₹{(combinedModalData.totalPaid || 0).toFixed(2)} | 
+                    <strong> Adjusted Amount:</strong> ₹{(combinedModalData.adjustedAmount || Number.parseFloat(combinedModalData.adjusted_amount || 0)).toFixed(2)}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#0284c7', fontWeight: 'bold' }}>
+                    Balance Due: ₹{(combinedModalData.remainingBalance !== undefined ? combinedModalData.remainingBalance : Math.max(0, Number.parseFloat(combinedModalData.amount_to_be_paid || 0) - (combinedModalData.totalPaid || 0) - Number.parseFloat(combinedModalData.adjusted_amount || 0))).toFixed(2)}
+                  </p>
+                </div>
+                <Table>
+                  <thead>
                     <tr>
-                      <TableCell colSpan="4" style={{ textAlign: 'center' }}>No payments found.</TableCell>
+                      <TableHeader>Date</TableHeader>
+                      <TableHeader>Method</TableHeader>
+                      <TableHeader>UPI Details</TableHeader>
+                      <TableHeader>Amount</TableHeader>
                     </tr>
-                  )}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {combinedModalData.payment_details && combinedModalData.payment_details.length > 0 ? (
+                      combinedModalData.payment_details.map((p, i) => (
+                        <tr key={i}>
+                          <TableCell>{p.date}</TableCell>
+                          <TableCell>{p.payment_method}</TableCell>
+                          <TableCell>{p.payment_method === 'UPI' ? (p.upi_details || '-') : '-'}</TableCell>
+                          <TableCell>₹{Number.parseFloat(p.amount || 0).toFixed(2)}</TableCell>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <TableCell colSpan="4" style={{ textAlign: 'center' }}>No payments found.</TableCell>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </>
             )}
           </ModalOverlay>
         )}

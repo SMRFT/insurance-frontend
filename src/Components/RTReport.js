@@ -117,10 +117,16 @@ const RTReport = () => {
           let totalPaid = 0;
           payments.forEach(p => totalPaid += Number.parseFloat(p.amount || 0));
 
+          const adjustedAmount = Number.parseFloat(record.adjusted_amount || 0);
+          const expectedAmount = Number.parseFloat(record.amount_to_be_paid || 0);
+          const remainingBalance = Math.max(0, expectedAmount - totalPaid - adjustedAmount);
+
           return {
             ...record,
             payment_details: payments,
             totalPaid: totalPaid,
+            adjustedAmount: adjustedAmount,
+            remainingBalance: remainingBalance,
           }
         })
         setRecords(processedRecords)
@@ -163,13 +169,17 @@ const RTReport = () => {
   const calculateTotals = () => {
     let totalAmount = 0
     let totalExpectedAmount = 0
+    let totalAdjustedAmount = 0
+    let totalRemaining = 0
 
     filteredRecords.forEach((record) => {
       totalExpectedAmount += Number.parseFloat(record.amount_to_be_paid || 0)
       totalAmount += record.totalPaid || 0
+      totalAdjustedAmount += record.adjustedAmount || 0
+      totalRemaining += record.remainingBalance || 0
     })
 
-    return { totalAmount, totalExpectedAmount }
+    return { totalAmount, totalExpectedAmount, totalAdjustedAmount, totalRemaining }
   }
 
   const handleEdit = (record) => {
@@ -201,52 +211,64 @@ const RTReport = () => {
   }
 
   const handleAddPayment = async () => {
-    if (!newPayment.amount || !newPayment.date || !newPayment.payment_method) {
-      toast.error("Please fill all payment fields");
-      return;
-    }
-    if (newPayment.payment_method === 'UPI' && !newPayment.upi_details) {
-      toast.error("Please enter UPI details");
-      return;
+    const adjustedAmtVal = Number.parseFloat(paymentModalData.adjusted_amount || 0);
+    const hasNewPayment = newPayment.amount && Number.parseFloat(newPayment.amount) > 0;
+
+    if (hasNewPayment) {
+      if (!newPayment.date || !newPayment.payment_method) {
+        toast.error("Please fill all required payment fields (Date, Amount, Payment Method)");
+        return;
+      }
+      if (newPayment.payment_method === 'UPI' && !newPayment.upi_details) {
+        toast.error("Please enter UPI details");
+        return;
+      }
     }
 
     const currentTotalPaid = paymentModalData.totalPaid || 0;
-    const newAmount = Number.parseFloat(newPayment.amount);
+    const newAmount = hasNewPayment ? Number.parseFloat(newPayment.amount) : 0;
     const expectedAmount = Number.parseFloat(paymentModalData.amount_to_be_paid || 0);
+    const totalSettled = currentTotalPaid + newAmount + adjustedAmtVal;
 
-    if (currentTotalPaid + newAmount > expectedAmount) {
-      const exceededBy = (currentTotalPaid + newAmount) - expectedAmount;
-      toast.error(`Cannot exceed expected amount (₹${expectedAmount.toFixed(2)}). Already paid: ₹${currentTotalPaid.toFixed(2)}. Exceeds by: ₹${exceededBy.toFixed(2)}.`);
+    if (expectedAmount > 0 && totalSettled > expectedAmount) {
+      const exceededBy = totalSettled - expectedAmount;
+      toast.error(`Total Settled (Paid: ₹${(currentTotalPaid + newAmount).toFixed(2)} + Adjusted: ₹${adjustedAmtVal.toFixed(2)}) cannot exceed Expected Amount (₹${expectedAmount.toFixed(2)}). Exceeds by: ₹${exceededBy.toFixed(2)}.`);
       return;
     }
 
     let newStatus = paymentModalData.status;
-    if (currentTotalPaid + newAmount >= expectedAmount) {
+    if (expectedAmount > 0 && totalSettled >= expectedAmount) {
       newStatus = "Paid";
-    } else if (currentTotalPaid + newAmount > 0) {
+    } else if (totalSettled > 0) {
       newStatus = "Partially Paid";
+    } else {
+      newStatus = "Pending";
     }
 
     try {
-      const updatedPaymentDetails = [...(paymentModalData.payment_details || []), newPayment];
+      let updatedPaymentDetails = paymentModalData.payment_details || [];
+      if (hasNewPayment) {
+        updatedPaymentDetails = [...updatedPaymentDetails, newPayment];
+      }
       const url = `${Insurancebaseurl}rtrecords/${paymentModalData.rt_id || paymentModalData.id}/`;
       const payload = {
         payment_details: updatedPaymentDetails,
+        adjusted_amount: paymentModalData.adjusted_amount || "0",
         status: newStatus
       };
 
       const response = await apiRequest(url, "PUT", payload);
       if (response.success || response.status === 200 || response.status === 201) {
-        toast.success("Payment added successfully");
+        toast.success("Payment details saved successfully");
         setPaymentModalData(null);
         setNewPayment({ date: new Date().toISOString().split('T')[0], amount: '', payment_method: 'Cash' });
         fetchRecords();
       } else {
-        toast.error("Failed to add payment");
+        toast.error("Failed to save payment details");
       }
     } catch (error) {
-      console.error("Error adding payment:", error);
-      toast.error("An error occurred while adding payment");
+      console.error("Error saving payment details:", error);
+      toast.error("An error occurred while saving payment details");
     }
   }
 
@@ -271,12 +293,14 @@ const RTReport = () => {
       "Provider",
       "Expected Amount",
       "Total Paid",
+      "Adjusted Amount",
+      "Remaining Balance",
       "Status",
       "Created By",
       "Approved By",
     ]
 
-    const { totalAmount, totalExpectedAmount } = calculateTotals()
+    const { totalAmount, totalExpectedAmount, totalAdjustedAmount, totalRemaining } = calculateTotals()
 
     const dataRows = filteredRecords.map((record, index) =>
       [
@@ -291,6 +315,8 @@ const RTReport = () => {
         record.specificInsuranceCompany || "",
         Number.parseFloat(record.amount_to_be_paid || 0).toFixed(2),
         record.totalPaid || 0,
+        record.adjustedAmount || 0,
+        record.remainingBalance || 0,
         record.status || "Pending",
         record.created_by_name || record.created_by || "",
         record.approved_by_name || record.approved_by || "",
@@ -303,6 +329,8 @@ const RTReport = () => {
       "", "", "", "", "", "", "", "", "GRAND TOTAL",
       `"${totalExpectedAmount.toFixed(2)}"`,
       `"${totalAmount.toFixed(2)}"`,
+      `"${totalAdjustedAmount.toFixed(2)}"`,
+      `"${totalRemaining.toFixed(2)}"`,
       "", "", "",
     ].join(",")
 
@@ -421,7 +449,7 @@ const RTReport = () => {
     }
   }
 
-  const { totalAmount, totalExpectedAmount } = calculateTotals()
+  const { totalAmount, totalExpectedAmount, totalAdjustedAmount, totalRemaining } = calculateTotals()
 
   return (
     <ReportContainer>
@@ -520,6 +548,8 @@ const RTReport = () => {
                 <TableHeader>Provider</TableHeader>
                 <TableHeader>Expected Amount</TableHeader>
                 <TableHeader>Total Paid</TableHeader>
+                <TableHeader>Adjusted Amount</TableHeader>
+                <TableHeader>Remaining</TableHeader>
                 <TableHeader>Status</TableHeader>
                 <TableHeader>Created By</TableHeader>
                 <TableHeader>Approved</TableHeader>
@@ -530,7 +560,7 @@ const RTReport = () => {
             <tbody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan="15" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="17" style={{ textAlign: "center", padding: "20px" }}>
                     <LoadingSpinnerContainer>
                       <Spinner />
                       <span>Loading records...</span>
@@ -555,6 +585,10 @@ const RTReport = () => {
                     <TableCell>{record.specificInsuranceCompany || "-"}</TableCell>
                     <TableCell>₹{Number.parseFloat(record.amount_to_be_paid || 0).toFixed(2)}</TableCell>
                     <TableCell>₹{record.totalPaid.toFixed(2)}</TableCell>
+                    <TableCell>₹{(record.adjustedAmount || 0).toFixed(2)}</TableCell>
+                    <TableCell style={{ fontWeight: record.remainingBalance > 0 ? "bold" : "normal", color: record.remainingBalance > 0 ? "#dc2626" : "inherit" }}>
+                      ₹{(record.remainingBalance || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell>
                       <StatusBadge color={getStatusColor(record.status)}>
                         {record.status || "Pending"}
@@ -580,18 +614,22 @@ const RTReport = () => {
                                 <div
                                   style={{
                                     padding: "8px 12px",
-                                    cursor: record.status === "Paid" ? "not-allowed" : "pointer",
+                                    cursor: (!record.is_approved || record.status === "Paid") ? "not-allowed" : "pointer",
                                     borderBottom: "1px solid #eee",
                                     fontSize: "13px",
-                                    color: record.status === "Paid" ? "#9ca3af" : "inherit"
+                                    color: (!record.is_approved || record.status === "Paid") ? "#9ca3af" : "inherit"
                                   }}
                                   onClick={() => {
+                                    if (!record.is_approved) {
+                                      toast.error("Record must be approved before entering payment details");
+                                      return;
+                                    }
                                     if (record.status !== "Paid") {
                                       setPaymentModalData(record);
                                       setActiveDropdown(null);
                                     }
                                   }}>
-                                  Payment Details
+                                  Payment Details {!record.is_approved && <span style={{ fontSize: "11px", color: "#ef4444" }}>(Requires Approval)</span>}
                                 </div>
                               )}
                               <div style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #eee", fontSize: "13px" }} onClick={() => { handleEdit(record); setActiveDropdown(null); }}>
@@ -613,7 +651,7 @@ const RTReport = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan="13" style={{ textAlign: "center", padding: "20px" }}>
+                  <TableCell colSpan="17" style={{ textAlign: "center", padding: "20px" }}>
                     No records found matching the current filters
                   </TableCell>
                 </TableRow>
@@ -630,7 +668,9 @@ const RTReport = () => {
                   </TableCell>
                   <TableCell>₹{totalExpectedAmount.toFixed(2)}</TableCell>
                   <TableCell>₹{totalAmount.toFixed(2)}</TableCell>
-                  <TableCell colSpan="2"></TableCell>
+                  <TableCell>₹{totalAdjustedAmount.toFixed(2)}</TableCell>
+                  <TableCell>₹{totalRemaining.toFixed(2)}</TableCell>
+                  <TableCell colSpan="5"></TableCell>
                 </tr>
               </tfoot>
             )}
@@ -640,38 +680,63 @@ const RTReport = () => {
         {paymentModalData && (
           <ModalOverlay onClose={() => setPaymentModalData(null)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, color: '#1f2937' }}>Add Payment Details</h3>
+              <h3 style={{ margin: 0, color: '#1f2937' }}>Payment & Adjusted Details</h3>
               <button onClick={() => setPaymentModalData(null)} style={{ border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
             </div>
-            <p><strong>Patient:</strong> {paymentModalData.patient_name}</p>
-            <p><strong>Expected Amount:</strong> ₹{Number.parseFloat(paymentModalData.amount_to_be_paid || 0).toFixed(2)}</p>
+            <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}><strong>Patient:</strong> {paymentModalData.patient_name} ({paymentModalData.patient_uhid || 'N/A'})</p>
+              <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>
+                <strong>Expected Amount:</strong> ₹{Number.parseFloat(paymentModalData.amount_to_be_paid || 0).toFixed(2)} | 
+                <strong> Total Paid:</strong> ₹{(paymentModalData.totalPaid || 0).toFixed(2)}
+              </p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#0284c7', fontWeight: 'bold' }}>
+                Remaining Balance: ₹{Math.max(0, Number.parseFloat(paymentModalData.amount_to_be_paid || 0) - (paymentModalData.totalPaid || 0) - (Number.parseFloat(paymentModalData.adjusted_amount || 0))).toFixed(2)}
+              </p>
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
-                <Label>Date</Label>
-                <Input type="date" value={newPayment.date} onChange={(e) => setNewPayment({ ...newPayment, date: e.target.value })} />
+                <Label style={{ fontWeight: 'bold' }}>Adjusted Amount (₹)</Label>
+                <Input 
+                  type="text" 
+                  inputMode="decimal" 
+                  placeholder="Enter adjusted amount" 
+                  value={paymentModalData.adjusted_amount || ''} 
+                  onChange={(e) => setPaymentModalData({ ...paymentModalData, adjusted_amount: e.target.value })} 
+                />
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Amount patient shouldn't have to pay (discount / waiver)</span>
               </div>
-              <div>
-                <Label>Amount</Label>
-                <Input type="text" inputMode="decimal" placeholder="Enter amount" value={newPayment.amount} onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })} />
-              </div>
-              <div>
-                <Label>Payment Method</Label>
-                <Select value={newPayment.payment_method} onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}>
-                  <option value="">Select Method</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Card">Card</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="UPI">UPI</option>
-                </Select>
-              </div>
-              {newPayment.payment_method === 'UPI' && (
-                <div>
-                  <Label>UPI Transaction ID</Label>
-                  <Input type="text" placeholder="Enter UPI details" value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({ ...newPayment, upi_details: e.target.value })} />
+
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#374151' }}>Add New Payment Entry (Optional)</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <Label>Date</Label>
+                    <Input type="date" value={newPayment.date} onChange={(e) => setNewPayment({ ...newPayment, date: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Amount (₹)</Label>
+                    <Input type="text" inputMode="decimal" placeholder="Enter amount" value={newPayment.amount} onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Payment Method</Label>
+                    <Select value={newPayment.payment_method} onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}>
+                      <option value="">Select Method</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="UPI">UPI</option>
+                    </Select>
+                  </div>
+                  {newPayment.payment_method === 'UPI' && (
+                    <div>
+                      <Label>UPI Transaction ID</Label>
+                      <Input type="text" placeholder="Enter UPI details" value={newPayment.upi_details || ''} onChange={(e) => setNewPayment({ ...newPayment, upi_details: e.target.value })} />
+                    </div>
+                  )}
                 </div>
-              )}
-              <Button onClick={handleAddPayment} style={{ marginTop: '10px', background: primaryColor }}>Save Payment</Button>
+              </div>
+              <Button onClick={handleAddPayment} style={{ marginTop: '10px', background: primaryColor }}>Save Details</Button>
             </div>
           </ModalOverlay>
         )}
@@ -743,32 +808,44 @@ const RTReport = () => {
             )}
 
             {activeTab === "payment_history" && (
-              <Table>
-                <thead>
-                  <tr>
-                    <TableHeader>Date</TableHeader>
-                    <TableHeader>Method</TableHeader>
-                    <TableHeader>UPI Details</TableHeader>
-                    <TableHeader>Amount</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {combinedModalData.payment_details && combinedModalData.payment_details.length > 0 ? (
-                    combinedModalData.payment_details.map((p, i) => (
-                      <tr key={i}>
-                        <TableCell>{p.date}</TableCell>
-                        <TableCell>{p.payment_method}</TableCell>
-                        <TableCell>{p.payment_method === 'UPI' ? (p.upi_details || '-') : '-'}</TableCell>
-                        <TableCell>₹{Number.parseFloat(p.amount || 0).toFixed(2)}</TableCell>
-                      </tr>
-                    ))
-                  ) : (
+              <>
+                <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#64748b' }}>
+                    <strong>Expected Amount:</strong> ₹{Number.parseFloat(combinedModalData.amount_to_be_paid || 0).toFixed(2)} | 
+                    <strong> Total Paid:</strong> ₹{(combinedModalData.totalPaid || 0).toFixed(2)} | 
+                    <strong> Adjusted Amount:</strong> ₹{(combinedModalData.adjustedAmount || Number.parseFloat(combinedModalData.adjusted_amount || 0)).toFixed(2)}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#0284c7', fontWeight: 'bold' }}>
+                    Remaining Balance: ₹{(combinedModalData.remainingBalance !== undefined ? combinedModalData.remainingBalance : Math.max(0, Number.parseFloat(combinedModalData.amount_to_be_paid || 0) - (combinedModalData.totalPaid || 0) - Number.parseFloat(combinedModalData.adjusted_amount || 0))).toFixed(2)}
+                  </p>
+                </div>
+                <Table>
+                  <thead>
                     <tr>
-                      <TableCell colSpan="4" style={{ textAlign: 'center' }}>No payments found.</TableCell>
+                      <TableHeader>Date</TableHeader>
+                      <TableHeader>Method</TableHeader>
+                      <TableHeader>UPI Details</TableHeader>
+                      <TableHeader>Amount</TableHeader>
                     </tr>
-                  )}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {combinedModalData.payment_details && combinedModalData.payment_details.length > 0 ? (
+                      combinedModalData.payment_details.map((p, i) => (
+                        <tr key={i}>
+                          <TableCell>{p.date}</TableCell>
+                          <TableCell>{p.payment_method}</TableCell>
+                          <TableCell>{p.payment_method === 'UPI' ? (p.upi_details || '-') : '-'}</TableCell>
+                          <TableCell>₹{Number.parseFloat(p.amount || 0).toFixed(2)}</TableCell>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <TableCell colSpan="4" style={{ textAlign: 'center' }}>No payments found.</TableCell>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </>
             )}
           </ModalOverlay>
         )}

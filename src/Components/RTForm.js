@@ -129,8 +129,8 @@ const RTForm = () => {
   };
 
   const executeSubmit = async (historyData = []) => {
-    if (!formData.patient_uhid || !formData.patient_ip_number || !formData.patient_name || !formData.date_of_admission) {
-      toast.error("Please fill required fields (Patient UHID, Patient IP Number, Patient Name, Date of Admission).");
+    if (!formData.patient_uhid || !formData.patient_name || !formData.date_of_admission) {
+      toast.error("Please fill required fields (Patient UHID, Patient Name, Date of Admission).");
       return;
     }
 
@@ -257,14 +257,13 @@ const RTForm = () => {
               />
             </div>
             <div>
-              <Label>Patient IP Number <span style={{ color: "red" }}>*</span></Label>
+              <Label>Patient IP Number</Label>
               <Input
                 type="text"
                 name="patient_ip_number"
                 value={formData.patient_ip_number}
                 onChange={handleChange}
                 placeholder="Enter Patient IP Number"
-                required
               />
             </div>
             <div>

@@ -233,14 +233,13 @@ const ChemoForm = () => {
               />
             </div>
             <div>
-              <Label>Patient IP Number <span style={{ color: "red" }}>*</span></Label>
+              <Label>Patient IP Number</Label>
               <Input
                 type="text"
                 name="patient_ip_number"
                 value={formData.patient_ip_number}
                 onChange={handleChange}
                 placeholder="Enter Patient IP Number"
-                required
               />
             </div>
             <div>
